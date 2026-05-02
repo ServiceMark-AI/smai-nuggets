@@ -1,0 +1,57 @@
+<% content_for :title, "Application Mailbox" %>
+
+<h1 class="h3 mb-1">Application Mailbox</h1>
+<p class="text-muted mb-4">
+  The single OAuth-connected Gmail account the app uses to send Devise
+  emails (password resets, etc.) and tenant invitations. Distinct from
+  the per-user Gmail connections used for on-behalf-of operator sends.
+</p>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <% if @mailbox %>
+      <dl class="row mb-3">
+        <dt class="col-sm-3">Connected as</dt>
+        <dd class="col-sm-9">
+          <%= @mailbox.email %>
+          <span class="badge text-bg-success ms-2">Connected</span>
+        </dd>
+
+        <dt class="col-sm-3">Provider</dt>
+        <dd class="col-sm-9"><%= @mailbox.provider %></dd>
+
+        <dt class="col-sm-3">Connected at</dt>
+        <dd class="col-sm-9"><%= @mailbox.created_at.to_fs(:long) %></dd>
+
+        <dt class="col-sm-3">Token expires</dt>
+        <dd class="col-sm-9">
+          <% if @mailbox.expires_at %>
+            <%= @mailbox.expires_at.to_fs(:long) %>
+            <% if @mailbox.expired? %>
+              <span class="badge text-bg-warning ms-2">Expired — will refresh on next send</span>
+            <% end %>
+          <% else %>
+            <span class="text-muted">—</span>
+          <% end %>
+        </dd>
+      </dl>
+
+      <div class="d-flex gap-2">
+        <%= button_to "Reconnect", connect_admin_application_mailbox_path,
+              method: :post, class: "btn btn-outline-primary btn-sm",
+              form: { class: "d-inline" } %>
+        <%= button_to "Disconnect", admin_application_mailbox_path,
+              method: :delete, class: "btn btn-outline-danger btn-sm",
+              form: { class: "d-inline", data: { turbo_confirm: "Disconnect the application mailbox? Outbound emails will stop being sent until you reconnect." } } %>
+      </div>
+    <% else %>
+      <p class="mb-3">
+        <span class="badge text-bg-secondary">Not connected</span>
+        Outbound mail will be dropped until a mailbox is connected.
+      </p>
+      <%= button_to "Connect a Google account", connect_admin_application_mailbox_path,
+            method: :post, class: "btn btn-primary",
+            form: { class: "d-inline" } %>
+    <% end %>
+  </div>
+</div>

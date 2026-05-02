@@ -76,7 +76,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/not assigned to a tenant/i, flash[:alert].to_s)
   end
 
-  test "tenant member without a connected Gmail still creates the invitation but no email is sent" do
+  test "without an application mailbox the invitation is created but no email is sent" do
     inviter = User.create!(email: "inviter@example.com", password: "Password1", is_pending: false, tenant: @tenant)
     OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
     sign_in inviter
@@ -88,13 +88,13 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_empty GmailSender.deliveries
     assert_redirected_to users_path
     follow_redirect!
-    assert_match(/no Gmail account is connected/i, response.body)
+    assert_match(/no application mailbox is connected/i, response.body)
   end
 
-  test "tenant member with a connected Gmail sends the invite via that delegation" do
+  test "invites send via the application mailbox when one is connected" do
     inviter = User.create!(email: "inviter2@example.com", password: "Password1", is_pending: false, tenant: @tenant, first_name: "Inga", last_name: "Vega")
     OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    inviter.email_delegations.create!(provider: "google_oauth2", email: "inviter-gmail@example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
     sign_in inviter
 
     GmailSender.reset_deliveries!
@@ -105,7 +105,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
     assert_equal "newhire@example.com", delivery[:to]
-    assert_equal "inviter-gmail@example.com", delivery[:from]
+    assert_equal "noreply@app.example.com", delivery[:from]
     assert_match @tenant.name, delivery[:subject]
     invitation = Invitation.where(email: "newhire@example.com").last
     assert_equal @tenant, invitation.tenant

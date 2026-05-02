@@ -38,14 +38,14 @@ class InvitationsController < ApplicationController
     )
 
     if invitation.save
-      delegation = current_user.email_delegations.first
-      if delegation.nil?
+      mailbox = ApplicationMailbox.current
+      if mailbox.nil?
         redirect_to users_path,
-          notice: "Invitation created for #{invitation.email}, but no Gmail account is connected on your profile yet — email not sent."
+          notice: "Invitation created for #{invitation.email}, but no application mailbox is connected — email not sent. An admin can connect one at /admin/application_mailbox."
         return
       end
 
-      sent = GmailSender.new(delegation).send_email(
+      sent = GmailSender.new(mailbox).send_email(
         to: invitation.email,
         subject: "You're invited to #{tenant.name}",
         body: invitation_body(invitation, tenant)

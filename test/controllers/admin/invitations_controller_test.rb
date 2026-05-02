@@ -18,19 +18,19 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "admin without a connected Gmail still creates the invitation but no email is sent" do
+  test "without an application mailbox the invitation is created but no email is sent" do
     sign_in @admin
     assert_difference "Invitation.count", 1 do
       post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com" } }
     end
     assert_empty GmailSender.deliveries
     follow_redirect!
-    assert_match(/no Gmail account is connected/i, response.body)
+    assert_match(/no application mailbox is connected/i, response.body)
   end
 
-  test "admin with a connected Gmail sends the invitation email via that delegation" do
+  test "invites send via the application mailbox when one is connected" do
     @admin.update!(tenant: @tenant)
-    @admin.email_delegations.create!(provider: "google_oauth2", email: "admin-gmail@example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
     sign_in @admin
 
     assert_difference "Invitation.count", 1 do
@@ -40,7 +40,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
     assert_equal "lead@example.com", delivery[:to]
-    assert_equal "admin-gmail@example.com", delivery[:from]
+    assert_equal "noreply@app.example.com", delivery[:from]
     assert_match @tenant.name, delivery[:subject]
     invitation = Invitation.last
     assert_match invitation.token, delivery[:body]

@@ -5,6 +5,12 @@ class EmailDelegationsController < ApplicationController
       redirect_to profile_path, alert: "Google sign-in didn't return any credentials." and return
     end
 
+    # OAuth flows can target either the singleton application mailbox or a
+    # per-user delegation. The initiator stashes a flag in the session.
+    if session.delete(:oauth_target) == "application_mailbox"
+      return create_application_mailbox(auth)
+    end
+
     delegation = current_user.email_delegations.find_or_initialize_by(
       provider: auth.provider,
       email: auth.info.email
@@ -19,6 +25,12 @@ class EmailDelegationsController < ApplicationController
   end
 
   def failure
+    # If the failure occurred during an application-mailbox connect attempt,
+    # the user is an admin returning to the setup page.
+    if session.delete(:oauth_target) == "application_mailbox"
+      redirect_to admin_application_mailbox_path,
+        alert: "Couldn't connect Google account: #{params[:message] || 'unknown error'}." and return
+    end
     redirect_to profile_path, alert: "Couldn't connect Google account: #{params[:message] || 'unknown error'}."
   end
 
@@ -26,5 +38,24 @@ class EmailDelegationsController < ApplicationController
     delegation = current_user.email_delegations.find(params[:id])
     delegation.destroy
     redirect_to profile_path, notice: "Disconnected #{delegation.email}."
+  end
+
+  private
+
+  def create_application_mailbox(auth)
+    unless current_user.is_admin
+      redirect_to root_path, alert: "Only an admin can configure the application mailbox." and return
+    end
+
+    mailbox = ApplicationMailbox.first_or_initialize
+    mailbox.provider = auth.provider
+    mailbox.email = auth.info.email
+    mailbox.access_token = auth.credentials.token
+    mailbox.refresh_token = auth.credentials.refresh_token if auth.credentials.refresh_token.present?
+    mailbox.expires_at = Time.zone.at(auth.credentials.expires_at) if auth.credentials.expires_at
+    mailbox.scopes = Array(auth.extra&.dig("raw_info", "scope") || auth.credentials.scope).join(" ")
+    mailbox.save!
+
+    redirect_to admin_application_mailbox_path, notice: "Application mailbox connected: #{mailbox.email}."
   end
 end
