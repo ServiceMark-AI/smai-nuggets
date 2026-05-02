@@ -13,7 +13,9 @@
       "Bash(chmod +x /tmp/create_issues.sh)",
       "Bash(bash /tmp/create_issues.sh)",
       "Bash(gh pr *)",
-      "Bash(gh issue *)"
+      "Bash(gh issue *)",
+      "Bash(locations)",
+      "Bash(grep -nE \"\\(locations[ _]table|locations \\\\\\(|`locations`|Location-Level|Location Schema|## .*Location\\)\" docs/prd/PRD-*.md)"
     ]
   }
 }

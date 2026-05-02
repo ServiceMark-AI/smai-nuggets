@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_202800) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_203722) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -136,6 +136,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_202800) do
     t.bigint "owner_id", null: false
     t.string "pipeline_stage"
     t.decimal "proposal_value", precision: 12, scale: 2
+    t.bigint "scenario_id"
     t.string "scenario_key"
     t.integer "status", default: 0, null: false
     t.string "status_details"
@@ -147,6 +148,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_202800) do
     t.index ["job_type_id"], name: "index_job_proposals_on_job_type_id"
     t.index ["organization_id"], name: "index_job_proposals_on_organization_id"
     t.index ["owner_id"], name: "index_job_proposals_on_owner_id"
+    t.index ["scenario_id"], name: "index_job_proposals_on_scenario_id"
     t.index ["tenant_id"], name: "index_job_proposals_on_tenant_id"
   end
 
@@ -346,6 +348,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_202800) do
   add_foreign_key "job_proposal_attachments", "users", column: "uploaded_by_user_id"
   add_foreign_key "job_proposals", "job_types"
   add_foreign_key "job_proposals", "organizations"
+  add_foreign_key "job_proposals", "scenarios"
   add_foreign_key "job_proposals", "tenants"
   add_foreign_key "job_proposals", "users", column: "closed_by_user_id"
   add_foreign_key "job_proposals", "users", column: "created_by_user_id"

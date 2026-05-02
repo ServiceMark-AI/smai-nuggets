@@ -106,6 +106,16 @@ class Admin::CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='campaign_step[template_subject]'][value=?]", step.template_subject
   end
 
+  test "edit page shows a breadcrumb back to the campaign" do
+    sign_in @admin
+    step = @campaign.steps.first
+    get edit_admin_campaign_step_url(@campaign, step)
+    assert_response :success
+    assert_select "nav[aria-label=breadcrumb] a[href=?]", admin_campaigns_path, text: "Campaigns"
+    assert_select "nav[aria-label=breadcrumb] a[href=?]", admin_campaign_path(@campaign), text: @campaign.name
+    assert_select "nav[aria-label=breadcrumb] li.active", text: "Edit Step"
+  end
+
   test "admin update with valid params changes the step" do
     sign_in @admin
     step = @campaign.steps.first

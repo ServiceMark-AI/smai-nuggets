@@ -69,10 +69,10 @@
       <dd class="col-sm-9"><%= @job_proposal.organization.name %></dd>
 
       <dt class="col-sm-3">Owner</dt>
-      <dd class="col-sm-9"><%= @job_proposal.owner.email %></dd>
+      <dd class="col-sm-9"><%= @job_proposal.owner.display_name %></dd>
 
       <dt class="col-sm-3">Created by</dt>
-      <dd class="col-sm-9"><%= @job_proposal.created_by_user.email %></dd>
+      <dd class="col-sm-9"><%= @job_proposal.created_by_user.display_name %></dd>
 
       <dt class="col-sm-3">Created at</dt>
       <dd class="col-sm-9"><%= @job_proposal.created_at.to_fs(:long) %></dd>

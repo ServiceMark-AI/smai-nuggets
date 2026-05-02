@@ -5,6 +5,7 @@ class JobProposal < ApplicationRecord
   belongs_to :created_by_user, class_name: "User"
   belongs_to :closed_by_user, class_name: "User", optional: true
   belongs_to :job_type, optional: true
+  belongs_to :scenario, optional: true
 
   has_many :attachments, class_name: "JobProposalAttachment", dependent: :destroy
 

@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: "users/registrations" }
-  resources :invitations, only: [:show]
+  resources :invitations, only: [:show, :create]
+  resources :users, only: [:index]
   get "profile" => "profiles#show", as: :profile
   get "profile/edit" => "profiles#edit", as: :edit_profile
   patch "profile" => "profiles#update"

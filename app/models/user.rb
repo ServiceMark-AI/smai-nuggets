@@ -12,4 +12,8 @@ class User < ApplicationRecord
   def full_name
     [first_name, last_name].compact_blank.join(" ").presence
   end
+
+  def display_name
+    full_name || email
+  end
 end
