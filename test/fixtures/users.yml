@@ -3,7 +3,17 @@
 one:
   email: one@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>
+  tenant: one
+  is_pending: false
 
 two:
   email: two@example.com
   encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>
+  tenant: two
+  is_pending: false
+
+admin:
+  email: admin@example.com
+  encrypted_password: <%= Devise::Encryptor.digest(User, "password123") %>
+  is_admin: true
+  is_pending: false

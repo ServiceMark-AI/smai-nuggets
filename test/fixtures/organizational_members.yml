@@ -6,6 +6,6 @@ one:
   role: admin
 
 two:
-  organization: two
+  organization: three
   user: two
-  role: member
+  role: admin

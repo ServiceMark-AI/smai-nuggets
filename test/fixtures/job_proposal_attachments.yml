@@ -1,9 +1,5 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  job_proposal: one
+  job_proposal: in_users_org
   uploaded_by_user: one
-
-two:
-  job_proposal: two
-  uploaded_by_user: two

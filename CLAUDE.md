@@ -27,6 +27,7 @@ docker-compose exec web bundle exec rails console
 
 - **Always run the full test suite before considering any task complete.** Do not report a task as done if tests are failing.
 - **If tests fail, update the application code to make them pass** — do not weaken assertions, skip tests, or delete tests to make the suite green. Fix the underlying issue.
+- **Write unit tests for every controller you add or change, covering each branch of its logic** — unauthenticated access, empty-state, scoped reads/writes, admin paths, error cases. Don't ship a controller without tests.
 
 ## Commit policy
 

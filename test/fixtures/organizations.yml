@@ -8,3 +8,7 @@ two:
   name: Acme West
   tenant: one
   parent: one
+
+three:
+  name: Globex Main
+  tenant: two
