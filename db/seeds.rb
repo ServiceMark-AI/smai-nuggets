@@ -375,3 +375,42 @@ DEMO_TENANTS.each do |entry|
     OrganizationalMember.find_or_create_by!(organization: org, user: user) { |m| m.role = role }
   end
 end
+
+# --- Demo locations for the dozen tenants' HQ orgs ------------------------
+# Idempotent. Cities/states roughly fit the tenant's geographic flavor.
+
+DEMO_LOCATIONS = {
+  "Pacific Coast Restoration"        => { city: "San Diego",      state: "CA", street: "1240 Harbor Drive",     zip: "92101", phone: "(619) 555-0142" },
+  "Greater Boston Disaster Services" => { city: "Cambridge",      state: "MA", street: "88 Kendall Square",     zip: "02139", phone: "(617) 555-0107" },
+  "Heartland Restoration Group"      => { city: "Kansas City",    state: "MO", street: "4421 Main Street",      zip: "64111", phone: "(816) 555-0188" },
+  "Sunbelt Cleanup Co."              => { city: "Phoenix",        state: "AZ", street: "2900 Camelback Road",   zip: "85016", phone: "(602) 555-0149" },
+  "Mountain View Restoration"        => { city: "Boulder",        state: "CO", street: "1755 Pearl Street",     zip: "80302", phone: "(303) 555-0163" },
+  "Lakeshore Mitigation Partners"    => { city: "Milwaukee",      state: "WI", street: "612 Lakefront Drive",   zip: "53202", phone: "(414) 555-0124" },
+  "Desert Vista Services"            => { city: "Las Vegas",      state: "NV", street: "3700 W Sahara Avenue",  zip: "89102", phone: "(702) 555-0156" },
+  "Northern Forest Restoration"      => { city: "Duluth",         state: "MN", street: "210 Lake Avenue",       zip: "55802", phone: "(218) 555-0119" },
+  "Coastal Cleanup Network"          => { city: "Wilmington",     state: "NC", street: "415 South Front Street", zip: "28401", phone: "(910) 555-0173" },
+  "Midwest Property Recovery"        => { city: "Indianapolis",   state: "IN", street: "1 American Square",     zip: "46282", phone: "(317) 555-0181" },
+  "Gulf Stream Restoration"          => { city: "Tampa",          state: "FL", street: "401 East Jackson Street", zip: "33602", phone: "(813) 555-0167" },
+  "River Valley Services"            => { city: "Portland",       state: "OR", street: "1100 SW 6th Avenue",    zip: "97204", phone: "(503) 555-0192" }
+}.freeze
+
+DEMO_LOCATIONS.each do |tenant_name, attrs|
+  tenant = Tenant.find_by(name: tenant_name)
+  next unless tenant
+  org = tenant.organizations.find_by(name: "HQ")
+  next unless org
+  next if org.location
+
+  display_name = tenant_name.split.first(2).join(" ") # e.g. "Pacific Coast"
+
+  Location.create!(
+    organization: org,
+    display_name: display_name,
+    address_line_1: attrs[:street],
+    city: attrs[:city],
+    state: attrs[:state],
+    postal_code: attrs[:zip],
+    phone_number: attrs[:phone],
+    is_active: true
+  )
+end

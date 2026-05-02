@@ -28,7 +28,9 @@ Rails.application.routes.draw do
       end
       resources :scenario_activations, only: [:create, :destroy]
     end
-    resources :organizations, only: [:show]
+    resources :organizations, only: [:show] do
+      resources :locations, only: [:new, :create]
+    end
     resources :job_types do
       resources :scenarios, only: [:new, :create]
     end

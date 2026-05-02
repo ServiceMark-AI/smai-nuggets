@@ -1,0 +1,20 @@
+<% content_for :title, "New Location for #{@organization.name}" %>
+
+<%= render "shared/admin_breadcrumb",
+      tenant: @organization.tenant,
+      organization: @organization,
+      location: @location,
+      current: :location %>
+
+<h1 class="h3 mb-3">New Location for <%= @organization.name %></h1>
+
+<p class="text-muted">
+  One location per organization. Required fields below feed the email signature
+  block. The location stays inactive until every required field is present.
+</p>
+
+<%= render "locations/form",
+      location_form_url: admin_organization_locations_path(@organization),
+      location_form_method: :post,
+      submit_label: "Create Location",
+      cancel_url: admin_organization_path(@organization) %>

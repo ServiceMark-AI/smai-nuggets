@@ -1,9 +1,11 @@
 <% content_for :title, @organization.name %>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0"><%= @organization.name %></h1>
-  <%= link_to "← Back to #{@organization.tenant.name}", admin_tenant_path(@organization.tenant), class: "btn btn-sm btn-outline-secondary" %>
-</div>
+<%= render "shared/admin_breadcrumb",
+      tenant: @organization.tenant,
+      organization: @organization,
+      current: :organization %>
+
+<h1 class="h3 mb-3"><%= @organization.name %></h1>
 
 <div class="row g-3">
   <div class="col-lg-6">
@@ -42,7 +44,13 @@
     </div>
 
     <div class="card shadow-sm">
-      <div class="card-header"><h2 class="h6 mb-0">Location</h2></div>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0">Location</h2>
+        <% unless @location %>
+          <%= link_to "+ New Location", new_admin_organization_location_path(@organization),
+                class: "btn btn-sm btn-primary" %>
+        <% end %>
+      </div>
       <div class="card-body">
         <% if @location %>
           <dl class="row mb-0">
