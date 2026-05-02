@@ -81,6 +81,15 @@ class CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form input[name='campaign[name]'][value=?]", @campaign.name
   end
 
+  test "admin edit page lists steps and links to add step" do
+    sign_in @admin
+    get edit_campaign_url(@campaign)
+    assert_response :success
+    assert_match "Welcome", response.body  # subject of approved_step_one fixture
+    assert_match "Following up", response.body  # subject of approved_step_two
+    assert_select "a[href=?]", new_campaign_step_path(@campaign), text: "Add step"
+  end
+
   test "admin update with valid params changes the record and redirects" do
     sign_in @admin
     patch campaign_url(@campaign), params: { campaign: { name: "Renamed", status: "paused" } }
