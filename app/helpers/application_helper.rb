@@ -14,4 +14,14 @@ module ApplicationHelper
   def missing_env_vars
     REQUIRED_ENV_VARS.reject { |key| ENV[key].present? }
   end
+
+  GOOGLE_OAUTH_ENV_VARS = %w[GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET].freeze
+
+  def google_oauth_configured?
+    GOOGLE_OAUTH_ENV_VARS.all? { |key| ENV[key].present? }
+  end
+
+  def missing_google_oauth_env_vars
+    GOOGLE_OAUTH_ENV_VARS.reject { |key| ENV[key].present? }
+  end
 end

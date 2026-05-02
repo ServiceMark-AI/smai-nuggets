@@ -36,10 +36,17 @@
         </dd>
       </dl>
 
-      <div class="d-flex gap-2">
-        <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
-          <%= f.hidden_field :target, value: "application_mailbox" %>
-          <%= f.submit "Reconnect", class: "btn btn-outline-primary btn-sm" %>
+      <div class="d-flex gap-2 align-items-center">
+        <% if google_oauth_configured? %>
+          <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
+            <%= f.hidden_field :target, value: "application_mailbox" %>
+            <%= f.submit "Reconnect", class: "btn btn-outline-primary btn-sm" %>
+          <% end %>
+        <% else %>
+          <button type="button" class="btn btn-outline-primary btn-sm" disabled>Reconnect</button>
+          <span class="small text-muted">
+            Set <code><%= missing_google_oauth_env_vars.join("</code>, <code>").html_safe %></code> to enable.
+          </span>
         <% end %>
         <%= button_to "Disconnect", admin_application_mailbox_path,
               method: :delete, class: "btn btn-outline-danger btn-sm",
@@ -50,9 +57,18 @@
         <span class="badge text-bg-secondary">Not connected</span>
         Outbound mail will be dropped until a mailbox is connected.
       </p>
-      <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
-        <%= f.hidden_field :target, value: "application_mailbox" %>
-        <%= f.submit "Connect a Google account", class: "btn btn-primary" %>
+      <% if google_oauth_configured? %>
+        <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
+          <%= f.hidden_field :target, value: "application_mailbox" %>
+          <%= f.submit "Connect a Google account", class: "btn btn-primary" %>
+        <% end %>
+      <% else %>
+        <button type="button" class="btn btn-primary" disabled>Connect a Google account</button>
+        <div class="alert alert-warning mt-3 mb-0 small">
+          <strong>Google OAuth isn't configured yet.</strong>
+          Set <code><%= missing_google_oauth_env_vars.join("</code> and <code>").html_safe %></code>
+          in your environment (see <code>.env.example</code>), then restart the app.
+        </div>
       <% end %>
     <% end %>
   </div>
