@@ -2,7 +2,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">Job Types</h1>
-  <%= link_to "+ New Job Type", new_job_type_path, class: "btn btn-primary btn-sm" %>
+  <%= link_to "+ New Job Type", new_admin_job_type_path, class: "btn btn-primary btn-sm" %>
 </div>
 
 <div class="card shadow-sm">
@@ -11,6 +11,7 @@
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
+            <th>Tenant</th>
             <th>Name</th>
             <th>Type code</th>
             <th>Description</th>
@@ -19,7 +20,8 @@
         <tbody>
           <% @job_types.each do |jt| %>
             <tr>
-              <td><%= link_to jt.name, jt %></td>
+              <td><%= link_to jt.tenant.name, admin_tenant_path(jt.tenant), class: "text-muted small" %></td>
+              <td><%= link_to jt.name, admin_job_type_path(jt) %></td>
               <td><code><%= jt.type_code %></code></td>
               <td><%= jt.description.presence || content_tag(:span, "—", class: "text-muted") %></td>
             </tr>
@@ -28,7 +30,7 @@
       </table>
     <% else %>
       <div class="p-4 text-center text-muted">
-        No job types yet. <%= link_to "Add the first one", new_job_type_path %>.
+        No job types yet. <%= link_to "Add the first one", new_admin_job_type_path %>.
       </div>
     <% end %>
   </div>

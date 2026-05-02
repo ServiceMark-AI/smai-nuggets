@@ -1,12 +1,12 @@
 <% content_for :title, @job_type.name %>
 
-<%= link_to "← All Job Types", job_types_path, class: "small text-muted" %>
+<%= link_to "← All Job Types", admin_job_types_path, class: "small text-muted" %>
 
 <div class="d-flex justify-content-between align-items-center mt-2 mb-4">
   <h1 class="h3 mb-0"><%= @job_type.name %></h1>
   <div class="d-flex gap-2">
-    <%= link_to "Edit", edit_job_type_path(@job_type), class: "btn btn-outline-primary btn-sm" %>
-    <%= button_to "Delete", @job_type, method: :delete, class: "btn btn-outline-danger btn-sm",
+    <%= link_to "Edit", edit_admin_job_type_path(@job_type), class: "btn btn-outline-primary btn-sm" %>
+    <%= button_to "Delete", admin_job_type_path(@job_type), method: :delete, class: "btn btn-outline-danger btn-sm",
           form: { data: { turbo_confirm: "Delete this job type? Existing job proposals stay but lose their job type reference." } } %>
   </div>
 </div>
@@ -24,7 +24,7 @@
       <dd class="col-sm-9"><%= simple_format(@job_type.description.presence || content_tag(:span, "—", class: "text-muted").to_s) %></dd>
 
       <dt class="col-sm-3">Tenant</dt>
-      <dd class="col-sm-9"><%= @job_type.tenant.name %></dd>
+      <dd class="col-sm-9"><%= link_to @job_type.tenant.name, admin_tenant_path(@job_type.tenant) %></dd>
 
       <dt class="col-sm-3">Job proposals</dt>
       <dd class="col-sm-9"><%= @job_type.job_proposals.count %></dd>

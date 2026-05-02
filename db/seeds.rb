@@ -65,9 +65,53 @@ OrganizationalMember.find_or_create_by!(organization: demo_org, user: demo_owner
 admin.update!(tenant: demo_tenant) if admin.tenant.nil?
 OrganizationalMember.find_or_create_by!(organization: demo_org, user: admin) { |m| m.role = :admin }
 
-roof_type = JobType.find_or_create_by!(tenant: demo_tenant, name: "Roof Replacement") { |t| t.description = "Full tear-off and re-roof." }
-gutter_type = JobType.find_or_create_by!(tenant: demo_tenant, name: "Gutter Install") { |t| t.description = "Gutters and downspouts." }
-siding_type = JobType.find_or_create_by!(tenant: demo_tenant, name: "Siding") { |t| t.description = "Siding replacement." }
+def upsert_job_type!(tenant:, name:, type_code:, description:)
+  jt = JobType.find_or_initialize_by(tenant: tenant, name: name)
+  jt.type_code ||= type_code
+  jt.description ||= description
+  jt.save!
+  jt
+end
+
+roof_type   = upsert_job_type!(tenant: demo_tenant, name: "Roof Replacement", type_code: "ROOF-REPL",   description: "Full tear-off and re-roof.")
+gutter_type = upsert_job_type!(tenant: demo_tenant, name: "Gutter Install",   type_code: "GUTTER-INST", description: "Gutters and downspouts.")
+siding_type = upsert_job_type!(tenant: demo_tenant, name: "Siding",           type_code: "SIDING",      description: "Siding replacement.")
+
+# Baseline restoration job types — slug from SPEC-03 §7 becomes the type_code.
+RESTORATION_JOB_TYPES = [
+  {
+    type_code: "general_cleaning",
+    name: "General Cleaning",
+    description: "One-time deep cleaning beyond normal janitorial scope: post-construction cleanup, move-in / move-out, odor remediation, and HVAC cleaning."
+  },
+  {
+    type_code: "mold_remediation",
+    name: "Mold Remediation",
+    description: "Containment, removal, and remediation of mold growth — including mold discovered during or after a water event."
+  },
+  {
+    type_code: "structural_cleaning",
+    name: "Structural Cleaning",
+    description: "Cleanup of structural surfaces after fire, smoke, or water damage. Soot and odor removal, deodorization, post-water deep cleaning."
+  },
+  {
+    type_code: "trauma_biohazard",
+    name: "Trauma / Biohazard",
+    description: "Trauma scene cleanup and biohazard exposure work — blood, bodily fluids, regulated materials. Legal review required before any communication ships."
+  },
+  {
+    type_code: "water_mitigation",
+    name: "Water Mitigation",
+    description: "Water removal, drying, and dehumidification after a water event. Time-sensitive — the first 48 hours determine downstream scope."
+  }
+].freeze
+
+RESTORATION_JOB_TYPES.each do |attrs|
+  JobType.find_or_create_by!(tenant: demo_tenant, type_code: attrs[:type_code]) do |jt|
+    jt.name = attrs[:name]
+    jt.description = attrs[:description]
+  end
+end
 
 DEMO_PROPOSALS = [
   { first: "Alice",    last: "Adams",     city: "Springfield",  state: "IL", value:  9_800.00, status: :new,    type: :roof,   pipeline: "lead",        overlay: nil },

@@ -1,11 +1,11 @@
 <aside class="col-md-3 col-lg-2 bg-body-tertiary border-end py-4">
   <nav class="nav flex-column">
     <%= link_to "Job Proposals", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals'}" %>
-    <%= link_to "Job Types", job_types_path, class: "nav-link #{'active' if controller_name == 'job_types'}" %>
 
     <% if current_user.is_admin %>
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Admin</h6>
       <%= link_to "Tenants", admin_tenants_path, class: "nav-link #{'active' if controller_name == 'tenants'}" %>
+      <%= link_to "Job Types", admin_job_types_path, class: "nav-link #{'active' if controller_path == 'admin/job_types'}" %>
       <%= link_to "Campaigns", admin_campaigns_path, class: "nav-link #{'active' if controller_name == 'campaigns'}" %>
 
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">LLM</h6>

@@ -1,4 +1,4 @@
-<%= form_with model: @job_type, local: true do |f| %>
+<%= form_with model: @job_type, url: form_url, method: form_method, local: true do |f| %>
   <% if @job_type.errors.any? %>
     <div class="alert alert-danger">
       <strong>Please fix the following:</strong>
@@ -11,6 +11,19 @@
   <% end %>
 
   <div class="mb-3">
+    <%= f.label :tenant_id, "Tenant", class: "form-label" %>
+    <% if @job_type.persisted? %>
+      <input type="text" value="<%= @job_type.tenant.name %>" class="form-control" disabled>
+      <%= f.hidden_field :tenant_id %>
+      <div class="form-text">Tenant cannot be changed after creation.</div>
+    <% else %>
+      <%= f.collection_select :tenant_id, Tenant.order(:name), :id, :name,
+            { include_blank: "Select a tenant…" },
+            class: "form-select", required: true %>
+    <% end %>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :name, class: "form-label" %>
     <%= f.text_field :name, class: "form-control", required: true, autofocus: true %>
   </div>
@@ -19,7 +32,7 @@
     <%= f.label :type_code, "Type code", class: "form-label" %>
     <%= f.text_field :type_code, class: "form-control", required: true, maxlength: 64,
           placeholder: "e.g. WTR-MIT" %>
-    <div class="form-text">Short identifier, unique within your tenant.</div>
+    <div class="form-text">Short identifier, unique within the tenant.</div>
   </div>
 
   <div class="mb-3">

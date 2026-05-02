@@ -13,7 +13,6 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "email_delegations#failure", as: :email_delegation_failure
   resources :email_delegations, only: [:destroy]
   resources :job_proposals, only: [:index, :show, :new, :create]
-  resources :job_types
 
   namespace :admin do
     resources :chats, only: [:index, :show]
@@ -25,6 +24,7 @@ Rails.application.routes.draw do
       resources :invitations, only: [:create]
     end
     resources :organizations, only: [:show]
+    resources :job_types
     resources :campaigns do
       member do
         patch :approve
