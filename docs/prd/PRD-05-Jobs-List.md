@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked); Session State v6.0; Spec 6 (Job Status Model and CTA Engine) [legacy out-of-repo reference; superseded by PRD-01 v1.4.1 §6 and §7]; Spec 7 (Job Status Architecture and CTA Rules) [legacy out-of-repo reference; superseded by PRD-01 v1.4.1 §7]; Spec 12 (Branding and UI) [legacy out-of-repo reference; no canonical in-repo successor; UI ground truth is the Lovable FE audit per governing principle]; Spec 13 (Global Navigation and Routing) [legacy out-of-repo reference; no canonical in-repo successor in the active spec set; treat as deferred platform-shell concern, does not govern the launch build]; Spec 2 (Multi-Tenancy) [legacy out-of-repo reference; superseded by PRD-08 v1.2 (role and location model) and PRD-10 v1.2 (admin portal tenant management)]; PRD-01 v1.4.1 (Job Record); PRD-02 v1.5 (New Job Intake); PRD-03 v1.4.1 (Campaign Engine); PRD-04 (Needs Attention); PRD-06 v1.3.1 (Job Detail); SPEC-03 v1.3 (Job Type and Scenario); SPEC-11 v2.0 (Campaign Template Architecture); Reconciliation Report 2026-04-16; Save State 2026-04-21 (Pending Approval elimination, templated architecture)  
 **Related PRDs and specs:** PRD-01 v1.4.1, PRD-02 v1.5, PRD-03 v1.4.1, PRD-04, PRD-06 v1.3.1; SPEC-03 v1.3, SPEC-11 v2.0, SPEC-12 v1.0  
+**Tracking issues:** [#68 A query/endpoint](https://github.com/frizman21/smai-server/issues/68) · [#69 B card list](https://github.com/frizman21/smai-server/issues/69) · [#70 C filter bar + URL](https://github.com/frizman21/smai-server/issues/70) · [#71 D search](https://github.com/frizman21/smai-server/issues/71) · [#72 E overflow menu](https://github.com/frizman21/smai-server/issues/72) · [#73 F inline Resume](https://github.com/frizman21/smai-server/issues/73) · [#74 G empty/scope/mobile](https://github.com/frizman21/smai-server/issues/74)  
 **Revision note (v1.1):** Removed Draft, Awaiting Estimate, `attach_estimate`, and `complete_job_setup` from all filter options, sort tables, card anatomy, badge colors, and ACs. Added Pending Approval / `review_plan`. Updated "Customer Waiting" label to "Reply Needed" to match Lovable. All jobs enter `in_campaign` at creation; no pre-campaign states exist in the launch build.  
 **Revision note (v1.2):** Aligned history references to the consolidated `job_proposal_history` table per PRD-01 v1.2 §12. All event writes (`job_marked_won`, `job_marked_lost`, `job_deleted`, `job_issue_flagged`) now land in `job_proposal_history` discriminated by `event_type`. Added physical table naming clarifier to §4. Prose continues to say "jobs" and "job_campaigns" for readability. See DL-026, DL-027.  
 **Revision note (v1.3):** Three related changes tied to the 2026-04-21 strategic commitments. Surgical scope: only what SPEC-03 v1.3, SPEC-11 v2.0, SPEC-12 v1.0, PRD-01 v1.4, PRD-02 v1.5, PRD-03 v1.4, and PRD-06 v1.3 drive. Nothing else.
@@ -528,39 +529,39 @@ Note: Prior versions returned `job_campaigns.status` for the Pending Approval fi
 
 ## 18. Implementation Slices
 
-### Slice A: Jobs list query and API endpoint
+### Slice A: Jobs list query and API endpoint ([#68](https://github.com/frizman21/smai-server/issues/68))
 Implement the backend query returning all jobs in the active location, sorted per §6 (default by recency under All filter; CTA priority + recency under filtered views). Implement filter parameter handling for all nine filter options (Pending Approval removed in v1.3). Return all card-rendering fields per §17 in a single response, including total `campaign_steps` count for the active campaign run (M value for In Campaign triage text), relevant `job_proposal_history` event timestamps, and send counts.
 
 Dependencies: PRD-01 v1.4.1 (job record with `cta_type` current; `job_proposal_history` writes per §12), PRD-03 v1.4.1 (campaign lifecycle history rows written; `campaign_steps` row count per active run).  
 Excludes: Search (client-side), overflow menu actions.
 
-### Slice B: Card list rendering
+### Slice B: Card list rendering ([#69](https://github.com/frizman21/smai-server/issues/69))
 Implement the card layout for all status types. Render status badge (with exact hex colors from Section 10), job name, job value, customer name, time since last activity, engagement fact (all conditions from Section 9.1), triage text (all variants from Section 9.1), and CTA button. Implement card tap navigation.
 
 Dependencies: Slice A.  
 Excludes: Overflow menu, sub-flow modals.
 
-### Slice C: Filter bar and URL persistence
+### Slice C: Filter bar and URL persistence ([#70](https://github.com/frizman21/smai-server/issues/70))
 Implement the filter bar with all nine options. Implement single-select behavior with teal active highlight. Write filter selection to `?status` query parameter. Read `?status` on mount and apply matching filter. Implement filter reset on location switch.
 
 Dependencies: Slice A.
 
-### Slice D: Search
+### Slice D: Search ([#71](https://github.com/frizman21/smai-server/issues/71))
 Implement the search input with 200ms debounce. Apply client-side case-insensitive substring match against `job_name` and `customer_name` from the current filtered result set. Implement zero-results empty state (Section 12.3). Implement clear behavior.
 
 Dependencies: Slice B.
 
-### Slice E: Three-dot overflow menu
+### Slice E: Three-dot overflow menu ([#72](https://github.com/frizman21/smai-server/issues/72))
 Implement the overflow menu with all four actions. Implement context-sensitive availability (Mark Won / Mark Lost hidden on Won or Lost jobs). Implement confirmation dialogs for Mark Won, Mark Lost, and Delete Job. Implement all backend calls and card update behavior. Implement Flag Issue text input prompt and `job_proposal_history` write with `event_type = job_issue_flagged`.
 
 Dependencies: Slice B. PRD-01 v1.4.1 (state transition endpoints; `job_proposal_history` schema), PRD-03 v1.4.1 §10.4 (campaign stop on delete and on close).
 
-### Slice F: Inline Resume Campaign
+### Slice F: Inline Resume Campaign ([#73](https://github.com/frizman21/smai-server/issues/73))
 Implement the Resume Campaign inline action on the list card (same as PRD-04 Slice C). Card updates in place on success. Toast on failure.
 
 Dependencies: Slice B. PRD-03 v1.4.1 §13.2 (Resume logic).
 
-### Slice G: Empty states, location scope, mobile
+### Slice G: Empty states, location scope, mobile ([#74](https://github.com/frizman21/smai-server/issues/74))
 Implement all three empty state variants (Section 12). Implement location scope enforcement and switching behavior. Implement mobile layout (390px). Confirm "+ New Job" button placement on mobile.
 
 Dependencies: Slices A, B, C.

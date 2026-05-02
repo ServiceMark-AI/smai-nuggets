@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked); Session State v6.0 (forensic audit April 4); CC-06 (Buc-ee's MVP Definition); Platform Spine v1.4; Spec 9 (Campaign Engine — used as parts bin where it conflicts with confirmed stack); Spec 17 (Workflow Event Map — stack references superseded); PRD-01 v1.4.1 (Job Record); PRD-02 (New Job Intake; collapsed intake flow); Reconciliation Report 2026-04-16; Save State 2026-04-21 (templated architecture commitment; Pending Approval elimination)  
 **Related PRDs and specs:** PRD-01 v1.4.1 (Job Record), PRD-02 (New Job Intake), PRD-04 (Needs Attention), PRD-06 (Job Detail), PRD-09 (Gmail Layer), PRD-10 v1.2 (SMAI Admin Portal, in progress); SPEC-03 v1.3 (Job Type and Scenario taxonomy); SPEC-11 v2.0 (Campaign Template Architecture); SPEC-12 v1.0 (Template Authoring Methodology)  
+**Tracking issues:** [#54 A lookup/render/approve](https://github.com/frizman21/smai-server/issues/54) · [#55 B pre-send checklist](https://github.com/frizman21/smai-server/issues/55) · [#56 C send execution](https://github.com/frizman21/smai-server/issues/56) · [#57 D stop conditions](https://github.com/frizman21/smai-server/issues/57) · [#58 E Fix Issue + pause/resume](https://github.com/frizman21/smai-server/issues/58) · [#59 F controller boundary](https://github.com/frizman21/smai-server/issues/59) · [#60 G QA tests](https://github.com/frizman21/smai-server/issues/60)  
 **Closes:** 4 TODOs in `CampaignService.kt`; CampaignController internal-boundary TODO; 4 TODOs in `ProposalService.kt` (partially — proposal send behavior)  
 **Revision note (v1.1):** Removed `awaiting_estimate` as the campaign activation trigger. Campaign plan generation now fires on job creation (PRD-02 submit), not on estimate upload.  
 **Revision note (v1.2):** Removed all static template and token-substitution language. The correct model was then: AI (Gemini) generates final prose (subject lines and body copy) per step at plan generation time, with job context already resolved. (Superseded by v1.4.)  
@@ -599,49 +600,49 @@ All events are written to `job_proposal_history` as rows discriminated by `event
 
 ## 17. Implementation Slices
 
-### Slice A: Template lookup, render, and approval path
+### Slice A: Template lookup, render, and approval path ([#54](https://github.com/frizman21/smai-server/issues/54))
 
 Implement the Submit-to-Approve flow. On Submit: evaluate §6.2 eligibility, perform §6.3 template lookup and merge-field substitution, return rendered output to the frontend. On Approve and Begin Campaign: perform the §6.4 atomic transaction (job, campaign with `template_version_id`, campaign_steps, history events, Cloud Task enqueue). Implement the `campaigns.template_version_id` schema column (non-nullable for new rows). Remove `pending_approval` from the `campaigns.status` enum. Remove any prior two-phase generation path from `CampaignService.kt`. Close the 4 TODOs in `CampaignService.kt` related to campaign initialization.
 
 Dependencies: PRD-01 v1.4.1 Slice A (job record schema including `scenario_key`); SPEC-11 v2.0 Slice A (template store) and Slice B (template lookup and render) must be in place; SPEC-11 v2.0 initial template variants seeded for the (job_type, scenario_key) pairs activated for the tenant (Tier 1 scenarios per SPEC-12 §9).  
 Excludes: Send execution, stop conditions.
 
-### Slice B: Pre-send checklist and idempotency guard
+### Slice B: Pre-send checklist and idempotency guard ([#55](https://github.com/frizman21/smai-server/issues/55))
 
 Implement the Cloud Task handler in smai-backend. Implement all seven pre-send checks in order. Implement the idempotency guard (check 5). Implement silent task drop with logging on any check failure.
 
 Dependencies: Slice A.  
 Excludes: Token retrieval, actual send call.
 
-### Slice C: Send execution and result handling
+### Slice C: Send execution and result handling ([#56](https://github.com/frizman21/smai-server/issues/56))
 
 Implement the send sequence (§9.1): token retrieval from smai-comms, rendered content retrieval from `campaign_steps`, email construction with thread headers, smai-comms call. Implement success writes (§9.2). Implement failure writes (§9.3). Implement the first-step estimate attachment.
 
 Dependencies: Slices A, B. smai-comms `EmailSendingService` and `OboTokenService` confirmed working (per forensic audit).  
 Excludes: Stop condition downstream writes (Slice D).
 
-### Slice D: Stop conditions
+### Slice D: Stop conditions ([#57](https://github.com/frizman21/smai-server/issues/57))
 
 Implement all four stop conditions: customer reply (§10.1), delivery failure (§10.2), operator pause (§10.3), job closure (§10.4). Each stop condition's atomic write sequence must be implemented in full. Confirm all subsequent Cloud Tasks are dropped by pre-send checklist without requiring explicit cancellation.
 
 Dependencies: Slices A, B, C. Pub/Sub reply detection path in smai-comms (confirmed wired per forensic audit).  
 Excludes: Fix Issue recovery path (Slice E).
 
-### Slice E: Fix Issue recovery and operator pause/resume
+### Slice E: Fix Issue recovery and operator pause/resume ([#58](https://github.com/frizman21/smai-server/issues/58))
 
 Implement the Fix Issue sequence (§12): new campaign run creation with `template_version_id` carried over from the prior run, `campaign_steps` copy for unsent steps, next-step determination, Cloud Task re-enqueue with new timing. Implement operator pause write (§10.3) and operator resume write (§13.2). Implement operator manual reply write (§11).
 
 Dependencies: Slice D.  
 Excludes: Fix Issue slide-out UI (PRD-06), Open in Gmail CTA behavior (PRD-06).
 
-### Slice F: CampaignController boundary enforcement
+### Slice F: CampaignController boundary enforcement ([#59](https://github.com/frizman21/smai-server/issues/59))
 
 Audit `CampaignController.kt` for any tenant-callable campaign initialization endpoints. Remove or restrict them. Confirm that no user JWT can trigger campaign initialization or the §6.4 approval endpoint outside the intake flow context. Close the CampaignController TODO from the forensic audit.
 
 Dependencies: None — can run in parallel with any other slice.  
 Excludes: Nothing.
 
-### Slice G: Event audit and QA
+### Slice G: Event audit and QA ([#60](https://github.com/frizman21/smai-server/issues/60))
 
 Confirm all required events (§15) are written to `job_proposal_history` with the correct `event_type` on every path. Write a QA test that: creates a job via the collapsed intake flow, approves, sends all steps in the template variant, and asserts the complete history. Write a QA test that fires each stop condition and asserts the correct overlay, `job_campaigns` status, and history rows. Write a QA test that confirms Submit-then-Cancel produces no database writes.
 

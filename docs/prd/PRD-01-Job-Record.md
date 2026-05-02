@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked); Spec 11 (Database Schema) [legacy out-of-repo reference; superseded by canonical schema in this PRD §8 and in PRD-03/PRD-06/PRD-09 table definitions]; Specs 6 and 7 (Job Status Model and CTA Architecture) [legacy out-of-repo references; superseded by §6 and §7 of this PRD]; Spec 8 (Job Detail) [legacy out-of-repo reference; superseded by PRD-06 v1.3.1]; Session State v6.0; Reconciliation Report 2026-04-16; Save State 2026-04-21 (Pending Approval elimination; templated architecture commitment)  
 **Related PRDs and specs:** PRD-02 (New Job Intake), PRD-03 (Campaign Engine, v1.4 in progress), PRD-04 (Needs Attention), PRD-05 (Jobs List), PRD-06 (Job Detail), PRD-09 (Gmail Layer), PRD-10 (SMAI Admin Portal, v1.2 in progress); SPEC-03 v1.3 (Job Type and Scenario taxonomy); SPEC-11 v2.0 (Campaign Template Architecture); SPEC-12 v1.0 (Template Authoring Methodology)  
+**Tracking issues:** [#42 Slice A schema](https://github.com/frizman21/smai-server/issues/42) · [#43 Slice B transitions](https://github.com/frizman21/smai-server/issues/43) · [#44 Slice C CTA engine](https://github.com/frizman21/smai-server/issues/44) · [#45 Slice D editability](https://github.com/frizman21/smai-server/issues/45) · [#46 Slice E audit trail](https://github.com/frizman21/smai-server/issues/46)  
 **Revision note (v1.1):** Removed `draft` and `awaiting_estimate` pipeline stages. For the Buc-ee's launch, every job is created directly into `in_campaign` via the proposal upload flow. There is no intermediate pre-campaign state in the operator product. These stages may be reinstated in a future release when in-app job intake is rebuilt.  
 **Revision note (v1.2):** Table naming aligned to code reality. Physical table name is `job_proposals` (prose continues to say "jobs" for readability). Campaign table is `campaigns` with polymorphic `target_id` + `target_type = JOB_PROPOSAL`. History tables consolidated from `job_status_history` + `event_logs` into a single `job_proposal_history` table discriminated by `event_type`. Added SPEC-09 clarifier to CTA Resolution noting Mark Won and Mark Lost are secondary outcome actions not represented in `cta_type`. See DL-024, DL-026, DL-027.  
 **Revision note (v1.3):** Added four `event_type` values to the §12 enum that were introduced by downstream PRD rewrites and referenced but not yet canonical here: `operator_replied` (PRD-03 v1.3 §10.1, PRD-06 v1.2 §11.1), `job_needs_attention_flagged` (PRD-03 v1.3 §10.1 and §10.2, PRD-09 v1.1 §8.5 and §10.2), `campaign_step_dropped` (PRD-03 v1.3 §15), and `job_issue_flagged` (PRD-05 v1.2 §11.4). No other changes.  
@@ -422,31 +423,31 @@ The frontend must not reimplement CTA resolution logic. It reads `cta_type` from
 
 ## 14. Implementation Slices
 
-### Slice A: Core job record and contact schema
+### Slice A: Core job record and contact schema ([#42](https://github.com/frizman21/smai-server/issues/42))
 Confirm `job_proposals` and `job_contacts` tables match this spec. Add any missing fields. Add `scenario_key` to `job_proposals` as a required, locked-after-creation column per §8.1 and SPEC-03 v1.3 §13.1. Remove `on_behalf_of_user_id` if present. Remove `draft` and `awaiting_estimate` from `pipeline_stage` enum if present. Confirm `cta_type` is not a stored column — it is computed at query time from `pipeline_stage` and `status_overlay` only and returned in the API response. Confirm `location_id` is not nullable.
 
 Dependencies: SPEC-03 v1.3 Slice A (scenario master list in place).  
 Excludes: Campaign-related fields, estimate upload logic, `campaigns` schema changes (which include `template_version_id` addition and `pending_approval` removal from `campaigns.status`; those live in PRD-03 v1.4.1 Slice scope).
 
-### Slice B: Status transition engine
+### Slice B: Status transition engine ([#43](https://github.com/frizman21/smai-server/issues/43))
 Implement server-side transition validation. Reject invalid transitions with a typed error. Write to `job_proposal_history` on every transition, using the appropriate `event_type` (`status_overlay_changed` or `pipeline_stage_changed`) and populating `old_status`, `new_status`, `details`, and `changed_by`.
 
 Dependencies: Slice A.  
 Excludes: UI-facing transition triggers (those belong to PRD-02, PRD-03, PRD-06).
 
-### Slice C: CTA engine (shared utility)
+### Slice C: CTA engine (shared utility) ([#44](https://github.com/frizman21/smai-server/issues/44))
 Implement the CTA resolution function as a single shared utility using `pipeline_stage` and `status_overlay`. Confirm all surfaces read `cta_type` from the API response. Remove any per-surface CTA logic that duplicates this function. Remove any prior code path that read `job_campaigns.status` as a CTA input; per v1.4 it is no longer a discriminator.
 
 Dependencies: Slice B.  
 Excludes: Surface-specific rendering logic (PRD-04, PRD-05, PRD-06).
 
-### Slice D: Field editability enforcement
+### Slice D: Field editability enforcement ([#45](https://github.com/frizman21/smai-server/issues/45))
 Enforce editability rules server-side. Reject edits to locked fields with typed errors. All fields locked at creation (email, location, line of business, scenario) must be rejected on any edit attempt. Implement Fix Issue as the only path to update `customer_email`.
 
 Dependencies: Slice A, Slice B.  
 Excludes: Fix Issue UI flow (PRD-06).
 
-### Slice E: Audit trail validation
+### Slice E: Audit trail validation ([#46](https://github.com/frizman21/smai-server/issues/46))
 Confirm every required job event is written to `job_proposal_history` with the correct `event_type`. Confirm transitions write rows with the appropriate `event_type` and populated old/new status fields. Add missing events. Write a basic QA test that creates a job, runs it through all non-terminal transitions, and asserts a complete event history in `job_proposal_history`.
 
 Dependencies: Slice B.  

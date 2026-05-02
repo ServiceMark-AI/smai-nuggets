@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked); Session State v6.0; CC-06 (Buc-ee's MVP Definition); Spec 11 (Database Schema); PRD-01 v1.4.1 (Job Record); SPEC-03 v1.3 (Job Type and Scenario); SPEC-11 v2.0 (Campaign Template Architecture); PRD-03 v1.4.1 (Campaign Engine); Reconciliation Report 2026-04-16; PRD-08 v1.2 (user role/location model); SPEC-07 v1.1 (signature composition); Save State 2026-04-21 (collapsed intake flow, scenario selection, Campaign Ready modal, Pending Approval elimination)  
 **Related PRDs and specs:** PRD-01 v1.4.1 (Job Record), PRD-03 v1.4.1 (Campaign Engine), PRD-06 (Job Detail), PRD-08 (Settings), PRD-10 v1.2 (SMAI Admin Portal); SPEC-03 v1.3, SPEC-07 v1.1, SPEC-11 v2.0, SPEC-12 v1.0  
+**Tracking issues:** [#47 A modal shell](https://github.com/frizman21/smai-server/issues/47) · [#48 B PDF + extraction](https://github.com/frizman21/smai-server/issues/48) · [#49 C form](https://github.com/frizman21/smai-server/issues/49) · [#50 D submit/render](https://github.com/frizman21/smai-server/issues/50) · [#51 E Campaign Ready](https://github.com/frizman21/smai-server/issues/51) · [#52 F approve write](https://github.com/frizman21/smai-server/issues/52) · [#53 G hardening](https://github.com/frizman21/smai-server/issues/53)  
 **Closes:** 20 TODOs in `NewJobForm.tsx`  
 **Revision note (v1.1):** Removed Save as Draft path and all references to `draft` and `awaiting_estimate` pipeline stages. Submit creates the job record and immediately triggers campaign plan generation (PRD-03).  
 **Revision note (v1.2):** Removed voice intake and manual entry paths. For the launch, PDF upload is the only intake path.  
@@ -532,41 +533,41 @@ The frontend is responsible for UX-level validation and progression. The backend
 
 ## 14. Implementation Slices
 
-### Slice A: Modal shell and state machine
+### Slice A: Modal shell and state machine ([#47](https://github.com/frizman21/smai-server/issues/47))
 Build the modal container, the step indicator, and the state transitions (Upload → Scanning → AI Analysis → Review). Implement Cancel behavior at every step.
 
 Dependencies: None.  
 Excludes: AI extraction, form submission logic, Campaign Ready surface.
 
-### Slice B: PDF upload and extraction
+### Slice B: PDF upload and extraction ([#48](https://github.com/frizman21/smai-server/issues/48))
 Implement the file upload endpoint (GCS), the Gemini extraction call, the confidence scoring response, and the pre-fill payload returned to the frontend. Implement extraction failure fallback (empty payload + notice).
 
 Dependencies: Slice A.
 
-### Slice C: Form rendering and field behavior
+### Slice C: Form rendering and field behavior ([#49](https://github.com/frizman21/smai-server/issues/49))
 Build the full intake form (all six sections). Implement Office Location rendering by role (read-only label for Originators, required dropdown for Admins per §8.2). Implement read-only fields (Job Value, Office Location for Originators). Implement required field markers. Implement the Job Type dropdown populated from the tenant's Job Type activation per SPEC-03 v1.3. Implement the Scenario dropdown with Job Type-scoped behavior per §8.5 (disabled without Job Type, cleared on Job Type change).
 
 Dependencies: Slice A; SPEC-03 v1.3 Slices A and B (master lists and activation joins in place).  
 Excludes: Validation logic, submission writes, Campaign Ready surface.
 
-### Slice D: Submit behavior (template lookup and render)
+### Slice D: Submit behavior (template lookup and render) ([#50](https://github.com/frizman21/smai-server/issues/50))
 Implement client-side and server-side validation for required fields including Scenario. Implement Submit: the backend call that performs template lookup and merge-field substitution per PRD-03 v1.4.1 §6.3, returning the rendered campaign plan payload. Handle the three outcomes: success (advance to Campaign Ready surface), no active template variant (operator-facing error, return to form), unresolved merge field (operator-facing error, return to form). Implement `scenario_key` scope validation against Job Type and tenant activation.
 
 Dependencies: Slices A, B, C; SPEC-11 v2.0 Slice B (template lookup and render in place); PRD-03 v1.4.1 Slice A template lookup integration.  
 Excludes: Approve and Begin Campaign write (Slice F).
 
-### Slice E: Campaign Ready surface
+### Slice E: Campaign Ready surface ([#51](https://github.com/frizman21/smai-server/issues/51))
 Build the Campaign Ready surface per §8.4. Render the summary card with Job Type and Scenario. Render the ordered campaign step preview with per-step `step_order`, `delay_from_prior`, subject, and body. Implement the Approve and Begin Campaign, Cancel / Back to Review, and Dismiss actions. Implement the form-state preservation on Cancel / Back.
 
 Dependencies: Slice D.  
 Excludes: Approve atomic write (Slice F).
 
-### Slice F: Approve and Begin Campaign write
+### Slice F: Approve and Begin Campaign write ([#52](https://github.com/frizman21/smai-server/issues/52))
 Implement the approval endpoint handler per PRD-03 v1.4.1 §6.4: the atomic transaction writing `job_proposals`, `job_contacts`, `estimates`, `campaigns` (with `template_version_id`), `campaign_steps` (rendered content), `job_proposal_history` (`job_created` and `campaign_approved` events), and enqueuing Cloud Tasks. Implement the `template_version_id` re-verification logic. Implement error handling for transaction failure and for template variant no longer retrievable.
 
 Dependencies: Slice E; PRD-01 v1.4.1 Slice A (schema including `scenario_key`); PRD-03 v1.4.1 Slice A (template lookup integration and `campaigns.template_version_id` schema column).
 
-### Slice G: Edge case hardening and TODOs
+### Slice G: Edge case hardening and TODOs ([#53](https://github.com/frizman21/smai-server/issues/53))
 Close the 20 TODOs in `NewJobForm.tsx`. Implement all error states: corrupted PDF, timeout, server validation errors, location scope mismatch, scenario scope mismatch, missing template variant, render failure, approve transaction failure.
 
 Dependencies: All preceding slices.

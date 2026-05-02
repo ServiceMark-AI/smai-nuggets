@@ -22,6 +22,7 @@
 - SPEC-11 v2.0 (Campaign Template Architecture)
 - Save State 2026-04-21 (Pending Approval elimination, templated architecture, no draft / awaiting_estimate stages)
 **Related PRDs and specs:** PRD-01 v1.4.1, PRD-02 v1.5, PRD-03 v1.4.1, PRD-05 v1.4, PRD-06 v1.3.1, PRD-08 v1.2; SPEC-03 v1.3, SPEC-11 v2.0  
+**Tracking issues:** [#61 A surfacing query](https://github.com/frizman21/smai-server/issues/61) · [#62 B card list](https://github.com/frizman21/smai-server/issues/62) · [#63 C inline Resume](https://github.com/frizman21/smai-server/issues/63) · [#64 D Handled by SMAI feed](https://github.com/frizman21/smai-server/issues/64) · [#65 E empty states](https://github.com/frizman21/smai-server/issues/65) · [#66 F scope/badge/realtime](https://github.com/frizman21/smai-server/issues/66) · [#67 G error states + mobile](https://github.com/frizman21/smai-server/issues/67)  
 **Revision note (v1.1):** Updated location scope sections (§1, §4, §11, §12, §17 AC-11) to reflect PRD-08 v1.2's single-location-Originator / multi-location-Admin model. Replaced "single-location user / multi-location user" phrasing with "Originator / Admin" throughout. §11.3 scope enforcement rewritten to reference `users.location_id` and `users.role` directly rather than the deprecated `user_location_access` table (being cleaned up per PRD-08 v1.2 OQ-10). No behavioral changes to Needs Attention surfacing, sort, or card rendering.  
 **Revision note (v1.2):** Two related changes tied to the 2026-04-21 strategic commitments. Surgical scope: only what PRD-01 v1.4, PRD-02 v1.5, PRD-03 v1.4, PRD-06 v1.3, and PRD-05 v1.3 drive transitively. Nothing else.
 
@@ -463,41 +464,41 @@ Note: Prior versions referenced `event_logs` rows with `occurred_at` and `primar
 
 ## 16. Implementation Slices
 
-### Slice A: Surfacing query and API endpoint
+### Slice A: Surfacing query and API endpoint ([#61](https://github.com/frizman21/smai-server/issues/61))
 Implement the Needs Attention backend query with the exact eligibility filter (`cta_type IN ('open_in_gmail', 'fix_delivery_issue', 'resume_campaign')`) and sort order (CTA priority + recency). Implement the "Handled by SMAI" feed query against `job_proposal_history` per §9.3. Return both in a single API response with all card-rendering fields per §15.
 
 Dependencies: PRD-01 v1.4.1 (job record with `cta_type` stored and current per the canonical CTA enum; `job_proposal_history` schema and event semantics), PRD-03 v1.4.1 (events written to `job_proposal_history`).  
 Excludes: Real-time updates, frontend rendering.
 
-### Slice B: Card list rendering
+### Slice B: Card list rendering ([#62](https://github.com/frizman21/smai-server/issues/62))
 Implement the card layout for all three card types (Reply Needed, Delivery Issue, Paused). Render status badge, job name, job value, customer name, time since last activity, engagement fact, triage text, and CTA button per the specs in §7. Implement card tap navigation to Job Detail.
 
 Dependencies: Slice A.  
 Excludes: Sub-flow modals (PRD-06 v1.3.1), real-time updates.
 
-### Slice C: Inline Resume Campaign action
+### Slice C: Inline Resume Campaign action ([#63](https://github.com/frizman21/smai-server/issues/63))
 Implement the Resume Campaign inline tap: send resume request, on success remove card and show toast, on failure show error toast and keep card. No navigation.
 
 Dependencies: Slice B. PRD-03 v1.4.1 §13.2 (Resume logic — smai-backend endpoint).  
 Excludes: Other CTA sub-flows.
 
-### Slice D: "Handled by SMAI" feed
+### Slice D: "Handled by SMAI" feed ([#64](https://github.com/frizman21/smai-server/issues/64))
 Render the feed below the card list per the rules in §9. Implement the 50-event limit and the "no events today" hide behavior. Source events from `job_proposal_history` per §9.3.
 
 Dependencies: Slice B.  
 Excludes: Real-time feed updates (feed reflects state at page load only).
 
-### Slice E: Empty states
+### Slice E: Empty states ([#65](https://github.com/frizman21/smai-server/issues/65))
 Implement all three empty state variants (Section 10): all caught up, no events yet, first-time user with New Job CTA.
 
 Dependencies: Slices B, D.
 
-### Slice F: Location scope, nav badge, and real-time updates
+### Slice F: Location scope, nav badge, and real-time updates ([#66](https://github.com/frizman21/smai-server/issues/66))
 Implement location scope switching and the backend scope enforcement. Implement the nav badge derived from the card count. Implement real-time updates (mechanism to be decided by engineering) with a 30-second latency requirement for new Needs Attention events. Implement the 60-second polling fallback.
 
 Dependencies: Slices A, B. Spec 2 (multi-tenancy).
 
-### Slice G: Error states and mobile
+### Slice G: Error states and mobile ([#67](https://github.com/frizman21/smai-server/issues/67))
 Implement page load failure error banner with Refresh. Implement mobile layout (390px single-column). Confirm bottom nav badge behavior matches desktop.
 
 Dependencies: Slices B, F.

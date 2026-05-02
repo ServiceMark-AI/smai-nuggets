@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked — April 5, 2026); SETTINGS-01 through SETTINGS-11 PRD tags (locked April 5, 2026); Session State v6.0; Spec 3 (Team Management and Role Permissions) [legacy out-of-repo reference; superseded by this PRD §6 through §10 (team management, roles, location assignment)]; Spec 4 (Account and Organization Settings) [legacy out-of-repo reference; superseded by PRD-10 v1.2 (account-level configuration is admin-portal scoped, not operator-facing per the managed-service posture)]; Spec 10 (Notifications) [legacy out-of-repo reference; no canonical in-repo successor; notifications are post-MVP and do not govern the launch build]; Spec 13 (Global Navigation and Routing) [legacy out-of-repo reference; no canonical in-repo successor in the active spec set; treat as deferred platform-shell concern, does not govern the launch build]; Spec 2 (Multi-Tenancy) [legacy out-of-repo reference; superseded by this PRD's role and location model and PRD-10 v1.2 admin portal tenant management]; Reconciliation Report 2026-04-16; SPEC-07 v1.1 (Originator Identity in Sent Emails); Jeff clarifications 2026-04-17 and 2026-04-18  
 **Related PRDs:** PRD-01 (Job Record), PRD-07 (Analytics), PRD-02 (New Job Intake), PRD-10 (Location Configuration)  
+**Tracking issues:** [#93 A endpoint + Profile card](https://github.com/frizman21/smai-server/issues/93) · [#94 B Team list](https://github.com/frizman21/smai-server/issues/94) · [#95 C Add Member](https://github.com/frizman21/smai-server/issues/95) · [#96 D Edit Member](https://github.com/frizman21/smai-server/issues/96) · [#97 E Remove Member](https://github.com/frizman21/smai-server/issues/97) · [#98 F errors + mobile](https://github.com/frizman21/smai-server/issues/98)  
 **Decision Ledger:** DL-015 (Manager role dormant), DL-016 (single-role constraint), DL-028 (Settings endpoint path and verb alignment)  
 **Revision note (v1.1):** Aligned user-mutation endpoints to the as-built backend pattern: `/tenant/{tenantId}/users/...`. Changed user update verb from PATCH to PUT per backend convention. Paths are now consistent with the backend implementation (Reconciliation Report 2026-04-16, DECISION 9). Added physical table naming clarifier. Prose continues to say "users" and refers to workspace/account interchangeably for readability.  
 **Revision note (v1.2):** Added user-level fields required by SPEC-07 v1.1 signature composition: `first_name`, `last_name`, `title`, `cell_phone`. `first_name` and `last_name` replace the single `name` field. `cell_phone` is a rename of the existing `phone_number` field (same column, new name, signature-aware). `title` is net-new. All four are required. Restructured the Add Member and Edit Member modals accordingly. Replaced the "All Locations / Specific Locations" multi-location access pattern with a single-location dropdown for Originators; Admins see no Office Location field (their permission scope is implicit). This reflects Jeff's 2026-04-18 confirmation that originators are single-location in effectively all cases. Manager dormancy, endpoint paths, role display rules, and every other PRD-08 v1.1 contract are unchanged.
@@ -560,32 +561,32 @@ These are enforced server-side regardless of what the frontend sends. The fronte
 
 ## 16. Implementation Slices
 
-### Slice A: GET /tenant/{tenantId}/settings endpoint and Profile card
+### Slice A: GET /tenant/{tenantId}/settings endpoint and Profile card ([#93](https://github.com/frizman21/smai-server/issues/93))
 Implement the GET endpoint. Return profile data and full team list with all fields from Section 11.1. Implement the Profile card: name, email, role badge, avatar with initials fallback, Sign Out action. Implement Sign Out: session revocation and redirect to /auth/google.
 
 Dependencies: `users` and `sessions` tables (Spec 11 schema).
 
-### Slice B: Team list rendering
+### Slice B: Team list rendering ([#94](https://github.com/frizman21/smai-server/issues/94))
 Implement the Team list with all row fields per Section 7.2. Implement sort (alphabetical by first name). Implement Gmail connection status display (connected teal / disconnected amber with Reconnect link). Implement the "What do roles mean?" accordion with correct Admin and Originator copy only. Implement role display mapping (user → Originator, manager → Originator). Render edit/delete controls for Admin only, hidden for Originator.
 
 Dependencies: Slice A.
 
-### Slice C: Add Member flow
+### Slice C: Add Member flow ([#95](https://github.com/frizman21/smai-server/issues/95))
 Implement the Add Member modal with all fields from Section 8.1 (First Name, Last Name, Title, Email, Cell Phone, Role, conditional Office Location). Implement the role dropdown with Admin and Originator only (no Manager). Implement the role-conditional Office Location single-select dropdown (shown for Originator, hidden for Admin). Implement POST /tenant/{tenantId}/users with all validations and guards (including `originator_requires_location` and `admin_no_location` 422 errors). Implement pending invite row in Team list. Implement cancel invite (DELETE /tenant/{tenantId}/users/{user_id}/invite).
 
 Dependencies: Slice A, Slice B.
 
-### Slice D: Edit Member flow
+### Slice D: Edit Member flow ([#96](https://github.com/frizman21/smai-server/issues/96))
 Implement the Edit Member modal with all fields pre-populated from Section 9.1. Implement PUT /tenant/{tenantId}/users/{user_id}. Implement role change guards (only-Admin demotion block, self-role-change block). Implement role-change behavior for the Office Location field (remove field and clear `location_id` on Admin; require field and populate `location_id` on Originator). Implement audit log write on every save, including metadata for every changed field.
 
 Dependencies: Slice A, Slice B.
 
-### Slice E: Remove Member flow
+### Slice E: Remove Member flow ([#97](https://github.com/frizman21/smai-server/issues/97))
 Implement the confirmation modal with exact copy from Section 10.1. Implement DELETE /tenant/{tenantId}/users/{user_id} with only-Admin removal guard and self-removal guard. Implement session revocation on confirmed delete. Implement audit log write. Implement the "Only Admin" indicator in place of the trash icon on protected rows.
 
 Dependencies: Slice A, Slice B.
 
-### Slice F: Error states and mobile
+### Slice F: Error states and mobile ([#98](https://github.com/frizman21/smai-server/issues/98))
 Implement all error states from Section 13. Implement mobile layout (390px). On mobile, the Team list renders in a single column. Edit/delete controls may collapse into a three-dot menu per row — confirm against Lovable mobile audit before implementing.
 
 Dependencies: All preceding slices.

@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked — April 4, 2026); Analytics redesign sessions (April 2 and April 4, 2026); ANLYT-01 through ANLYT-10 PRD tags (locked April 4–5, 2026); Session State v6.0; SPEC-03 v1.3 (Job Type and Scenario); SPEC-05 (Analytics MTD/YTD Conversion Rate); SPEC-06 (Analytics Branch Comparison); SPEC-11 v2.0 (Campaign Template Architecture); PRD-01 v1.4.1 (Job Record); PRD-02 v1.5 (New Job Intake); PRD-03 v1.4.1 (Campaign Engine); Reconciliation Report 2026-04-16; Save State 2026-04-21 (templated architecture, scenario layer, Pending Approval elimination)  
 **Related PRDs and specs:** PRD-01 v1.4.1, PRD-02 v1.5, PRD-03 v1.4.1; SPEC-03 v1.3, SPEC-05, SPEC-06, SPEC-11 v2.0  
+**Tracking issues:** [#85 A endpoint + metrics](https://github.com/frizman21/smai-server/issues/85) · [#86 B filter bar](https://github.com/frizman21/smai-server/issues/86) · [#87 C hero tiles](https://github.com/frizman21/smai-server/issues/87) · [#88 D funnel](https://github.com/frizman21/smai-server/issues/88) · [#89 E originator table](https://github.com/frizman21/smai-server/issues/89) · [#90 F follow-up chart](https://github.com/frizman21/smai-server/issues/90) · [#91 G per-location breakdown](https://github.com/frizman21/smai-server/issues/91) · [#92 H empty/mobile/role](https://github.com/frizman21/smai-server/issues/92)  
 **Backend status:** No Analytics backend has been built. This is a greenfield backend implementation against this PRD. No reconciliation risk.  
 **Revision note (v1.1):** Aligned LOB filter options and terminology to SPEC-03 (seven RESTORATION sub-types; the "Line of Business" label becomes "Job Type" on operator-facing surfaces). Added MTD and YTD conversion rate dual display per SPEC-05. Added per-location conversion rate breakdown payload per SPEC-06 (UI implementation governed by SPEC-06). Added physical table naming clarifier per PRD-01 v1.2. Prose continues to say "jobs" and "messages" for readability.  
 **Revision note (v1.2):** Three related changes tied to the 2026-04-21 strategic commitments. Surgical scope: only what SPEC-03 v1.3, SPEC-11 v2.0, SPEC-12 v1.0, PRD-01 v1.4, PRD-02 v1.5, PRD-03 v1.4, PRD-06 v1.3, PRD-05 v1.3, and PRD-04 v1.2 drive. Nothing else.
@@ -912,43 +913,43 @@ The filter bar remains active so the operator can change the scope. Individual z
 
 ## 16. Implementation Slices
 
-### Slice A: API endpoint and metric computation
+### Slice A: API endpoint and metric computation ([#85](https://github.com/frizman21/smai-server/issues/85))
 Implement the `/api/analytics` endpoint. Implement all SQL queries from Section 13.3 against the Cloud SQL database. Implement prior-period delta computation. Implement the originator visibility filter (Admin vs Originator). Implement the MTD and YTD computations (SPEC-05) and return them in the `hero.conversion_rate` object. Implement the per-location conversion rate breakdown (SPEC-06) and return it in `conversion_rate_by_location` when `location_id = all` AND Admin. Return the full response structure per Section 13.2.
 
 Dependencies: PRD-01 (jobs table with `campaign_started_at`), PRD-03 (messages table with direction, status, channel).  
 Excludes: Frontend rendering.
 
-### Slice B: Filter bar and request wiring
+### Slice B: Filter bar and request wiring ([#86](https://github.com/frizman21/smai-server/issues/86))
 Implement the filter bar UI (three pills, all identical treatment). Wire filter selection to issue a new API request with updated parameters. Implement the location filter behavior (hidden for single-location users, All Locations default for multi-location). Implement the Job Type filter showing only types with active data, using the seven RESTORATION sub-types from SPEC-03 §7. Add Month to Date and Year to Date to the date range filter dropdown per SPEC-05.
 
 Dependencies: Slice A. SPEC-03. SPEC-05.
 
-### Slice C: Zone 1 — Hero tiles
+### Slice C: Zone 1 — Hero tiles ([#87](https://github.com/frizman21/smai-server/issues/87))
 Implement all five tiles with correct metric labels, value formatting, delta display, definition subtext. Implement Conversion Rate visual dominance (larger type). Implement delta color rules (teal for positive, muted gray for flat). Implement the Avg Time to First Reply "--" edge case for sparse data. Implement the MTD/YTD dual display inside the Conversion Rate tile per SPEC-05 §7.
 
 Dependencies: Slice A. SPEC-05.
 
-### Slice D: Zone 2 — Funnel
+### Slice D: Zone 2 — Funnel ([#88](https://github.com/frizman21/smai-server/issues/88))
 Implement all five funnel stages with proportional bar widths. Implement right-side metadata per stage. Implement the unanswered-reply drop-off label (conditional render, amber dollar figure). Implement the Closed Won row teal/8 background. Enforce color rules.
 
 Dependencies: Slice A.
 
-### Slice E: Zone 3 — Originator table
+### Slice E: Zone 3 — Originator table ([#89](https://github.com/frizman21/smai-server/issues/89))
 Implement the table with all five columns. Implement the location secondary line. Implement Close Rate proportional bars with 0.6 opacity floor. Implement role-scoped visibility (frontend renders what API returns). Implement empty state for zero originators in scope.
 
 Dependencies: Slice A.
 
-### Slice F: Zone 4 — Chart
+### Slice F: Zone 4 — Chart ([#90](https://github.com/frizman21/smai-server/issues/90))
 Implement the Recharts ComposedChart with area series and two grouped bar series. Implement the three stat blocks above the chart. Implement the legend with period-aggregate totals and matching opacity dots. Implement the dual Y-axis. Implement the "SMAI activated" dashed reference line and label. Implement the tooltip showing time-bucket values. Implement time bucketing based on selected period (including daily buckets for MTD and monthly for YTD). Implement gridlines. Enforce color system (teal family only, no green, no coral).
 
 Dependencies: Slices A, B.
 
-### Slice G: Per-location Conversion Rate breakdown (SPEC-06)
+### Slice G: Per-location Conversion Rate breakdown (SPEC-06) ([#91](https://github.com/frizman21/smai-server/issues/91))
 Implement the collapsible per-location breakdown inside the Conversion Rate tile when `location_id = all` and the user is Admin. Render the `conversion_rate_by_location` payload per SPEC-06 UI rules. Maintain session-only expand/collapse state.
 
 Dependencies: Slices A, C. SPEC-06.
 
-### Slice H: Empty state, mobile, role visibility
+### Slice H: Empty state, mobile, role visibility ([#92](https://github.com/frizman21/smai-server/issues/92))
 Implement the empty state for zero activated jobs in scope. Implement mobile layout (390px). On mobile, hero tiles stack 2x3 or scroll horizontally; funnel renders vertically; originator table scrolls horizontally; chart renders full width. Confirm role visibility behavior end to end.
 
 Dependencies: Slices A–G.

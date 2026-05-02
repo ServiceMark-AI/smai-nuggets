@@ -6,6 +6,7 @@
 **Tech lead:** Mark  
 **Source truth:** Lovable FE audit (Phase 1, locked); Session State v6.0; Spec 8 (Job Detail Screen and Sub-Flows) [legacy out-of-repo reference; superseded by this PRD §6 through §13]; Spec 14 (Error States and Edge Conditions) [legacy out-of-repo reference; no canonical in-repo successor; error states for the launch build are governed inline in this PRD's §11 sub-flows and §13.2 edit failure handling]; Spec 16 (System Events and Audit Logging) [legacy out-of-repo reference; superseded by PRD-01 v1.4.1 §12 canonical `job_proposal_history` schema and event_type enum]; Spec 17 (Workflow Event Map) [legacy out-of-repo reference; superseded by PRD-01 v1.4.1 §12 event_type enum and PRD-03 v1.4.1 §10 stop conditions]; PRD-01 v1.4.1 (Job Record); PRD-02 v1.5 (New Job Intake); PRD-03 v1.4.1 (Campaign Engine); SPEC-03 v1.3 (Job Type and Scenario); SPEC-09 (Mark Won/Lost CTA Visibility); SPEC-11 v2.0 (Campaign Template Architecture); Reconciliation Report 2026-04-16; Save State 2026-04-21 (Pending Approval elimination; templated architecture)  
 **Related PRDs and specs:** PRD-01 v1.4.1 (Job Record), PRD-02 v1.5 (New Job Intake), PRD-03 v1.4.1 (Campaign Engine), PRD-04 (Needs Attention), PRD-05 (Jobs List); SPEC-03 v1.3, SPEC-08 (Office Location Display Bug — Display Name Priority), SPEC-09, SPEC-11 v2.0, SPEC-12 v1.0  
+**Tracking issues:** [#75 A scaffold](https://github.com/frizman21/smai-server/issues/75) · [#76 B content sections](https://github.com/frizman21/smai-server/issues/76) · [#77 C Next Action Panel](https://github.com/frizman21/smai-server/issues/77) · [#78 D Open in Gmail + reply detection](https://github.com/frizman21/smai-server/issues/78) · [#79 E Fix Delivery Issue](https://github.com/frizman21/smai-server/issues/79) · [#80 F pause/resume](https://github.com/frizman21/smai-server/issues/80) · [#81 G Mark Won/Lost](https://github.com/frizman21/smai-server/issues/81) · [#82 H Edit Job slide-out](https://github.com/frizman21/smai-server/issues/82) · [#83 I Activity Timeline](https://github.com/frizman21/smai-server/issues/83) · [#84 J error states + mobile](https://github.com/frizman21/smai-server/issues/84)  
 **Closes:** 7 TODOs in `EditJob.tsx`  
 **Revision note (v1.1):** Removed `draft`, `awaiting_estimate`, `attach_estimate`, and `complete_job_setup` from header CTA table, pipeline tracker, Next Action Panel, Edit Job field table, activity timeline, and ACs. Added `review_plan` / Pending Approval. Updated LOB and email locking rules to reflect that all fields are locked at job creation. Removed Upload Estimate sub-flow from this build. Added Plan Review sub-flow (Section 11.6).  
 **Revision note (v1.2):** Aligned history references to the consolidated `job_proposal_history` table per PRD-01 v1.2 §12. All writes previously split between `job_status_history` and `event_logs` now land in `job_proposal_history` discriminated by `event_type`. Activity Timeline reads from `job_proposal_history` directly. Added physical table naming clarifier to §4. Added SPEC-09 cross-reference to Mark Won / Mark Lost placement. See DL-026, DL-027.  
@@ -714,55 +715,55 @@ All in a single response. No waterfall fetches on initial load.
 
 ## 17. Implementation Slices
 
-### Slice A: Screen scaffold and data load
+### Slice A: Screen scaffold and data load ([#75](https://github.com/frizman21/smai-server/issues/75))
 Build the Job Detail route. Implement the API endpoint returning all required data per Section 16. Implement the header bar (all elements, all conditional CTAs). Implement the pipeline tracker. Confirm the "Back to Jobs" link preserves the Jobs List filter.
 
 Dependencies: PRD-01 (job record), PRD-05 (Jobs List filter state).  
 Excludes: Content sections, Next Action Panel, sub-flows.
 
-### Slice B: Content sections (Components 3–6)
+### Slice B: Content sections (Components 3–6) ([#76](https://github.com/frizman21/smai-server/issues/76))
 Implement all six content sections with all fields from Section 8. Implement ghost text for empty fields. Implement the attachment list and "Add Attachment" file upload (non-campaign-triggering).
 
 Dependencies: Slice A.  
 Excludes: Edit Job slide-out.
 
-### Slice C: Next Action Panel and campaign controls
+### Slice C: Next Action Panel and campaign controls ([#77](https://github.com/frizman21/smai-server/issues/77))
 Implement all panel types (Section 9). Implement the In Campaign send progress count. Implement the Pause Campaign secondary control within the In Campaign panel. Render panel based on `cta_type` from API response.
 
 Dependencies: Slice A.  
 Excludes: Sub-flows (panel CTAs trigger sub-flows defined in Slices D–H).
 
-### Slice D: Open in Gmail and operator reply detection
+### Slice D: Open in Gmail and operator reply detection ([#78](https://github.com/frizman21/smai-server/issues/78))
 Implement the "Open in Gmail" CTA deep link (Section 11.1). Implement the smai-backend operator reply detection path: receive notification from smai-comms, perform atomic writes, write `job_proposal_history` rows for `status_overlay_changed` and `operator_replied`. Implement in-place Job Detail update on detection (realtime subscription or next load).
 
 Dependencies: Slices A, C. smai-comms OBO send confirmed working.
 
-### Slice E: Fix Delivery Issue sub-flow
+### Slice E: Fix Delivery Issue sub-flow ([#79](https://github.com/frizman21/smai-server/issues/79))
 Implement the Fix Issue slide-out (Section 11.2): error summary, editable email/phone fields, Retry button. Implement the retry sequence via smai-backend (writes, campaign resume trigger per PRD-03 v1.4.1 §12 with `template_version_id` carried over and unsent `campaign_steps` copied forward). Implement in-place Job Detail update on success.
 
 Dependencies: Slices A, C. PRD-03 v1.4.1 Slice E (Fix Issue resume path).
 
-### Slice F: Pause and Resume sub-flows
+### Slice F: Pause and Resume sub-flows ([#80](https://github.com/frizman21/smai-server/issues/80))
 Implement both confirmation dialogs (Sections 11.3 and 11.4). Implement the backend writes for pause and resume. Implement in-place Job Detail update on success. Implement the resume failure inline banner.
 
 Dependencies: Slices A, C. PRD-03 v1.4.1 Slices D and E.
 
-### Slice G: Mark Won / Mark Lost
+### Slice G: Mark Won / Mark Lost ([#81](https://github.com/frizman21/smai-server/issues/81))
 Implement the Update Outcome modal with two-option choice and confirmation step (Section 12). Implement backend writes with the `job_proposal_history` row pair (`pipeline_stage_changed` and `job_marked_won` or `job_marked_lost`). Implement outcome correction (Won → Lost, Lost → Won). Implement in-place Job Detail update. Placement and visibility governed by SPEC-09.
 
 Dependencies: Slice A. PRD-03 v1.4.1 §10.4. SPEC-09.
 
-### Slice H: Edit Job slide-out — closes 7 TODOs in `EditJob.tsx`
+### Slice H: Edit Job slide-out — closes 7 TODOs in `EditJob.tsx` ([#82](https://github.com/frizman21/smai-server/issues/82))
 Implement the Edit Job slide-out (Section 13) with all fields from Section 13.1 including the Scenario row as locked. Implement field-level editability rules — editable fields as inputs, locked fields as read-only text with lock icon and appropriate note. Implement Save Changes with client-side and server-side validation (server rejects any PATCH to `job_type` or `scenario_key`). Implement the `job_fields_updated` `job_proposal_history` write on save per §13.3. Implement the unsaved-changes close warning. Close all 7 TODOs in `EditJob.tsx`.
 
 Dependencies: Slices A, B. PRD-01 v1.4.1 field editability rules; PRD-01 v1.4.1 §12 `job_fields_updated` schema.
 
-### Slice I: Activity Timeline
+### Slice I: Activity Timeline ([#83](https://github.com/frizman21/smai-server/issues/83))
 Implement the Activity Timeline (Section 10) sourced from `job_proposal_history` filtered to operator-visible `event_type` values. Implement all event type display texts and icons per the §10.1 table (note: `campaign_plan_generated` is not in the enum under PRD-01 v1.4.1). Implement newest-first sort. Implement the inbound message preview and expand behavior. Implement the "Reply" link on customer reply entries that opens Gmail directly (same as the Open in Gmail CTA). Resolve `changed_by` email to operator display name using the account's user list.
 
 Dependencies: Slice A. API response includes `job_proposal_history` data.
 
-### Slice J: Error states and mobile
+### Slice J: Error states and mobile ([#84](https://github.com/frizman21/smai-server/issues/84))
 Implement all error states from Section 14. Implement mobile layout (390px). Confirm slide-outs render full-screen on mobile. Confirm all sub-flow modals render correctly on mobile.
 
 Dependencies: All preceding slices.

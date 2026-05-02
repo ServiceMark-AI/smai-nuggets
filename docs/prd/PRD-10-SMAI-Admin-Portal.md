@@ -15,6 +15,7 @@
 | Tech lead | Mark |
 | Source | Admin Portal Memo 2026-04-20; SPEC-07 v1.1 (signature composition data dependencies); SPEC-03 v1.3.3 §10 (two-layer governance for job types AND scenarios; sub-type and scenario rename surgery); SPEC-11 v2.0.1 §11.2 (template variant activation, two-step atomic; master list scope vs tenant activation scope clarification); SPEC-12 v2.0 (template authoring methodology, rebased); PRD-01 v1.4.1 (canonical schema including `scenario_key` on `job_proposals` and `template_version_id` on `campaigns`); PRD-02 v1.5 (collapsed intake flow); PRD-03 v1.4.1 (campaign engine with template lookup); PRD-08 v1.2 (explicit deferral of location/account editing to the Admin Portal); PRD-09 v1.3.1 (Gmail Layer, one mailbox per location); Jeff's 2026-04-18 clarification on single-location Originators; Jeff feedback round 2026-04-25/26 (v1 authoring scope reduction to 17 variants for Jeff's tenant); Save State 2026-04-21 (templated architecture, scenario layer, Pending Approval elimination) |
 | Related docs | PRD-08 v1.2 Settings; PRD-02 v1.5 New Job Intake; PRD-09 v1.3.1 Gmail Layer; SPEC-07 v1.1 Originator Identity; SPEC-03 v1.3.3 Job Type and Scenario; SPEC-11 v2.0.1 Campaign Template Architecture; SPEC-12 v2.0 Template Authoring; PRD-01 v1.4.1, PRD-03 v1.4.1, PRD-06 v1.3.1, PRD-05 v1.4, PRD-04 v1.2.1, PRD-07 v1.2; CC-06 Buc-ee's MVP Definition |
+| Tracking issues | [#106 A account+location CRUD](https://github.com/frizman21/smai-server/issues/106) · [#107 B logo upload](https://github.com/frizman21/smai-server/issues/107) · [#108 C tenant job type activation](https://github.com/frizman21/smai-server/issues/108) · [#109 G tenant scenario activation](https://github.com/frizman21/smai-server/issues/109) · [#110 H template variant management](https://github.com/frizman21/smai-server/issues/110) · [#111 D/E/F/I/J/K/L post-pilot frontend (umbrella)](https://github.com/frizman21/smai-server/issues/111) |
 
 **Revision note (v1.0):** Initial draft. Defines the SMAI Admin Portal: the internal, SMAI-staff-facing control plane for tenant configuration. Consolidates what was previously a standalone Location Configuration PRD with the broader set of Admin Portal capabilities surfaced in the Admin Portal Scope Memo (2026-04-20): account-level configuration, location-level CRUD, tenant job type activation (per SPEC-03 v1.2 §10), and audit logging. **Scope posture for Buc-ee's pilot:** the Admin Portal frontend need not ship in full for Jeff's go-live. What must ship is the complete backend surface (endpoints, validation, audit logging, and schema) against which SMAI staff configure Jeff's tenant via direct API calls, scripts, or controlled DB writes. The Admin Portal frontend is the long-term operator posture and the scalable configuration path for tenant #2 onward, but it is not a go-live gate. This framing is made explicit throughout the PRD and in the §15 slice priorities.
 
@@ -653,7 +654,7 @@ Flag which state we are in as early as possible. Mark confirms which of the §15
 
 **Post-pilot (not blocking pilot):** Slices I, J, K, L. These are the Admin Portal frontend. They become necessary when tenant #2 arrives and direct-backend configuration stops being acceptable.
 
-### Slice A, Backend: Account and Location CRUD endpoints
+### Slice A, Backend: Account and Location CRUD endpoints ([#106](https://github.com/frizman21/smai-server/issues/106))
 
 **Purpose:** Establish server-side CRUD for the `accounts` and `locations` tables with admin-gated auth and audit logging.
 
@@ -665,7 +666,7 @@ Flag which state we are in as early as possible. Mark confirms which of the §15
 
 **Excluded:** Frontend. Tenant job type activation. Scenario activation. Template variant activation.
 
-### Slice B, Backend: Logo upload pipeline
+### Slice B, Backend: Logo upload pipeline ([#107](https://github.com/frizman21/smai-server/issues/107))
 
 **Purpose:** Implement the multipart upload, validation, GCS storage, and URL generation per §7.2.
 
@@ -677,7 +678,7 @@ Flag which state we are in as early as possible. Mark confirms which of the §15
 
 **Excluded:** Frontend logo UI.
 
-### Slice C, Backend: Tenant job type activation
+### Slice C, Backend: Tenant job type activation ([#108](https://github.com/frizman21/smai-server/issues/108))
 
 **Purpose:** Establish the job type master list and the per-tenant activation join, with admin-gated endpoints.
 
@@ -701,7 +702,7 @@ Flag which state we are in as early as possible. Mark confirms which of the §15
 
 (Per §14 not blocking pilot.)
 
-### Slice G, Backend: Tenant scenario master list and activation
+### Slice G, Backend: Tenant scenario master list and activation ([#109](https://github.com/frizman21/smai-server/issues/109))
 
 **Purpose:** Establish the scenario master list and the per-tenant scenario activation join, with admin-gated endpoints.
 
@@ -713,7 +714,7 @@ Flag which state we are in as early as possible. Mark confirms which of the §15
 
 **Excluded:** Frontend scenario activation UI. Template variant management.
 
-### Slice H, Backend: Campaign template variant management
+### Slice H, Backend: Campaign template variant management ([#110](https://github.com/frizman21/smai-server/issues/110))
 
 **Purpose:** Establish the template variant master list and the atomic two-step activation operation per SPEC-11 v2.0.1 §11.2.
 
