@@ -30,17 +30,14 @@
             </td>
             <td class="text-end">
               <% if jt_active %>
-                <span class="badge text-bg-success me-2">✓ Active</span>
-                <%= button_to "Activate all scenarios",
-                      activate_all_scenarios_admin_tenant_job_type_activation_path(@tenant, tjt),
-                      method: :post,
-                      class: "btn btn-sm btn-outline-primary me-2",
-                      form: { class: "d-inline" } %>
-                <%= button_to "Deactivate",
-                      admin_tenant_job_type_activation_path(@tenant, tjt),
-                      method: :delete,
-                      class: "btn btn-sm btn-outline-secondary",
-                      form: { class: "d-inline", data: { turbo_confirm: "Deactivate #{jt.name}? Its scenarios will be deactivated too." } } %>
+                <div class="d-inline-flex align-items-center gap-3">
+                  <span class="badge text-bg-success">✓ Active</span>
+                  <%= button_to "Deactivate",
+                        admin_tenant_job_type_activation_path(@tenant, tjt),
+                        method: :delete,
+                        class: "btn btn-link btn-sm text-secondary p-0",
+                        form: { class: "d-inline", data: { turbo_confirm: "Deactivate #{jt.name}? Its scenarios will be deactivated too." } } %>
+                </div>
               <% else %>
                 <%= button_to "Activate",
                       admin_tenant_job_type_activations_path(@tenant, job_type_id: jt.id),
@@ -51,8 +48,29 @@
             </td>
           </tr>
 
-          <% if jt_active %>
-            <% jt.scenarios.order(:short_name).each do |scenario| %>
+          <% if jt_active && jt.scenarios.any? %>
+            <% scenarios = jt.scenarios.order(:short_name) %>
+            <% active_count = scenarios.count { |s| @tenant_scenarios[s.id]&.is_active } %>
+            <% total_count = scenarios.size %>
+            <% all_active = active_count == total_count %>
+
+            <tr class="bg-body-tertiary">
+              <td class="ps-5 small">
+                <strong class="text-uppercase text-muted">Scenarios</strong>
+                <span class="text-muted">— <%= active_count %> of <%= total_count %> active</span>
+              </td>
+              <td class="text-end">
+                <% unless all_active %>
+                  <%= button_to "Activate all",
+                        activate_all_scenarios_admin_tenant_job_type_activation_path(@tenant, tjt),
+                        method: :post,
+                        class: "btn btn-sm btn-outline-primary",
+                        form: { class: "d-inline" } %>
+                <% end %>
+              </td>
+            </tr>
+
+            <% scenarios.each do |scenario| %>
               <% ts = @tenant_scenarios[scenario.id] %>
               <% s_active = ts&.is_active %>
               <tr>
@@ -63,12 +81,14 @@
                 </td>
                 <td class="text-end">
                   <% if s_active %>
-                    <span class="badge text-bg-success me-2">✓ Active</span>
-                    <%= button_to "Deactivate",
-                          admin_tenant_scenario_activation_path(@tenant, ts),
-                          method: :delete,
-                          class: "btn btn-sm btn-outline-secondary",
-                          form: { class: "d-inline" } %>
+                    <div class="d-inline-flex align-items-center gap-3">
+                      <span class="badge text-bg-success">✓ Active</span>
+                      <%= button_to "Deactivate",
+                            admin_tenant_scenario_activation_path(@tenant, ts),
+                            method: :delete,
+                            class: "btn btn-link btn-sm text-secondary p-0",
+                            form: { class: "d-inline" } %>
+                    </div>
                   <% else %>
                     <%= button_to "Activate",
                           admin_tenant_scenario_activations_path(@tenant, scenario_id: scenario.id),
