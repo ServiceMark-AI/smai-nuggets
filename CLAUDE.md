@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## Conventions
+
+See [CONVENTIONS.md](CONVENTIONS.md) for project-wide rules of thumb (e.g., all controllers require an authenticated user). Follow them unless an exception is documented there.
+
 ## Running Rails commands
 
 Docker Compose is always running our environment in the background. To run tests
