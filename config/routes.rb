@@ -3,6 +3,8 @@ Rails.application.routes.draw do
   get "profile" => "profiles#show", as: :profile
   get "profile/edit" => "profiles#edit", as: :edit_profile
   patch "profile" => "profiles#update"
+  get "change_password" => "passwords#edit", as: :change_password
+  patch "change_password" => "passwords#update"
   get "my_organization" => "my_organization#show", as: :my_organization
 
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
