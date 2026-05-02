@@ -8,6 +8,7 @@ class Admin::TenantsController < Admin::BaseController
   def show
     @invitation = Invitation.new
     @pending_invitations = @tenant.invitations.where(accepted_at: nil).order(created_at: :desc)
+    @users = @tenant.users.order(:email)
   end
 
   def new

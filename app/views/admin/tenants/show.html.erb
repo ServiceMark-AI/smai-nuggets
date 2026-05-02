@@ -10,7 +10,7 @@
 
 <div class="row g-3">
   <div class="col-lg-7">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm mb-3">
       <div class="card-body p-4">
         <h2 class="h5 mb-3">Organizations</h2>
         <% roots = @tenant.organizations.where(parent_id: nil).order(:name) %>
@@ -22,6 +22,51 @@
           </ul>
         <% else %>
           <p class="text-muted mb-0">No organizations.</p>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h2 class="h5 mb-0">Users (<%= @users.size %>)</h2>
+      </div>
+      <div class="card-body p-0">
+        <% if @users.any? %>
+          <table class="table mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th class="text-end">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @users.each do |user| %>
+                <tr>
+                  <td>
+                    <% if user.full_name.present? %>
+                      <%= user.full_name %>
+                    <% else %>
+                      <span class="text-muted">—</span>
+                    <% end %>
+                  </td>
+                  <td><%= user.email %></td>
+                  <td class="text-end">
+                    <% if user.is_admin %>
+                      <span class="badge text-bg-dark me-1">Admin</span>
+                    <% end %>
+                    <% if user.is_pending %>
+                      <span class="badge text-bg-warning">Pending</span>
+                    <% else %>
+                      <span class="badge text-bg-success">Active</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <div class="p-3 text-center text-muted small">No users yet.</div>
         <% end %>
       </div>
     </div>
