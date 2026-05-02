@@ -2,7 +2,7 @@
 
 <div class="row justify-content-center">
   <div class="col-md-8 col-lg-6">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm mb-4">
       <div class="card-body p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h2 class="card-title mb-0">Your Profile</h2>
@@ -40,6 +40,37 @@
             <% end %>
           </dd>
         </dl>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="card-title mb-0 h5">Email sending</h2>
+          <%= button_to "Setup G Suite", "/auth/google_oauth2", method: :post, class: "btn btn-sm btn-outline-primary", form: { class: "m-0" } %>
+        </div>
+
+        <% delegations = @user.email_delegations.order(:email) %>
+        <% if delegations.any? %>
+          <ul class="list-group list-group-flush">
+            <% delegations.each do |d| %>
+              <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <div>
+                  <div class="fw-semibold"><%= d.email %></div>
+                  <div class="small text-muted">
+                    <%= d.provider.humanize %>
+                    <% if d.expires_at %>
+                      · token <%= d.expired? ? "expired" : "expires" %> <%= time_ago_in_words(d.expires_at, include_seconds: false) %><%= d.expired? ? " ago" : "" %>
+                    <% end %>
+                  </div>
+                </div>
+                <%= button_to "Disconnect", email_delegation_path(d), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "m-0", data: { turbo_confirm: "Disconnect #{d.email}?" } } %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <p class="text-muted mb-0">No connected accounts. Click Setup G Suite to authorize.</p>
+        <% end %>
       </div>
     </div>
   </div>

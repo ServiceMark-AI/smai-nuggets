@@ -4,6 +4,10 @@ Rails.application.routes.draw do
   get "profile/edit" => "profiles#edit", as: :edit_profile
   patch "profile" => "profiles#update"
   get "my_organization" => "my_organization#show", as: :my_organization
+
+  get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
+  get "/auth/failure", to: "email_delegations#failure", as: :email_delegation_failure
+  resources :email_delegations, only: [:destroy]
   resources :job_proposals, only: [:index, :new, :create]
 
   namespace :admin do

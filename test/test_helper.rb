@@ -3,6 +3,9 @@ ENV["OPENAI_API_KEY"] ||= "test-openai-key"
 require_relative "../config/environment"
 require "rails/test_help"
 
+OmniAuth.config.test_mode = true
+OmniAuth.config.logger = Rails.logger
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers

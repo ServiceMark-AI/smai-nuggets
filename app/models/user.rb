@@ -7,6 +7,7 @@ class User < ApplicationRecord
   belongs_to :tenant, optional: true
   has_many :organizational_members, dependent: :destroy
   has_many :organizations, through: :organizational_members
+  has_many :email_delegations, dependent: :destroy
 
   def full_name
     [first_name, last_name].compact_blank.join(" ").presence

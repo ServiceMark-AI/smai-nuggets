@@ -7,6 +7,8 @@ module ApplicationHelper
     AWS_SECRET_ACCESS_KEY
     AWS_REGION
     AWS_BUCKET
+    GOOGLE_CLIENT_ID
+    GOOGLE_CLIENT_SECRET
   ].freeze
 
   def missing_env_vars

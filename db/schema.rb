@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_045707) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_053702) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -72,6 +72,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_045707) do
     t.bigint "model_id"
     t.datetime "updated_at", null: false
     t.index ["model_id"], name: "index_chats_on_model_id"
+  end
+
+  create_table "email_delegations", force: :cascade do |t|
+    t.text "access_token", null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at"
+    t.string "provider", default: "google", null: false
+    t.text "refresh_token"
+    t.text "scopes"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "provider", "email"], name: "index_email_delegations_on_user_id_and_provider_and_email", unique: true
+    t.index ["user_id"], name: "index_email_delegations_on_user_id"
   end
 
   create_table "job_proposal_attachments", force: :cascade do |t|
@@ -253,6 +267,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_045707) do
   add_foreign_key "campaigns", "users", column: "approved_by_user_id"
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"
   add_foreign_key "chats", "models"
+  add_foreign_key "email_delegations", "users"
   add_foreign_key "job_proposal_attachments", "job_proposals"
   add_foreign_key "job_proposal_attachments", "users", column: "uploaded_by_user_id"
   add_foreign_key "job_proposals", "job_types"
