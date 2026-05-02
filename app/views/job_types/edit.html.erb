@@ -1,0 +1,7 @@
+<% content_for :title, "Edit Job Type" %>
+
+<%= link_to "← #{@job_type.name}", @job_type, class: "small text-muted" %>
+
+<h1 class="h3 mt-2 mb-4">Edit Job Type</h1>
+
+<%= render "form", submit_label: "Save Changes", cancel_path: @job_type %>

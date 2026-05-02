@@ -14,16 +14,14 @@
             <th>Name</th>
             <th class="text-end">Organizations</th>
             <th class="text-end">Users</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
           <% @tenants.each do |tenant| %>
             <tr>
-              <td><%= tenant.name %></td>
+              <td><%= link_to tenant.name, admin_tenant_path(tenant) %></td>
               <td class="text-end"><%= tenant.organizations.count %></td>
               <td class="text-end"><%= tenant.users.count %></td>
-              <td class="text-end"><%= link_to "View", admin_tenant_path(tenant), class: "btn btn-sm btn-outline-primary" %></td>
             </tr>
           <% end %>
         </tbody>

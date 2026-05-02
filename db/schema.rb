@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_193137) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_194714) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -155,7 +155,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_193137) do
     t.text "description"
     t.string "name", null: false
     t.bigint "tenant_id", null: false
+    t.string "type_code", limit: 64
     t.datetime "updated_at", null: false
+    t.index ["tenant_id", "type_code"], name: "index_job_types_on_tenant_id_and_type_code", unique: true, where: "(type_code IS NOT NULL)"
     t.index ["tenant_id"], name: "index_job_types_on_tenant_id"
   end
 
