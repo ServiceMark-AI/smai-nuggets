@@ -1,4 +1,4 @@
-class CampaignStepsController < ApplicationController
+class Admin::CampaignStepsController < Admin::BaseController
   before_action :set_campaign
   before_action :set_step, only: [:edit, :update, :destroy]
 
@@ -9,7 +9,7 @@ class CampaignStepsController < ApplicationController
   def create
     @campaign_step = @campaign.steps.new(campaign_step_params)
     if @campaign_step.save
-      redirect_to edit_campaign_path(@campaign), notice: "Step added."
+      redirect_to edit_admin_campaign_path(@campaign), notice: "Step added."
     else
       render :new, status: :unprocessable_content
     end
@@ -20,7 +20,7 @@ class CampaignStepsController < ApplicationController
 
   def update
     if @campaign_step.update(campaign_step_params)
-      redirect_to edit_campaign_path(@campaign), notice: "Step updated."
+      redirect_to edit_admin_campaign_path(@campaign), notice: "Step updated."
     else
       render :edit, status: :unprocessable_content
     end
@@ -28,7 +28,7 @@ class CampaignStepsController < ApplicationController
 
   def destroy
     @campaign_step.destroy
-    redirect_to edit_campaign_path(@campaign), notice: "Step removed."
+    redirect_to edit_admin_campaign_path(@campaign), notice: "Step removed."
   end
 
   def reorder
@@ -53,7 +53,6 @@ class CampaignStepsController < ApplicationController
 
   def set_campaign
     @campaign = Campaign.find(params[:campaign_id])
-    authorize! :update, @campaign
   end
 
   def set_step

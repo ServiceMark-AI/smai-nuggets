@@ -1,10 +1,10 @@
-<% reorder_url = reorder_campaign_steps_path(campaign) %>
+<% reorder_url = reorder_admin_campaign_steps_path(campaign) %>
 <% table_id = "campaign-steps-#{campaign.id}" %>
 
 <div class="card shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h2 class="h5 mb-0">Steps</h2>
-    <%= link_to "Add step", new_campaign_step_path(campaign), class: "btn btn-primary btn-sm" %>
+    <%= link_to "Add step", new_admin_campaign_step_path(campaign), class: "btn btn-primary btn-sm" %>
   </div>
   <div class="card-body p-0">
     <% if campaign.steps.any? %>
@@ -37,8 +37,8 @@
               </td>
               <td class="text-end"><%= step.offset_min %></td>
               <td class="text-end">
-                <%= link_to "Edit", edit_campaign_step_path(campaign, step), class: "btn btn-sm btn-outline-primary" %>
-                <%= button_to "Delete", campaign_step_path(campaign, step), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this step?" } } %>
+                <%= link_to "Edit", edit_admin_campaign_step_path(campaign, step), class: "btn btn-sm btn-outline-primary" %>
+                <%= button_to "Delete", admin_campaign_step_path(campaign, step), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this step?" } } %>
               </td>
             </tr>
           <% end %>

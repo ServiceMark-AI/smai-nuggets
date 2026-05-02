@@ -1,9 +1,22 @@
 class JobProposalsController < ApplicationController
   def index
-    @job_proposals = JobProposal
+    scope = JobProposal
       .accessible_by(current_ability)
-      .includes(:organization, :job_type, :owner)
-      .order(created_at: :desc)
+      .includes(:organization, :job_type, :owner, :created_by_user)
+
+    @status_options = scope.distinct.pluck(:status).compact.sort
+    user_ids = (scope.distinct.pluck(:owner_id) + scope.distinct.pluck(:created_by_user_id)).uniq
+    @user_options = User.where(id: user_ids).order(:email)
+
+    @selected_status = params[:status].presence
+    @selected_owner_id = params[:owner_id].presence
+    @selected_creator_id = params[:creator_id].presence
+
+    scope = scope.where(status: @selected_status) if @selected_status
+    scope = scope.where(owner_id: @selected_owner_id) if @selected_owner_id
+    scope = scope.where(created_by_user_id: @selected_creator_id) if @selected_creator_id
+
+    @job_proposals = scope.order(created_at: :desc)
   end
 
   def new

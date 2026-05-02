@@ -52,7 +52,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Alice", response.body
     assert_no_match "Bob", response.body
     assert_no_match "Carol", response.body
-    assert_match "No job proposals yet.", response.body
+    assert_match "No job proposals match these filters.", response.body
   end
 
   test "admin sees all proposals across tenants" do
@@ -62,6 +62,43 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Alice", response.body
     assert_match "Bob", response.body
     assert_match "Carol", response.body
+  end
+
+  test "status filter narrows the list to that status" do
+    sign_in @admin
+    get job_proposals_url, params: { status: "open" }
+    assert_response :success
+    # Fixtures: in_users_org=new(0), same_tenant_other_org=open(1), other_tenant=new(0)
+    assert_match "Bob", response.body
+    assert_no_match "Alice", response.body
+    assert_no_match "Carol", response.body
+  end
+
+  test "owner filter narrows the list to proposals owned by that user" do
+    sign_in @admin
+    get job_proposals_url, params: { owner_id: users(:two).id }
+    assert_response :success
+    assert_match "Carol", response.body                # other_tenant: owner=two
+    assert_no_match "Alice", response.body             # in_users_org: owner=one
+    assert_no_match "Bob", response.body               # same_tenant_other_org: owner=one
+  end
+
+  test "creator filter narrows the list to proposals created by that user" do
+    sign_in @admin
+    get job_proposals_url, params: { creator_id: users(:one).id }
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_match "Bob", response.body
+    assert_no_match "Carol", response.body
+  end
+
+  test "filters compose with each other" do
+    sign_in @admin
+    get job_proposals_url, params: { status: "new", owner_id: users(:one).id }
+    assert_response :success
+    assert_match "Alice", response.body                # status=new + owner=one
+    assert_no_match "Bob", response.body               # status=open
+    assert_no_match "Carol", response.body             # owner=two
   end
 
   test "new renders the upload form" do

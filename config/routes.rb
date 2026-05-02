@@ -5,7 +5,6 @@ Rails.application.routes.draw do
   patch "profile" => "profiles#update"
   get "my_organization" => "my_organization#show", as: :my_organization
   resources :job_proposals, only: [:index, :new, :create]
-  resources :tenants, only: [:index, :show]
 
   namespace :admin do
     resources :chats, only: [:index, :show]
@@ -13,15 +12,16 @@ Rails.application.routes.draw do
     resources :tool_calls, only: [:index]
     resources :models, only: [:index]
     resources :pdf_processing_revisions, only: [:index, :new, :create]
-  end
-  resources :campaigns do
-    member do
-      patch :approve
-      patch :pause
-    end
-    resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
-      collection do
-        patch :reorder
+    resources :tenants, only: [:index, :show]
+    resources :campaigns do
+      member do
+        patch :approve
+        patch :pause
+      end
+      resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
+        collection do
+          patch :reorder
+        end
       end
     end
   end

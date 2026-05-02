@@ -1,4 +1,4 @@
-<%= form_with model: campaign, local: true do |f| %>
+<%= form_with model: [:admin, campaign], local: true do |f| %>
   <% if campaign.errors.any? %>
     <div class="alert alert-danger">
       <h6 class="alert-heading mb-2"><%= pluralize(campaign.errors.count, "error") %> prevented this campaign from being saved:</h6>
@@ -22,6 +22,6 @@
 
   <div class="d-flex gap-2">
     <%= f.submit class: "btn btn-primary" %>
-    <%= link_to "Cancel", campaigns_path, class: "btn btn-outline-secondary" %>
+    <%= link_to "Cancel", admin_campaigns_path, class: "btn btn-outline-secondary" %>
   </div>
 <% end %>

@@ -5,6 +5,40 @@
   <%= link_to "New job", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
 </div>
 
+<%= form_with url: job_proposals_path, method: :get, local: true, class: "card shadow-sm mb-3" do |f| %>
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <%= label_tag :status, "Status", class: "form-label small mb-1" %>
+        <%= select_tag :status,
+              options_for_select(@status_options.map { |s| [s.humanize, s] }, @selected_status),
+              include_blank: "All statuses",
+              class: "form-select form-select-sm" %>
+      </div>
+      <div class="col-sm-3">
+        <%= label_tag :owner_id, "Owner", class: "form-label small mb-1" %>
+        <%= select_tag :owner_id,
+              options_from_collection_for_select(@user_options, :id, :email, @selected_owner_id),
+              include_blank: "Any owner",
+              class: "form-select form-select-sm" %>
+      </div>
+      <div class="col-sm-3">
+        <%= label_tag :creator_id, "Created by", class: "form-label small mb-1" %>
+        <%= select_tag :creator_id,
+              options_from_collection_for_select(@user_options, :id, :email, @selected_creator_id),
+              include_blank: "Any creator",
+              class: "form-select form-select-sm" %>
+      </div>
+      <div class="col-sm-3 d-flex gap-2">
+        <%= f.submit "Filter", class: "btn btn-primary btn-sm" %>
+        <% if @selected_status || @selected_owner_id || @selected_creator_id %>
+          <%= link_to "Clear", job_proposals_path, class: "btn btn-outline-secondary btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
 <div class="card shadow-sm">
   <div class="card-body p-0">
     <% if @job_proposals.any? %>
@@ -17,6 +51,7 @@
             <th>Status</th>
             <th class="text-end">Proposal value</th>
             <th>Owner</th>
+            <th>Created by</th>
           </tr>
         </thead>
         <tbody>
@@ -28,12 +63,13 @@
               <td><span class="badge text-bg-secondary"><%= jp.status %></span></td>
               <td class="text-end"><%= number_to_currency(jp.proposal_value) if jp.proposal_value %></td>
               <td><%= jp.owner.email %></td>
+              <td><%= jp.created_by_user.email %></td>
             </tr>
           <% end %>
         </tbody>
       </table>
     <% else %>
-      <div class="p-4 text-center text-muted">No job proposals yet.</div>
+      <div class="p-4 text-center text-muted">No job proposals match these filters.</div>
     <% end %>
   </div>
 </div>

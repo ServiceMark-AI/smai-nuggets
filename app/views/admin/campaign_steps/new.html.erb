@@ -1,0 +1,14 @@
+<% content_for :title, "New Step" %>
+
+<div class="row">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-1">Add Step</h1>
+    <p class="text-muted mb-4">Campaign: <%= link_to @campaign.name, admin_campaign_path(@campaign) %></p>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <%= render "form", campaign: @campaign, campaign_step: @campaign_step, form_url: admin_campaign_steps_path(@campaign), form_method: :post %>
+      </div>
+    </div>
+  </div>
+</div>

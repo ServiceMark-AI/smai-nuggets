@@ -1,6 +1,6 @@
 require "test_helper"
 
-class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
+class Admin::CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
@@ -11,19 +11,19 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "redirects to sign-in when not signed in" do
-    get new_campaign_step_url(@campaign)
+    get new_admin_campaign_step_url(@campaign)
     assert_redirected_to new_user_session_path
   end
 
   test "non-admin cannot reach the new form" do
     sign_in @non_admin
-    get new_campaign_step_url(@campaign)
+    get new_admin_campaign_step_url(@campaign)
     assert_redirected_to root_path
   end
 
   test "admin sees the new form with the campaign pre-bound and a default sequence number" do
     sign_in @admin
-    get new_campaign_step_url(@campaign)
+    get new_admin_campaign_step_url(@campaign)
     assert_response :success
     assert_match @campaign.name, response.body
     # Existing fixtures: sequence 1 + 2, so default for new should be 3
@@ -33,7 +33,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin sees default sequence_number 1 on a campaign with no steps" do
     sign_in @admin
-    get new_campaign_step_url(@empty_campaign)
+    get new_admin_campaign_step_url(@empty_campaign)
     assert_response :success
     assert_select "input[name='campaign_step[sequence_number]'][value='1']"
   end
@@ -41,7 +41,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "admin create with valid params adds a step to the campaign" do
     sign_in @admin
     assert_difference -> { @campaign.steps.count }, 1 do
-      post campaign_steps_url(@campaign), params: {
+      post admin_campaign_steps_url(@campaign), params: {
         campaign_step: {
           sequence_number: 3,
           offset_min: 60,
@@ -50,7 +50,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    assert_redirected_to edit_campaign_path(@campaign)
+    assert_redirected_to edit_admin_campaign_path(@campaign)
     follow_redirect!
     assert_match "Step added.", response.body
     assert_match "Third touch", response.body
@@ -59,7 +59,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "admin create with invalid params re-renders the form" do
     sign_in @admin
     assert_no_difference -> { @campaign.steps.count } do
-      post campaign_steps_url(@campaign), params: {
+      post admin_campaign_steps_url(@campaign), params: {
         campaign_step: {
           sequence_number: nil,
           offset_min: nil,
@@ -75,7 +75,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "admin create with a duplicate sequence_number is rejected" do
     sign_in @admin
     assert_no_difference -> { @campaign.steps.count } do
-      post campaign_steps_url(@campaign), params: {
+      post admin_campaign_steps_url(@campaign), params: {
         campaign_step: {
           sequence_number: 1,  # already taken on @campaign
           offset_min: 0,
@@ -91,7 +91,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "non-admin cannot create a step" do
     sign_in @non_admin
     assert_no_difference -> { @campaign.steps.count } do
-      post campaign_steps_url(@campaign), params: {
+      post admin_campaign_steps_url(@campaign), params: {
         campaign_step: { sequence_number: 99, offset_min: 0, template_subject: "Sneaky", template_body: "x" }
       }
     end
@@ -101,7 +101,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "admin sees the edit form" do
     sign_in @admin
     step = @campaign.steps.first
-    get edit_campaign_step_url(@campaign, step)
+    get edit_admin_campaign_step_url(@campaign, step)
     assert_response :success
     assert_select "input[name='campaign_step[template_subject]'][value=?]", step.template_subject
   end
@@ -109,10 +109,10 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "admin update with valid params changes the step" do
     sign_in @admin
     step = @campaign.steps.first
-    patch campaign_step_url(@campaign, step), params: {
+    patch admin_campaign_step_url(@campaign, step), params: {
       campaign_step: { sequence_number: step.sequence_number, offset_min: 999, template_subject: "Changed", template_body: "Updated body" }
     }
-    assert_redirected_to edit_campaign_path(@campaign)
+    assert_redirected_to edit_admin_campaign_path(@campaign)
     step.reload
     assert_equal "Changed", step.template_subject
     assert_equal 999, step.offset_min
@@ -121,7 +121,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
   test "admin update with invalid params re-renders the form" do
     sign_in @admin
     step = @campaign.steps.first
-    patch campaign_step_url(@campaign, step), params: {
+    patch admin_campaign_step_url(@campaign, step), params: {
       campaign_step: { sequence_number: nil }
     }
     assert_response :unprocessable_content
@@ -132,23 +132,23 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     step = @campaign.steps.first
     assert_difference -> { @campaign.steps.count }, -1 do
-      delete campaign_step_url(@campaign, step)
+      delete admin_campaign_step_url(@campaign, step)
     end
-    assert_redirected_to edit_campaign_path(@campaign)
+    assert_redirected_to edit_admin_campaign_path(@campaign)
   end
 
   test "non-admin cannot edit, update, or destroy a step" do
     sign_in @non_admin
     step = @campaign.steps.first
 
-    get edit_campaign_step_url(@campaign, step)
+    get edit_admin_campaign_step_url(@campaign, step)
     assert_redirected_to root_path
 
-    patch campaign_step_url(@campaign, step), params: { campaign_step: { template_subject: "Bad" } }
+    patch admin_campaign_step_url(@campaign, step), params: { campaign_step: { template_subject: "Bad" } }
     assert_redirected_to root_path
 
     assert_no_difference -> { @campaign.steps.count } do
-      delete campaign_step_url(@campaign, step)
+      delete admin_campaign_step_url(@campaign, step)
     end
     assert_redirected_to root_path
   end
@@ -158,7 +158,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     s1 = @campaign.steps.find_by!(sequence_number: 1)
     s2 = @campaign.steps.find_by!(sequence_number: 2)
 
-    patch reorder_campaign_steps_url(@campaign), params: { ids: [s2.id, s1.id] }, as: :json
+    patch reorder_admin_campaign_steps_url(@campaign), params: { ids: [s2.id, s1.id] }, as: :json
     assert_response :no_content
 
     assert_equal 1, s2.reload.sequence_number
@@ -170,7 +170,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     other_step = campaign_steps(:approved_step_one)  # belongs to @campaign already
     foreign_id = 999_999
 
-    patch reorder_campaign_steps_url(@campaign), params: { ids: [other_step.id, foreign_id] }, as: :json
+    patch reorder_admin_campaign_steps_url(@campaign), params: { ids: [other_step.id, foreign_id] }, as: :json
     assert_response :unprocessable_content
   end
 
@@ -179,7 +179,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     s1 = @campaign.steps.find_by!(sequence_number: 1)
     s2 = @campaign.steps.find_by!(sequence_number: 2)
 
-    patch reorder_campaign_steps_url(@campaign), params: { ids: [s2.id, s1.id] }, as: :json
+    patch reorder_admin_campaign_steps_url(@campaign), params: { ids: [s2.id, s1.id] }, as: :json
     assert_redirected_to root_path
 
     assert_equal 1, s1.reload.sequence_number

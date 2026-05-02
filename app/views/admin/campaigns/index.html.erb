@@ -2,7 +2,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">Campaigns</h1>
-  <%= link_to "New campaign", new_campaign_path, class: "btn btn-primary btn-sm" %>
+  <%= link_to "New campaign", new_admin_campaign_path, class: "btn btn-primary btn-sm" %>
 </div>
 
 <div class="card shadow-sm">
@@ -22,7 +22,7 @@
         <tbody>
           <% @campaigns.each do |c| %>
             <tr>
-              <td><%= link_to c.name, campaign_path(c) %></td>
+              <td><%= link_to c.name, admin_campaign_path(c) %></td>
               <td>
                 <% klass = case c.status when "approved" then "text-bg-success" when "paused" then "text-bg-warning" else "text-bg-secondary" end %>
                 <span class="badge <%= klass %>"><%= c.status %></span>
@@ -31,8 +31,8 @@
               <td><%= l(c.approved_at, format: :short) if c.approved_at %></td>
               <td><%= l(c.paused_at, format: :short) if c.paused_at %></td>
               <td class="text-end">
-                <%= link_to "Edit", edit_campaign_path(c), class: "btn btn-sm btn-outline-primary" %>
-                <%= button_to "Delete", campaign_path(c), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this campaign?" } } %>
+                <%= link_to "Edit", edit_admin_campaign_path(c), class: "btn btn-sm btn-outline-primary" %>
+                <%= button_to "Delete", admin_campaign_path(c), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this campaign?" } } %>
               </td>
             </tr>
           <% end %>
