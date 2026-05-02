@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_211500) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_212500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,6 +51,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_211500) do
     t.text "refresh_token"
     t.text "scopes"
     t.datetime "updated_at", null: false
+  end
+
+  create_table "campaign_instances", force: :cascade do |t|
+    t.bigint "campaign_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "host_id", null: false
+    t.string "host_type", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["campaign_id"], name: "index_campaign_instances_on_campaign_id"
+    t.index ["host_type", "host_id"], name: "index_campaign_instances_on_host"
   end
 
   create_table "campaign_steps", force: :cascade do |t|
@@ -350,6 +361,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_211500) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "campaign_instances", "campaigns"
   add_foreign_key "campaign_steps", "campaigns"
   add_foreign_key "campaigns", "users", column: "approved_by_user_id"
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"

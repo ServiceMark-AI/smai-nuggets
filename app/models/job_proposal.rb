@@ -8,6 +8,7 @@ class JobProposal < ApplicationRecord
   belongs_to :scenario, optional: true
 
   has_many :attachments, class_name: "JobProposalAttachment", dependent: :destroy
+  has_many :campaign_instances, as: :host, dependent: :destroy
 
   enum :status, { new: 0, open: 1, closed: 2 }, prefix: true
 
