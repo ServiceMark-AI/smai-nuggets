@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+new_campaign:
+  name: Spring Outreach
+  status: 0
+
+approved_campaign:
+  name: Summer Push
+  status: 1
+  approved_by_user: one
+  approved_at: 2026-04-15 09:00:00
+
+paused_campaign:
+  name: Winter Hold
+  status: 2
+  approved_by_user: one
+  approved_at: 2026-03-01 09:00:00
+  paused_by_user: admin
+  paused_at: 2026-04-01 09:00:00
