@@ -7,7 +7,6 @@ module ApplicationHelper
     AWS_SECRET_ACCESS_KEY
     AWS_REGION
     AWS_BUCKET
-    BUGSNAG_API_KEY
   ].freeze
 
   def missing_env_vars
