@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+sewage_backup:
+  job_type: one
+  code: sewage_backup
+  short_name: Sewage backup
+  description: Category-3 contamination — source plus time.
+  campaign: approved_campaign
+
+clean_water:
+  job_type: one
+  code: clean_water_flooding
+  short_name: Clean water flooding
+  description: Standard clean-water loss.
+  campaign:

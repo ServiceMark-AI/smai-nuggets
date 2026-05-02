@@ -1,0 +1,49 @@
+<%= form_with model: @scenario, url: form_url, method: form_method, local: true do |f| %>
+  <% if @scenario.errors.any? %>
+    <div class="alert alert-danger">
+      <strong>Please fix the following:</strong>
+      <ul class="mb-0">
+        <% @scenario.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <label class="form-label">Job type</label>
+    <input type="text" value="<%= @job_type.name %>" class="form-control" disabled>
+    <div class="form-text">Scenarios belong to one job type and can't be reassigned.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :code, class: "form-label" %>
+    <%= f.text_field :code, class: "form-control", required: true, maxlength: 64,
+          placeholder: "e.g. sewage_backup" %>
+    <div class="form-text">Short identifier, unique within the job type.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :short_name, "Short name", class: "form-label" %>
+    <%= f.text_field :short_name, class: "form-control", required: true,
+          placeholder: "e.g. Sewage backup" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :description, class: "form-label" %>
+    <%= f.text_area :description, rows: 3, class: "form-control" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :campaign_id, "Campaign", class: "form-label" %>
+    <%= f.collection_select :campaign_id, Campaign.order(:name), :id, :name,
+          { include_blank: "— No campaign yet —" },
+          class: "form-select" %>
+    <div class="form-text">Optional. The campaign that runs for this scenario; wired up later in the workflow.</div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit submit_label, class: "btn btn-primary" %>
+    <%= link_to "Cancel", cancel_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+ne_dallas:
+  organization: one
+  display_name: NE Dallas
+  address_line_1: 10280 Miller Rd
+  city: Dallas
+  state: TX
+  postal_code: "75238"
+  phone_number: "(214) 343-3973"
+  is_active: true

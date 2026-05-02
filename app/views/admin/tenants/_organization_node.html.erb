@@ -1,5 +1,5 @@
 <li class="py-1">
-  <span class="me-2"><%= organization.name %></span>
+  <%= link_to organization.name, admin_organization_path(organization), class: "me-2" %>
   <span class="badge text-bg-secondary"><%= pluralize(organization.users.count, "user") %></span>
   <% children = organization.children.order(:name) %>
   <% if children.any? %>

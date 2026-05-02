@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_201131) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -154,9 +154,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
     t.datetime "created_at", null: false
     t.text "description"
     t.string "name", null: false
-    t.bigint "tenant_id", null: false
+    t.string "type_code", limit: 64
     t.datetime "updated_at", null: false
-    t.index ["tenant_id"], name: "index_job_types_on_tenant_id"
+    t.index ["type_code"], name: "index_job_types_on_type_code", unique: true
+  end
+
+  create_table "locations", force: :cascade do |t|
+    t.string "address_line_1", null: false
+    t.string "address_line_2"
+    t.string "city", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_user_id"
+    t.string "display_name", null: false
+    t.boolean "is_active", default: false, null: false
+    t.bigint "organization_id", null: false
+    t.string "phone_number", null: false
+    t.string "postal_code", null: false
+    t.string "state", limit: 2, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_user_id"
+    t.index ["created_by_user_id"], name: "index_locations_on_created_by_user_id"
+    t.index ["is_active"], name: "index_locations_on_is_active"
+    t.index ["organization_id"], name: "index_locations_on_organization_id", unique: true
+    t.index ["updated_by_user_id"], name: "index_locations_on_updated_by_user_id"
   end
 
   create_table "messages", force: :cascade do |t|
@@ -234,6 +254,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
     t.index ["revision_number"], name: "index_pdf_processing_revisions_on_revision_number", unique: true
   end
 
+  create_table "scenarios", force: :cascade do |t|
+    t.bigint "campaign_id"
+    t.string "code", limit: 64, null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.bigint "job_type_id", null: false
+    t.string "short_name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["campaign_id"], name: "index_scenarios_on_campaign_id"
+    t.index ["job_type_id", "code"], name: "index_scenarios_on_job_type_id_and_code", unique: true
+    t.index ["job_type_id"], name: "index_scenarios_on_job_type_id"
+  end
+
   create_table "tenants", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -295,7 +328,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
   add_foreign_key "job_proposals", "users", column: "closed_by_user_id"
   add_foreign_key "job_proposals", "users", column: "created_by_user_id"
   add_foreign_key "job_proposals", "users", column: "owner_id"
-  add_foreign_key "job_types", "tenants"
+  add_foreign_key "locations", "organizations"
+  add_foreign_key "locations", "users", column: "created_by_user_id"
+  add_foreign_key "locations", "users", column: "updated_by_user_id"
   add_foreign_key "messages", "chats"
   add_foreign_key "messages", "models"
   add_foreign_key "messages", "tool_calls"
@@ -304,6 +339,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
   add_foreign_key "organizations", "organizations", column: "parent_id"
   add_foreign_key "organizations", "tenants"
   add_foreign_key "pdf_processing_revisions", "models"
+  add_foreign_key "scenarios", "campaigns"
+  add_foreign_key "scenarios", "job_types"
   add_foreign_key "tool_calls", "messages"
   add_foreign_key "users", "tenants"
 end

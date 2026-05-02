@@ -5,6 +5,7 @@
     <% if current_user.is_admin %>
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Admin</h6>
       <%= link_to "Tenants", admin_tenants_path, class: "nav-link #{'active' if controller_name == 'tenants'}" %>
+      <%= link_to "Job Types", admin_job_types_path, class: "nav-link #{'active' if controller_path == 'admin/job_types'}" %>
       <%= link_to "Campaigns", admin_campaigns_path, class: "nav-link #{'active' if controller_name == 'campaigns'}" %>
 
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">LLM</h6>

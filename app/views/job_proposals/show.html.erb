@@ -1,0 +1,81 @@
+<% content_for :title, @job_proposal.short_address || "Job Proposal" %>
+
+<%= link_to "← Back to Job Proposals", job_proposals_path, class: "small text-muted" %>
+
+<h1 class="h3 mt-2 mb-4">
+  <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
+</h1>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header">
+    <h2 class="h5 mb-0">Customer</h2>
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Name</dt>
+      <dd class="col-sm-9">
+        <%= [@job_proposal.customer_first_name, @job_proposal.customer_last_name].compact_blank.join(" ").presence || content_tag(:span, "—", class: "text-muted") %>
+      </dd>
+
+      <dt class="col-sm-3">Address</dt>
+      <dd class="col-sm-9">
+        <% if @job_proposal.short_address %>
+          <%= @job_proposal.short_address %><br>
+          <%= [@job_proposal.customer_city, @job_proposal.customer_state, @job_proposal.customer_zip].compact_blank.join(", ") %>
+        <% else %>
+          <span class="text-muted">—</span>
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header">
+    <h2 class="h5 mb-0">Job</h2>
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Job type</dt>
+      <dd class="col-sm-9"><%= @job_proposal.job_type&.name || content_tag(:span, "—", class: "text-muted") %></dd>
+
+      <dt class="col-sm-3">Status</dt>
+      <dd class="col-sm-9"><span class="badge text-bg-secondary"><%= @job_proposal.status %></span></dd>
+
+      <dt class="col-sm-3">Proposal value</dt>
+      <dd class="col-sm-9">
+        <% if @job_proposal.proposal_value %>
+          <%= number_to_currency(@job_proposal.proposal_value) %>
+        <% else %>
+          <span class="text-muted">—</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3">Description</dt>
+      <dd class="col-sm-9">
+        <%= simple_format(@job_proposal.job_description.presence || content_tag(:span, "—", class: "text-muted").to_s) %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header">
+    <h2 class="h5 mb-0">Ownership</h2>
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Organization</dt>
+      <dd class="col-sm-9"><%= @job_proposal.organization.name %></dd>
+
+      <dt class="col-sm-3">Owner</dt>
+      <dd class="col-sm-9"><%= @job_proposal.owner.email %></dd>
+
+      <dt class="col-sm-3">Created by</dt>
+      <dd class="col-sm-9"><%= @job_proposal.created_by_user.email %></dd>
+
+      <dt class="col-sm-3">Created at</dt>
+      <dd class="col-sm-9"><%= @job_proposal.created_at.to_fs(:long) %></dd>
+    </dl>
+  </div>
+</div>

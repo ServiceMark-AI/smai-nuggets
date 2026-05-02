@@ -1,0 +1,11 @@
+<% content_for :title, "New Scenario" %>
+
+<%= link_to "← #{@job_type.name}", admin_job_type_path(@job_type), class: "small text-muted" %>
+
+<h1 class="h3 mt-2 mb-4">New Scenario</h1>
+
+<%= render "form",
+      form_url: admin_job_type_scenarios_path(@job_type),
+      form_method: :post,
+      submit_label: "Create Scenario",
+      cancel_path: admin_job_type_path(@job_type) %>
