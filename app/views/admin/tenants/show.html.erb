@@ -2,7 +2,10 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0"><%= @tenant.name %></h1>
-  <%= link_to "All tenants", admin_tenants_path, class: "btn btn-sm btn-outline-secondary" %>
+  <div class="d-flex gap-2">
+    <%= link_to "Manage activations", admin_tenant_activations_path(@tenant), class: "btn btn-sm btn-outline-primary" %>
+    <%= link_to "All tenants", admin_tenants_path, class: "btn btn-sm btn-outline-secondary" %>
+  </div>
 </div>
 
 <div class="row g-3">

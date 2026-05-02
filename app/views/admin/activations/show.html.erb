@@ -1,0 +1,87 @@
+<% content_for :title, "Activations — #{@tenant.name}" %>
+
+<%= link_to "← #{@tenant.name}", admin_tenant_path(@tenant), class: "small text-muted" %>
+
+<h1 class="h3 mt-2 mb-1">Activations</h1>
+<p class="text-muted mb-4">
+  Choose which job types and scenarios <strong><%= @tenant.name %></strong>
+  can use. Scenarios under an inactive job type are hidden and stay
+  inactive until the parent is activated.
+</p>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Job type</th>
+          <th class="text-end" style="width: 1%; white-space: nowrap;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @job_types.each do |jt| %>
+          <% tjt = @tenant_job_types[jt.id] %>
+          <% jt_active = tjt&.is_active %>
+
+          <tr class="<%= 'table-active' if jt_active %>">
+            <td>
+              <strong><%= jt.name %></strong>
+              <div class="small text-muted"><%= truncate(jt.description.to_s, length: 100) %></div>
+            </td>
+            <td class="text-end">
+              <% if jt_active %>
+                <span class="badge text-bg-success me-2">✓ Active</span>
+                <%= button_to "Activate all scenarios",
+                      activate_all_scenarios_admin_tenant_job_type_activation_path(@tenant, tjt),
+                      method: :post,
+                      class: "btn btn-sm btn-outline-primary me-2",
+                      form: { class: "d-inline" } %>
+                <%= button_to "Deactivate",
+                      admin_tenant_job_type_activation_path(@tenant, tjt),
+                      method: :delete,
+                      class: "btn btn-sm btn-outline-secondary",
+                      form: { class: "d-inline", data: { turbo_confirm: "Deactivate #{jt.name}? Its scenarios will be deactivated too." } } %>
+              <% else %>
+                <%= button_to "Activate",
+                      admin_tenant_job_type_activations_path(@tenant, job_type_id: jt.id),
+                      method: :post,
+                      class: "btn btn-sm btn-primary",
+                      form: { class: "d-inline" } %>
+              <% end %>
+            </td>
+          </tr>
+
+          <% if jt_active %>
+            <% jt.scenarios.order(:short_name).each do |scenario| %>
+              <% ts = @tenant_scenarios[scenario.id] %>
+              <% s_active = ts&.is_active %>
+              <tr>
+                <td class="ps-5">
+                  <span class="text-muted me-2">↳</span>
+                  <%= scenario.short_name %>
+                  <div class="small text-muted ps-4"><%= truncate(scenario.description.to_s, length: 100) %></div>
+                </td>
+                <td class="text-end">
+                  <% if s_active %>
+                    <span class="badge text-bg-success me-2">✓ Active</span>
+                    <%= button_to "Deactivate",
+                          admin_tenant_scenario_activation_path(@tenant, ts),
+                          method: :delete,
+                          class: "btn btn-sm btn-outline-secondary",
+                          form: { class: "d-inline" } %>
+                  <% else %>
+                    <%= button_to "Activate",
+                          admin_tenant_scenario_activations_path(@tenant, scenario_id: scenario.id),
+                          method: :post,
+                          class: "btn btn-sm btn-primary",
+                          form: { class: "d-inline" } %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

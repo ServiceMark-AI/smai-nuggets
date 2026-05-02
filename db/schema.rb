@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_201131) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_202800) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -267,6 +267,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_201131) do
     t.index ["job_type_id"], name: "index_scenarios_on_job_type_id"
   end
 
+  create_table "tenant_job_types", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "is_active", default: false, null: false
+    t.bigint "job_type_id", null: false
+    t.bigint "tenant_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["job_type_id"], name: "index_tenant_job_types_on_job_type_id"
+    t.index ["tenant_id", "job_type_id"], name: "index_tenant_job_types_on_tenant_id_and_job_type_id", unique: true
+    t.index ["tenant_id"], name: "index_tenant_job_types_on_tenant_id"
+  end
+
+  create_table "tenant_scenarios", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.boolean "is_active", default: false, null: false
+    t.bigint "scenario_id", null: false
+    t.bigint "tenant_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["scenario_id"], name: "index_tenant_scenarios_on_scenario_id"
+    t.index ["tenant_id", "scenario_id"], name: "index_tenant_scenarios_on_tenant_id_and_scenario_id", unique: true
+    t.index ["tenant_id"], name: "index_tenant_scenarios_on_tenant_id"
+  end
+
   create_table "tenants", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -341,6 +363,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_201131) do
   add_foreign_key "pdf_processing_revisions", "models"
   add_foreign_key "scenarios", "campaigns"
   add_foreign_key "scenarios", "job_types"
+  add_foreign_key "tenant_job_types", "job_types"
+  add_foreign_key "tenant_job_types", "tenants"
+  add_foreign_key "tenant_scenarios", "scenarios"
+  add_foreign_key "tenant_scenarios", "tenants"
   add_foreign_key "tool_calls", "messages"
   add_foreign_key "users", "tenants"
 end

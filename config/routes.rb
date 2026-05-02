@@ -22,6 +22,11 @@ Rails.application.routes.draw do
     resources :pdf_processing_revisions, only: [:index, :new, :create]
     resources :tenants, only: [:index, :show, :new, :create] do
       resources :invitations, only: [:create]
+      resource :activations, only: [:show], controller: "activations"
+      resources :job_type_activations, only: [:create, :destroy] do
+        member { post :activate_all_scenarios }
+      end
+      resources :scenario_activations, only: [:create, :destroy]
     end
     resources :organizations, only: [:show]
     resources :job_types do

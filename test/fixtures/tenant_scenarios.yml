@@ -1,0 +1,7 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# tenants(:one) has activated scenarios(:sewage_backup) under job_types(:one).
+sewage_active_for_one:
+  tenant: one
+  scenario: sewage_backup
+  is_active: true

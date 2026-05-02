@@ -1,0 +1,7 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# tenants(:one) has activated job_types(:one). tenants(:two) hasn't activated anything.
+one_active:
+  tenant: one
+  job_type: one
+  is_active: true
