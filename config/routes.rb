@@ -1,8 +1,11 @@
 Rails.application.routes.draw do
-  devise_for :users
+  devise_for :users, controllers: { registrations: "users/registrations" }
+  resources :invitations, only: [:show]
   get "profile" => "profiles#show", as: :profile
   get "profile/edit" => "profiles#edit", as: :edit_profile
   patch "profile" => "profiles#update"
+  get "change_password" => "passwords#edit", as: :change_password
+  patch "change_password" => "passwords#update"
   get "my_organization" => "my_organization#show", as: :my_organization
 
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
@@ -16,7 +19,9 @@ Rails.application.routes.draw do
     resources :tool_calls, only: [:index]
     resources :models, only: [:index]
     resources :pdf_processing_revisions, only: [:index, :new, :create]
-    resources :tenants, only: [:index, :show]
+    resources :tenants, only: [:index, :show, :new, :create] do
+      resources :invitations, only: [:create]
+    end
     resources :campaigns do
       member do
         patch :approve

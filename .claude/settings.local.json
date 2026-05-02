@@ -8,7 +8,12 @@
       "Bash(docker compose *)",
       "Bash(docker-compose exec *)",
       "Bash(curl -sI http://localhost:3000/)",
-      "Bash(curl -s http://localhost:3000/users/sign_in)"
+      "Bash(curl -s http://localhost:3000/users/sign_in)",
+      "Bash(gh label *)",
+      "Bash(chmod +x /tmp/create_issues.sh)",
+      "Bash(bash /tmp/create_issues.sh)",
+      "Bash(gh pr *)",
+      "Bash(gh issue *)"
     ]
   }
 }
