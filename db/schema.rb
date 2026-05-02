@@ -10,9 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_035751) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_040730) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "organizational_members", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "organization_id", null: false
+    t.integer "role", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["organization_id", "user_id"], name: "index_organizational_members_on_organization_id_and_user_id", unique: true
+    t.index ["organization_id"], name: "index_organizational_members_on_organization_id"
+    t.index ["user_id"], name: "index_organizational_members_on_user_id"
+  end
 
   create_table "organizations", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -54,6 +65,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_035751) do
     t.index ["tenant_id"], name: "index_users_on_tenant_id"
   end
 
+  add_foreign_key "organizational_members", "organizations"
+  add_foreign_key "organizational_members", "users"
   add_foreign_key "organizations", "organizations", column: "parent_id"
   add_foreign_key "organizations", "tenants"
   add_foreign_key "users", "tenants"
