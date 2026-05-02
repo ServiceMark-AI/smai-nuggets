@@ -10,9 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_043612) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_043816) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "campaign_steps", force: :cascade do |t|
+    t.bigint "campaign_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "offset_min", null: false
+    t.integer "sequence_number", null: false
+    t.text "template_body"
+    t.string "template_subject"
+    t.datetime "updated_at", null: false
+    t.index ["campaign_id", "sequence_number"], name: "index_campaign_steps_on_campaign_id_and_sequence_number", unique: true
+    t.index ["campaign_id"], name: "index_campaign_steps_on_campaign_id"
+  end
 
   create_table "campaigns", force: :cascade do |t|
     t.datetime "approved_at"
@@ -133,6 +145,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_043612) do
     t.index ["tenant_id"], name: "index_users_on_tenant_id"
   end
 
+  add_foreign_key "campaign_steps", "campaigns"
   add_foreign_key "campaigns", "users", column: "approved_by_user_id"
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"
   add_foreign_key "job_proposal_attachments", "job_proposals"

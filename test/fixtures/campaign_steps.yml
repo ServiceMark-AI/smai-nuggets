@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+approved_step_one:
+  campaign: approved_campaign
+  sequence_number: 1
+  offset_min: 0
+  template_subject: Welcome
+  template_body: Hi there — quick intro.
+
+approved_step_two:
+  campaign: approved_campaign
+  sequence_number: 2
+  offset_min: 1440
+  template_subject: Following up
+  template_body: Just checking back in.
