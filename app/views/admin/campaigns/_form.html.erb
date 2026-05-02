@@ -20,6 +20,15 @@
     <%= f.select :status, Campaign.statuses.keys.map { |s| [s.humanize, s] }, {}, class: "form-select" %>
   </div>
 
+  <div class="mb-3">
+    <%= f.label :attributed_scenario_id, "Attributed to scenario", class: "form-label" %>
+    <% scenario_options = Scenario.includes(:job_type).order("job_types.name", :short_name).map { |s| ["#{s.job_type.name} — #{s.short_name}", s.id] } %>
+    <%= f.select :attributed_scenario_id, scenario_options,
+          { include_blank: "— Not attributed —" },
+          class: "form-select" %>
+    <div class="form-text">Optional. Only scenarios are supported today; other attribution targets (tenant, job type) will be added later.</div>
+  </div>
+
   <div class="d-flex gap-2">
     <%= f.submit class: "btn btn-primary" %>
     <%= link_to "Cancel", admin_campaigns_path, class: "btn btn-outline-secondary" %>

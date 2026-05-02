@@ -3,6 +3,7 @@ class Scenario < ApplicationRecord
   belongs_to :campaign, optional: true
   has_many :tenant_scenarios, dependent: :destroy
   has_many :job_proposals, dependent: :nullify
+  has_many :attributed_campaigns, as: :attributed_to, class_name: "Campaign", dependent: :nullify
 
   validates :code,
             presence: true,

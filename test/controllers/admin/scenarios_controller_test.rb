@@ -26,13 +26,14 @@ class Admin::ScenariosControllerTest < ActionDispatch::IntegrationTest
 
   # --- new + create ---
 
-  test "new renders the form" do
+  test "new renders the form without a campaign picker (scenario must be saved first)" do
     sign_in @admin
     get new_admin_job_type_scenario_url(@job_type)
     assert_response :success
     assert_select "input[name='scenario[code]']"
     assert_select "input[name='scenario[short_name]']"
-    assert_select "select[name='scenario[campaign_id]']"
+    assert_select "select[name='scenario[campaign_id]']", count: 0
+    assert_match(/Save the scenario first/i, response.body)
   end
 
   test "create persists a scenario under the job type" do
@@ -87,6 +88,20 @@ class Admin::ScenariosControllerTest < ActionDispatch::IntegrationTest
     get edit_admin_scenario_url(@scenario)
     assert_response :success
     assert_match @scenario.code, response.body
+  end
+
+  test "edit campaign picker only lists campaigns attributed to this scenario" do
+    other_scenario = @job_type.scenarios.create!(code: "other_code_xyz", short_name: "Other")
+    matching = Campaign.create!(name: "Matches Scenario", attributed_to: @scenario)
+    other = Campaign.create!(name: "Attributed Elsewhere", attributed_to: other_scenario)
+    unattributed = Campaign.create!(name: "Floating Campaign")
+
+    sign_in @admin
+    get edit_admin_scenario_url(@scenario)
+    assert_response :success
+    assert_select "select[name='scenario[campaign_id]'] option", text: matching.name
+    assert_select "select[name='scenario[campaign_id]'] option", text: other.name, count: 0
+    assert_select "select[name='scenario[campaign_id]'] option", text: unattributed.name, count: 0
   end
 
   test "update saves changes" do

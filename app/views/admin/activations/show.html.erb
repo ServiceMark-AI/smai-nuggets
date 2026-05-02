@@ -42,7 +42,7 @@
                 <%= button_to "Activate",
                       admin_tenant_job_type_activations_path(@tenant, job_type_id: jt.id),
                       method: :post,
-                      class: "btn btn-sm btn-primary",
+                      class: "btn btn-sm btn-secondary",
                       form: { class: "d-inline" } %>
               <% end %>
             </td>
@@ -64,7 +64,7 @@
                   <%= button_to "Activate all",
                         activate_all_scenarios_admin_tenant_job_type_activation_path(@tenant, tjt),
                         method: :post,
-                        class: "btn btn-sm btn-outline-primary",
+                        class: "btn btn-sm btn-outline-secondary",
                         form: { class: "d-inline" } %>
                 <% end %>
               </td>
@@ -93,7 +93,7 @@
                     <%= button_to "Activate",
                           admin_tenant_scenario_activations_path(@tenant, scenario_id: scenario.id),
                           method: :post,
-                          class: "btn btn-sm btn-primary",
+                          class: "btn btn-sm btn-secondary",
                           form: { class: "d-inline" } %>
                   <% end %>
                 </td>

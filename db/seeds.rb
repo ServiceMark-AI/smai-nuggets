@@ -134,6 +134,27 @@ if Dir.exist?(campaigns_root)
   end
 end
 
+# --- Demo tenant activations ------------------------------------------------
+# Activate every restoration job type for the demo tenant, plus every
+# scenario under those job types. Mirrors the admin "Activate all scenarios"
+# flow per Admin::JobTypeActivationsController, so the demo tenant lights up
+# the full catalog out of the box.
+
+restoration_codes = RESTORATION_JOB_TYPES.map { |attrs| attrs[:type_code] }
+JobType.where(type_code: restoration_codes).includes(:scenarios).find_each do |job_type|
+  TenantJobType.find_or_initialize_by(tenant: demo_tenant, job_type: job_type).tap do |tjt|
+    tjt.is_active = true
+    tjt.save!
+  end
+
+  job_type.scenarios.each do |scenario|
+    TenantScenario.find_or_initialize_by(tenant: demo_tenant, scenario: scenario).tap do |ts|
+      ts.is_active = true
+      ts.save!
+    end
+  end
+end
+
 # --- Demo job proposals -----------------------------------------------------
 # Wired to the restoration job types and the scenario codes seeded above.
 # `scenario_key` matches Scenario#code (per SPEC-07 / SPEC-11). Pipeline

@@ -54,6 +54,6 @@ class Admin::CampaignsController < Admin::BaseController
   end
 
   def campaign_params
-    params.require(:campaign).permit(:name, :status)
+    params.require(:campaign).permit(:name, :status, :attributed_scenario_id)
   end
 end

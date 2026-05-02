@@ -65,6 +65,29 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Fall Drive", response.body
   end
 
+  test "admin create with attributed_scenario_id sets the polymorphic attribution" do
+    sign_in @admin
+    scenario = scenarios(:sewage_backup)
+    assert_difference "Campaign.count", 1 do
+      post admin_campaigns_url, params: {
+        campaign: { name: "Sewage Outreach", status: "new", attributed_scenario_id: scenario.id }
+      }
+    end
+    created = Campaign.find_by(name: "Sewage Outreach")
+    assert_equal scenario, created.attributed_to
+    assert_equal "Scenario", created.attributed_to_type
+    assert_equal scenario.id, created.attributed_to_id
+  end
+
+  test "admin update can clear the attribution" do
+    sign_in @admin
+    scenario = scenarios(:sewage_backup)
+    @campaign.update!(attributed_to: scenario)
+
+    patch admin_campaign_url(@campaign), params: { campaign: { attributed_scenario_id: "" } }
+    assert_nil @campaign.reload.attributed_to
+  end
+
   test "admin create with invalid params re-renders the form" do
     sign_in @admin
     assert_no_difference "Campaign.count" do

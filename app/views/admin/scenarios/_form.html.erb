@@ -36,10 +36,23 @@
 
   <div class="mb-3">
     <%= f.label :campaign_id, "Campaign", class: "form-label" %>
-    <%= f.collection_select :campaign_id, Campaign.order(:name), :id, :name,
-          { include_blank: "— No campaign yet —" },
-          class: "form-select" %>
-    <div class="form-text">Optional. The campaign that runs for this scenario; wired up later in the workflow.</div>
+    <% if @scenario.persisted? %>
+      <% scoped_campaigns = @scenario.attributed_campaigns.order(:name) %>
+      <%= f.collection_select :campaign_id, scoped_campaigns, :id, :name,
+            { include_blank: "— No campaign yet —" },
+            class: "form-select" %>
+      <div class="form-text">
+        Only campaigns attributed to this scenario are shown.
+        <% if scoped_campaigns.empty? %>
+          None yet — create one from the
+          <%= link_to "Campaigns", admin_campaigns_path %>
+          page and pick this scenario as the attribution.
+        <% end %>
+      </div>
+    <% else %>
+      <input type="text" class="form-control" disabled value="— Save the scenario first —">
+      <div class="form-text">A campaign can be attached after the scenario exists.</div>
+    <% end %>
   </div>
 
   <div class="d-flex gap-2">

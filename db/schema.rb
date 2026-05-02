@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_203722) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_211500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -42,6 +42,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_203722) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "application_mailboxes", force: :cascade do |t|
+    t.text "access_token", null: false
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at"
+    t.string "provider", default: "google", null: false
+    t.text "refresh_token"
+    t.text "scopes"
+    t.datetime "updated_at", null: false
+  end
+
   create_table "campaign_steps", force: :cascade do |t|
     t.bigint "campaign_id", null: false
     t.datetime "created_at", null: false
@@ -57,6 +68,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_203722) do
   create_table "campaigns", force: :cascade do |t|
     t.datetime "approved_at"
     t.bigint "approved_by_user_id"
+    t.bigint "attributed_to_id"
+    t.string "attributed_to_type"
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.datetime "paused_at"
@@ -64,6 +77,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_203722) do
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["approved_by_user_id"], name: "index_campaigns_on_approved_by_user_id"
+    t.index ["attributed_to_type", "attributed_to_id"], name: "index_campaigns_on_attributed_to"
     t.index ["paused_by_user_id"], name: "index_campaigns_on_paused_by_user_id"
   end
 
