@@ -435,3 +435,107 @@ DEMO_LOCATIONS.each do |tenant_name, attrs|
     is_active: true
   )
 end
+
+# --- Demo campaign templates per scenario ---------------------------------
+# One Campaign per Scenario, attributed via the polymorphic attributed_to.
+# Each template has a fixed 4-step cadence: 0h, 24h, 72h, 7d. The body is
+# stub copy meant to look plausible in demo screenshots — the real authored
+# content lives in docs/campaigns/v1-output/<job_type>/<scenario>.md.
+
+CAMPAIGN_TEMPLATE_STEPS = [
+  { offset_min: 0,
+    subject: "Following up on the estimate for {{property_address_short}}",
+    body: "Hi {{first_name}},\n\nQuick note that the estimate we walked through is attached. Let me know if anything looks off or if you have questions on the scope or timeline.\n\n— {{originator_first_name}}" },
+  { offset_min: 24 * 60,
+    subject: "Quick check on yesterday's estimate",
+    body: "Hi {{first_name}},\n\nMaking sure the proposal made it through. Happy to set up 10 minutes to walk through anything that's unclear.\n\n— {{originator_first_name}}" },
+  { offset_min: 3 * 24 * 60,
+    subject: "Thinking about next steps?",
+    body: "Hi {{first_name}},\n\nIf timing is the question, the next available crew slot is {{soonest_slot}}. Otherwise, totally fine to take a few more days — just want to keep the option open on our end.\n\n— {{originator_first_name}}" },
+  { offset_min: 7 * 24 * 60,
+    subject: "Closing the loop",
+    body: "Hi {{first_name}},\n\nLast note from me on this one. If you've decided to go a different direction, no problem — just close the loop so we can free the estimate slot. If anything changed and you want to revisit, reply here.\n\n— {{originator_first_name}}" }
+].freeze
+
+Scenario.includes(:job_type).find_each do |scenario|
+  campaign = Campaign.find_or_initialize_by(
+    attributed_to_type: "Scenario",
+    attributed_to_id: scenario.id
+  )
+  campaign.name = "#{scenario.job_type.name} — #{scenario.short_name}"
+  campaign.status = :approved
+  campaign.approved_by_user ||= admin
+  campaign.approved_at ||= 30.days.ago
+  campaign.save!
+
+  CAMPAIGN_TEMPLATE_STEPS.each_with_index do |attrs, i|
+    step = campaign.steps.find_or_initialize_by(sequence_number: i + 1)
+    step.offset_min = attrs[:offset_min]
+    step.template_subject = attrs[:subject]
+    step.template_body = attrs[:body]
+    step.save!
+  end
+end
+
+# --- In-flight CampaignInstances against in_campaign proposals ------------
+# For each proposal whose pipeline_stage is "in_campaign", create one
+# CampaignInstance hosted by the proposal, then per-step instances reflecting
+# realistic in-flight state. Closed proposals (won / lost) are intentionally
+# skipped — the user asked for in-flight runs.
+
+OVERLAY_TO_INSTANCE_STATUS = {
+  nil                       => :active,
+  "paused"                  => :paused,
+  "customer_waiting"        => :stopped_on_reply,
+  "delivery_issue"          => :stopped_on_delivery_issue
+}.freeze
+
+# How many "real" days into a campaign each fixture sits, so the seed has a
+# spread of progress. Indexed off the scenario code's hash so the same proposal
+# always falls at the same point on re-seed.
+def days_into_campaign_for(proposal)
+  (proposal.id.to_i % 6) + 1   # 1..6 days
+end
+
+JobProposal.where(pipeline_stage: "in_campaign").includes(:scenario).find_each do |proposal|
+  scenario = proposal.scenario
+  next unless scenario
+
+  campaign = Campaign.find_by(attributed_to_type: "Scenario", attributed_to_id: scenario.id)
+  next unless campaign
+
+  instance = CampaignInstance.find_or_initialize_by(
+    host_type: "JobProposal", host_id: proposal.id, campaign: campaign
+  )
+  instance.status = OVERLAY_TO_INSTANCE_STATUS.fetch(proposal.status_overlay, :active)
+  instance.save!
+
+  # Anchor the instance timeline to (now - days_into_campaign) so steps with
+  # offset <= that have plausibly already been sent and later steps are still
+  # pending in the future.
+  started_at = days_into_campaign_for(proposal).days.ago
+
+  campaign.steps.order(:sequence_number).each do |step|
+    si = CampaignStepInstance.find_or_initialize_by(
+      campaign_instance_id: instance.id, campaign_step_id: step.id
+    )
+    si.planned_delivery_at = started_at + step.offset_min.minutes
+    si.final_subject = step.template_subject
+    si.final_body = step.template_body
+    si.gmail_thread_id ||= "DEMO-thread-#{instance.id}"
+
+    past_due = si.planned_delivery_at <= Time.current
+    si.email_delivery_status =
+      if past_due
+        case instance.status
+        when "stopped_on_delivery_issue" then (step.sequence_number == 1 ? :failed : :pending)
+        when "paused"                    then (step.sequence_number == 1 ? :sent : :pending)
+        when "stopped_on_reply"          then :sent
+        else                                  :sent
+        end
+      else
+        :pending
+      end
+    si.save!
+  end
+end
