@@ -115,6 +115,65 @@ class CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to campaigns_path
   end
 
+  test "show offers Approve button only when status is new" do
+    sign_in @admin
+    new_campaign = campaigns(:new_campaign)
+    get campaign_url(new_campaign)
+    assert_select "form[action=?]", approve_campaign_path(new_campaign)
+    assert_select "form[action=?]", pause_campaign_path(new_campaign), false
+
+    get campaign_url(@campaign)  # @campaign is approved
+    assert_select "form[action=?]", pause_campaign_path(@campaign)
+    assert_select "form[action=?]", approve_campaign_path(@campaign), false
+
+    paused = campaigns(:paused_campaign)
+    get campaign_url(paused)
+    assert_select "form[action=?]", approve_campaign_path(paused), false
+    assert_select "form[action=?]", pause_campaign_path(paused), false
+  end
+
+  test "approve sets status, approved_by_user, and approved_at" do
+    sign_in @admin
+    new_campaign = campaigns(:new_campaign)
+    freeze_time = Time.zone.parse("2026-05-02 12:00:00")
+
+    travel_to freeze_time do
+      patch approve_campaign_url(new_campaign)
+    end
+    assert_redirected_to campaign_path(new_campaign)
+    new_campaign.reload
+    assert_equal "approved", new_campaign.status
+    assert_equal @admin, new_campaign.approved_by_user
+    assert_equal freeze_time, new_campaign.approved_at
+  end
+
+  test "pause sets status, paused_by_user, and paused_at" do
+    sign_in @admin
+    freeze_time = Time.zone.parse("2026-05-02 13:00:00")
+
+    travel_to freeze_time do
+      patch pause_campaign_url(@campaign)
+    end
+    assert_redirected_to campaign_path(@campaign)
+    @campaign.reload
+    assert_equal "paused", @campaign.status
+    assert_equal @admin, @campaign.paused_by_user
+    assert_equal freeze_time, @campaign.paused_at
+  end
+
+  test "non-admin cannot approve or pause" do
+    sign_in @non_admin
+    new_campaign = campaigns(:new_campaign)
+
+    patch approve_campaign_url(new_campaign)
+    assert_redirected_to root_path
+    assert_equal "new", new_campaign.reload.status
+
+    patch pause_campaign_url(@campaign)
+    assert_redirected_to root_path
+    assert_equal "approved", @campaign.reload.status
+  end
+
   test "non-admin cannot create a campaign" do
     sign_in @non_admin
     assert_no_difference "Campaign.count" do

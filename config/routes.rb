@@ -6,6 +6,10 @@ Rails.application.routes.draw do
   resources :job_proposals, only: [:index, :new, :create]
   resources :tenants, only: [:index, :show]
   resources :campaigns do
+    member do
+      patch :approve
+      patch :pause
+    end
     resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
       collection do
         patch :reorder

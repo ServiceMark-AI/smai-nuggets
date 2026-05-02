@@ -7,6 +7,11 @@
     <span class="badge <%= klass %>"><%= @campaign.status %></span>
   </div>
   <div class="d-flex gap-2">
+    <% if @campaign.status_new? %>
+      <%= button_to "Approve", approve_campaign_path(@campaign), method: :patch, class: "btn btn-sm btn-success", form: { class: "m-0" } %>
+    <% elsif @campaign.status_approved? %>
+      <%= button_to "Pause", pause_campaign_path(@campaign), method: :patch, class: "btn btn-sm btn-warning", form: { class: "m-0" } %>
+    <% end %>
     <%= link_to "Edit", edit_campaign_path(@campaign), class: "btn btn-sm btn-outline-primary" %>
     <%= link_to "All campaigns", campaigns_path, class: "btn btn-sm btn-outline-secondary" %>
   </div>

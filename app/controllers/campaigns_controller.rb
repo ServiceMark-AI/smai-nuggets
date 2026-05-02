@@ -35,6 +35,16 @@ class CampaignsController < ApplicationController
     redirect_to campaigns_path, notice: "Campaign deleted."
   end
 
+  def approve
+    @campaign.update!(status: :approved, approved_by_user: current_user, approved_at: Time.current)
+    redirect_to @campaign, notice: "Campaign approved."
+  end
+
+  def pause
+    @campaign.update!(status: :paused, paused_by_user: current_user, paused_at: Time.current)
+    redirect_to @campaign, notice: "Campaign paused."
+  end
+
   private
 
   def campaign_params
