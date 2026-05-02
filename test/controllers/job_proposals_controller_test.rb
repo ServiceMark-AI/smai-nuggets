@@ -98,6 +98,13 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, proposal.attachments.count
     assert proposal.attachments.first.file.attached?
     assert_equal "proposal.txt", proposal.attachments.first.file.filename.to_s
+
+    # Without AI credentials (Rails.env.test? short-circuits the processor),
+    # the stub fills in the customer fields.
+    assert_equal "Sample", proposal.customer_first_name
+    assert_equal "Customer", proposal.customer_last_name
+    assert_equal 10260.00, proposal.proposal_value.to_f
+    assert proposal.internal_reference.to_s.start_with?("STUB-")
   end
 
   test "create fails when user has no organization" do

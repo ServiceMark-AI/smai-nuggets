@@ -1,5 +1,7 @@
 RubyLLM.configure do |config|
   config.openai_api_key = ENV.fetch("OPENAI_API_KEY", Rails.application.credentials.dig(:openai_api_key))
+  config.gemini_api_key = ENV.fetch("GEMINI_API_KEY", Rails.application.credentials.dig(:gemini_api_key))
+  config.anthropic_api_key = ENV.fetch("ANTHROPIC_API_KEY", Rails.application.credentials.dig(:anthropic_api_key))
   # config.default_model = "gpt-5-nano"
 
   # Use the new association-based acts_as API (recommended)

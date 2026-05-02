@@ -27,6 +27,11 @@
   </head>
 
   <body>
+    <% if user_signed_in? && current_user.is_admin && (missing = missing_env_vars).any? %>
+      <div class="alert alert-warning rounded-0 mb-0 small text-center">
+        <strong>Missing env vars:</strong> <%= missing.join(", ") %>. See <code>.env.example</code>.
+      </div>
+    <% end %>
     <%= render "layouts/navbar" %>
 
     <% if user_signed_in? %>

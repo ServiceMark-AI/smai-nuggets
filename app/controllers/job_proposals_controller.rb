@@ -32,6 +32,7 @@ class JobProposalsController < ApplicationController
     attachment.file.attach(file)
 
     if proposal.save
+      JobProposalProcessor.new(proposal).process
       redirect_to job_proposals_path, notice: "Job proposal created."
     else
       flash.now[:alert] = proposal.errors.full_messages.to_sentence

@@ -2,7 +2,7 @@
 # development, test). The code here should be idempotent so that it can be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-User.find_or_create_by!(email: "admin@example.com") do |u|
+admin = User.find_or_create_by!(email: "admin@example.com") do |u|
   u.password = "Password1"
   u.password_confirmation = "Password1"
   u.is_admin = true
@@ -47,4 +47,88 @@ PROMPT
 
 PdfProcessingRevision.find_or_create_by!(instructions: pdf_extraction_prompt) do |r|
   r.model = gemini_flash
+end
+
+# --- Demo data for the Job Proposals index --------------------------------
+
+demo_tenant = Tenant.find_or_create_by!(name: "Demo Roofing Co.")
+demo_org = demo_tenant.organizations.find_or_create_by!(name: "HQ")
+
+demo_owner = User.find_or_create_by!(email: "owner@example.com") do |u|
+  u.password = "Password1"
+  u.password_confirmation = "Password1"
+  u.is_pending = false
+  u.tenant = demo_tenant
+end
+demo_owner.update!(tenant: demo_tenant) if demo_owner.tenant != demo_tenant
+OrganizationalMember.find_or_create_by!(organization: demo_org, user: demo_owner) { |m| m.role = :admin }
+admin.update!(tenant: demo_tenant) if admin.tenant.nil?
+OrganizationalMember.find_or_create_by!(organization: demo_org, user: admin) { |m| m.role = :admin }
+
+roof_type = JobType.find_or_create_by!(tenant: demo_tenant, name: "Roof Replacement") { |t| t.description = "Full tear-off and re-roof." }
+gutter_type = JobType.find_or_create_by!(tenant: demo_tenant, name: "Gutter Install") { |t| t.description = "Gutters and downspouts." }
+siding_type = JobType.find_or_create_by!(tenant: demo_tenant, name: "Siding") { |t| t.description = "Siding replacement." }
+
+DEMO_PROPOSALS = [
+  { first: "Alice",    last: "Adams",     city: "Springfield",  state: "IL", value:  9_800.00, status: :new,    type: :roof,   pipeline: "lead",        overlay: nil },
+  { first: "Brian",    last: "Becker",    city: "Naperville",   state: "IL", value: 12_450.50, status: :new,    type: :gutter, pipeline: "lead",        overlay: nil },
+  { first: "Carla",    last: "Cohen",     city: "Madison",      state: "WI", value:  6_300.00, status: :new,    type: :siding, pipeline: "contacted",   overlay: nil },
+  { first: "Devon",    last: "Diaz",      city: "Peoria",       state: "IL", value: 18_750.00, status: :open,   type: :roof,   pipeline: "qualified",   overlay: nil },
+  { first: "Erin",     last: "Edwards",   city: "Rockford",     state: "IL", value:  7_200.00, status: :open,   type: :gutter, pipeline: "qualified",   overlay: "hot" },
+  { first: "Felix",    last: "Foster",    city: "Joliet",       state: "IL", value: 22_400.00, status: :open,   type: :roof,   pipeline: "estimating",  overlay: nil },
+  { first: "Gina",     last: "Gomez",     city: "Aurora",       state: "IL", value: 10_980.00, status: :open,   type: :siding, pipeline: "estimating",  overlay: nil },
+  { first: "Henry",    last: "Hopkins",   city: "Champaign",    state: "IL", value: 14_500.00, status: :open,   type: :roof,   pipeline: "negotiating", overlay: nil },
+  { first: "Iris",     last: "Ito",       city: "Decatur",      state: "IL", value:  4_750.00, status: :open,   type: :gutter, pipeline: "negotiating", overlay: "hot" },
+  { first: "Jonas",    last: "Johnson",   city: "Bloomington",  state: "IL", value: 19_300.00, status: :open,   type: :roof,   pipeline: "won",         overlay: nil },
+  { first: "Kira",     last: "Kim",       city: "Schaumburg",   state: "IL", value: 11_650.00, status: :open,   type: :siding, pipeline: "won",         overlay: nil },
+  { first: "Liam",     last: "Lopez",     city: "Evanston",     state: "IL", value:  8_400.00, status: :open,   type: :gutter, pipeline: "negotiating", overlay: "stalled" },
+  { first: "Maya",     last: "Mehta",     city: "Skokie",       state: "IL", value: 16_200.00, status: :open,   type: :roof,   pipeline: "estimating",  overlay: "stalled" },
+  { first: "Noah",     last: "Nguyen",    city: "Cicero",       state: "IL", value:  5_900.00, status: :open,   type: :gutter, pipeline: "qualified",   overlay: nil },
+  { first: "Olivia",   last: "Ortiz",     city: "Berwyn",       state: "IL", value: 13_750.00, status: :closed, type: :roof,   pipeline: "won",         overlay: nil, lost: false },
+  { first: "Paul",     last: "Patel",     city: "Oak Park",     state: "IL", value:  9_600.00, status: :closed, type: :siding, pipeline: "won",         overlay: nil, lost: false },
+  { first: "Quinn",    last: "Quintero",  city: "Wheaton",      state: "IL", value: 21_000.00, status: :closed, type: :roof,   pipeline: "won",         overlay: nil, lost: false },
+  { first: "Rita",     last: "Reyes",     city: "Lombard",      state: "IL", value:  7_500.00, status: :closed, type: :gutter, pipeline: "lost",        overlay: nil, lost: true },
+  { first: "Sam",      last: "Singh",     city: "Glen Ellyn",   state: "IL", value: 12_900.00, status: :closed, type: :roof,   pipeline: "lost",        overlay: nil, lost: true },
+  { first: "Tina",     last: "Thomas",    city: "Hinsdale",     state: "IL", value:  4_200.00, status: :closed, type: :gutter, pipeline: "lost",        overlay: nil, lost: true },
+  { first: "Uma",      last: "Underwood", city: "La Grange",    state: "IL", value: 17_800.00, status: :closed, type: :siding, pipeline: "won",         overlay: nil, lost: false },
+  { first: "Victor",   last: "Vargas",    city: "Downers Grove", state: "IL", value:  8_950.00, status: :closed, type: :roof,   pipeline: "lost",        overlay: nil, lost: true },
+  { first: "Willa",    last: "Wong",      city: "Lisle",        state: "IL", value: 15_400.00, status: :open,   type: :roof,   pipeline: "estimating",  overlay: nil },
+  { first: "Xavier",   last: "Xu",        city: "Wheeling",     state: "IL", value: 19_950.00, status: :open,   type: :siding, pipeline: "negotiating", overlay: "hot" }
+]
+
+type_lookup = { roof: roof_type, gutter: gutter_type, siding: siding_type }
+
+DEMO_PROPOSALS.each_with_index do |row, i|
+  ref = "DEMO-#{1000 + i}"
+  proposal = JobProposal.find_or_initialize_by(internal_reference: ref)
+  proposal.tenant = demo_tenant
+  proposal.organization = demo_org
+  proposal.owner = demo_owner
+  proposal.created_by_user = demo_owner
+  proposal.job_type = type_lookup[row[:type]]
+  proposal.customer_first_name = row[:first]
+  proposal.customer_last_name = row[:last]
+  proposal.customer_title = "Mr."
+  proposal.customer_house_number = (100 + i * 7).to_s
+  proposal.customer_street = "Main Street"
+  proposal.customer_city = row[:city]
+  proposal.customer_state = row[:state]
+  proposal.customer_zip = "6000#{i % 10}"
+  proposal.proposal_value = row[:value]
+  proposal.job_description = "#{row[:type].to_s.tr('_', ' ').capitalize} job for #{row[:first]} #{row[:last]}."
+  proposal.status = row[:status]
+  proposal.pipeline_stage = row[:pipeline]
+  proposal.status_overlay = row[:overlay]
+  proposal.scenario_key = "demo"
+
+  if row[:status] == :closed
+    proposal.closed_at = (i + 1).days.ago
+    proposal.closed_by_user = demo_owner
+    if row[:lost]
+      proposal.loss_reason = ["Price", "Timing", "Competitor"].sample
+      proposal.loss_notes = "Customer chose another option."
+    end
+  end
+
+  proposal.save!
 end
