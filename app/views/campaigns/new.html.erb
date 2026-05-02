@@ -1,0 +1,12 @@
+<% content_for :title, "New Campaign" %>
+
+<div class="row">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-4">New Campaign</h1>
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <%= render "form", campaign: @campaign %>
+      </div>
+    </div>
+  </div>
+</div>

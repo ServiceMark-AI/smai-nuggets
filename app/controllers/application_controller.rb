@@ -6,4 +6,8 @@ class ApplicationController < ActionController::Base
   stale_when_importmap_changes
 
   before_action :authenticate_user!, unless: :devise_controller?
+
+  rescue_from CanCan::AccessDenied do |exception|
+    redirect_to root_path, alert: "You are not authorized to access this page."
+  end
 end

@@ -1,0 +1,45 @@
+<% content_for :title, "Campaigns" %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Campaigns</h1>
+  <%= link_to "New campaign", new_campaign_path, class: "btn btn-primary btn-sm" %>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <% if @campaigns.any? %>
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Steps</th>
+            <th>Approved</th>
+            <th>Paused</th>
+            <th class="text-end"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @campaigns.each do |c| %>
+            <tr>
+              <td><%= c.name %></td>
+              <td>
+                <% klass = case c.status when "approved" then "text-bg-success" when "paused" then "text-bg-warning" else "text-bg-secondary" end %>
+                <span class="badge <%= klass %>"><%= c.status %></span>
+              </td>
+              <td><%= c.steps.size %></td>
+              <td><%= l(c.approved_at, format: :short) if c.approved_at %></td>
+              <td><%= l(c.paused_at, format: :short) if c.paused_at %></td>
+              <td class="text-end">
+                <%= link_to "Edit", edit_campaign_path(c), class: "btn btn-sm btn-outline-primary" %>
+                <%= button_to "Delete", campaign_path(c), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this campaign?" } } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No campaigns yet.</div>
+    <% end %>
+  </div>
+</div>
