@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_212500) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_213000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,6 +62,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_212500) do
     t.datetime "updated_at", null: false
     t.index ["campaign_id"], name: "index_campaign_instances_on_campaign_id"
     t.index ["host_type", "host_id"], name: "index_campaign_instances_on_host"
+  end
+
+  create_table "campaign_step_instances", force: :cascade do |t|
+    t.bigint "campaign_instance_id", null: false
+    t.bigint "campaign_step_id", null: false
+    t.datetime "created_at", null: false
+    t.integer "email_delivery_status", default: 0, null: false
+    t.text "final_body"
+    t.string "final_subject"
+    t.string "gmail_thread_id"
+    t.datetime "planned_delivery_at"
+    t.datetime "updated_at", null: false
+    t.index ["campaign_instance_id"], name: "index_campaign_step_instances_on_campaign_instance_id"
+    t.index ["campaign_step_id"], name: "index_campaign_step_instances_on_campaign_step_id"
   end
 
   create_table "campaign_steps", force: :cascade do |t|
@@ -362,6 +376,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_212500) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "campaign_instances", "campaigns"
+  add_foreign_key "campaign_step_instances", "campaign_instances"
+  add_foreign_key "campaign_step_instances", "campaign_steps"
   add_foreign_key "campaign_steps", "campaigns"
   add_foreign_key "campaigns", "users", column: "approved_by_user_id"
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"

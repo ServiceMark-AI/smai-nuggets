@@ -2,6 +2,8 @@ class CampaignInstance < ApplicationRecord
   belongs_to :campaign
   belongs_to :host, polymorphic: true
 
+  has_many :step_instances, class_name: "CampaignStepInstance", dependent: :destroy
+
   enum :status, {
     active: 0,
     paused: 1,

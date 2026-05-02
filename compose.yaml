@@ -35,6 +35,9 @@ services:
       - bundle_cache:/usr/local/bundle
     ports:
       - "3000:3000"
+    env_file:
+      - path: .env
+        required: true
     environment:
       RAILS_ENV: development
       DB_HOST: postgres
@@ -54,6 +57,9 @@ services:
     volumes:
       - .:/rails
       - bundle_cache:/usr/local/bundle
+    env_file:
+      - path: .env
+        required: true
     environment:
       RAILS_ENV: development
       DB_HOST: postgres
