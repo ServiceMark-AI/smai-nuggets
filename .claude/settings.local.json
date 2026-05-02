@@ -4,7 +4,9 @@
       "Bash(docker --version)",
       "Bash(docker info *)",
       "Bash(docker run *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(docker compose *)",
+      "Bash(docker-compose exec *)"
     ]
   }
 }

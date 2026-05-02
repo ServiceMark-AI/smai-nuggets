@@ -1,0 +1,43 @@
+<% content_for :title, "Profile" %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h2 class="card-title mb-4">Your Profile</h2>
+
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Email</dt>
+          <dd class="col-sm-8"><%= @user.email %></dd>
+
+          <dt class="col-sm-4">First name</dt>
+          <dd class="col-sm-8"><%= @user.first_name.presence || content_tag(:span, "—", class: "text-muted") %></dd>
+
+          <dt class="col-sm-4">Last name</dt>
+          <dd class="col-sm-8"><%= @user.last_name.presence || content_tag(:span, "—", class: "text-muted") %></dd>
+
+          <dt class="col-sm-4">Phone number</dt>
+          <dd class="col-sm-8"><%= @user.phone_number.presence || content_tag(:span, "—", class: "text-muted") %></dd>
+
+          <dt class="col-sm-4">Tenant</dt>
+          <dd class="col-sm-8"><%= @user.tenant&.name || content_tag(:span, "—", class: "text-muted") %></dd>
+
+          <dt class="col-sm-4">Last login</dt>
+          <dd class="col-sm-8"><%= @user.last_sign_in_at&.to_fs(:long) || content_tag(:span, "—", class: "text-muted") %></dd>
+
+          <dt class="col-sm-4">Sign-in count</dt>
+          <dd class="col-sm-8"><%= @user.sign_in_count %></dd>
+
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">
+            <% if @user.is_pending %>
+              <span class="badge text-bg-warning">Pending</span>
+            <% else %>
+              <span class="badge text-bg-success">Active</span>
+            <% end %>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>

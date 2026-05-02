@@ -18,11 +18,18 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
+    <link rel="stylesheet" href="/bootstrap/bootstrap.min.css">
+    <script src="/bootstrap/bootstrap.bundle.min.js" defer></script>
+
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   </head>
 
   <body>
-    <%= yield %>
+    <div class="container py-4">
+      <% if notice %><div class="alert alert-success" role="alert"><%= notice %></div><% end %>
+      <% if alert %><div class="alert alert-danger" role="alert"><%= alert %></div><% end %>
+      <%= yield %>
+    </div>
   </body>
 </html>
