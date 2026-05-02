@@ -7,11 +7,12 @@ Rails.application.routes.draw do
   get "change_password" => "passwords#edit", as: :change_password
   patch "change_password" => "passwords#update"
   get "my_organization" => "my_organization#show", as: :my_organization
+  resource :location, only: [:new, :create, :edit, :update]
 
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
   get "/auth/failure", to: "email_delegations#failure", as: :email_delegation_failure
   resources :email_delegations, only: [:destroy]
-  resources :job_proposals, only: [:index, :new, :create]
+  resources :job_proposals, only: [:index, :show, :new, :create]
 
   namespace :admin do
     resources :chats, only: [:index, :show]

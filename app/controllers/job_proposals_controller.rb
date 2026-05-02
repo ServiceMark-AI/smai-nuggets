@@ -19,6 +19,10 @@ class JobProposalsController < ApplicationController
     @job_proposals = scope.order(created_at: :desc)
   end
 
+  def show
+    @job_proposal = JobProposal.accessible_by(current_ability).find(params[:id])
+  end
+
   def new
   end
 

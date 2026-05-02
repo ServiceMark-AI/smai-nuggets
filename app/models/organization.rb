@@ -5,6 +5,7 @@ class Organization < ApplicationRecord
   has_many :organizational_members, dependent: :destroy
   has_many :users, through: :organizational_members
   has_many :job_proposals, dependent: :destroy
+  has_one :location, dependent: :destroy
 
   validates :name, presence: true
 end

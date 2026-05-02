@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_193137) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -159,6 +159,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
     t.index ["tenant_id"], name: "index_job_types_on_tenant_id"
   end
 
+  create_table "locations", force: :cascade do |t|
+    t.string "address_line_1", null: false
+    t.string "address_line_2"
+    t.string "city", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_user_id"
+    t.string "display_name", null: false
+    t.boolean "is_active", default: false, null: false
+    t.bigint "organization_id", null: false
+    t.string "phone_number", null: false
+    t.string "postal_code", null: false
+    t.string "state", limit: 2, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "updated_by_user_id"
+    t.index ["created_by_user_id"], name: "index_locations_on_created_by_user_id"
+    t.index ["is_active"], name: "index_locations_on_is_active"
+    t.index ["organization_id"], name: "index_locations_on_organization_id", unique: true
+    t.index ["updated_by_user_id"], name: "index_locations_on_updated_by_user_id"
+  end
+
   create_table "messages", force: :cascade do |t|
     t.integer "cache_creation_tokens"
     t.integer "cached_tokens"
@@ -296,6 +316,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_060130) do
   add_foreign_key "job_proposals", "users", column: "created_by_user_id"
   add_foreign_key "job_proposals", "users", column: "owner_id"
   add_foreign_key "job_types", "tenants"
+  add_foreign_key "locations", "organizations"
+  add_foreign_key "locations", "users", column: "created_by_user_id"
+  add_foreign_key "locations", "users", column: "updated_by_user_id"
   add_foreign_key "messages", "chats"
   add_foreign_key "messages", "models"
   add_foreign_key "messages", "tool_calls"

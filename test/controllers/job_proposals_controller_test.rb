@@ -155,4 +155,47 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
     assert_match(/tenant and organization/i, response.body)
   end
+
+  # --- show action ---
+
+  test "index links the address column to the show page" do
+    sign_in @user
+    @jp = job_proposals(:in_users_org)
+    @jp.update!(customer_house_number: "1247", customer_street: "Oak Ridge Drive")
+    get job_proposals_url
+    assert_response :success
+    assert_select "a[href=?]", job_proposal_path(@jp), text: "1247 Oak Ridge Drive"
+  end
+
+  test "show renders for a proposal the user can access" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(customer_house_number: "1247", customer_street: "Oak Ridge Drive")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match "1247 Oak Ridge Drive", response.body
+    assert_match "Alice", response.body
+  end
+
+  test "show returns 404 for a proposal outside the user's scope (no info leak)" do
+    sign_in @user
+    other_jp = job_proposals(:other_tenant)
+    get job_proposal_url(other_jp)
+    assert_response :not_found
+  end
+
+  test "show returns 404 for a missing proposal" do
+    sign_in @user
+    get job_proposal_url(id: 0)
+    assert_response :not_found
+  end
+
+  test "show falls back to a Job Proposal #N heading when address is missing" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(customer_house_number: nil, customer_street: nil)
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match "Job Proposal ##{jp.id}", response.body
+  end
 end
