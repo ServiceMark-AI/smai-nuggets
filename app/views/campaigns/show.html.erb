@@ -1,0 +1,44 @@
+<% content_for :title, @campaign.name %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h3 mb-1"><%= @campaign.name %></h1>
+    <% klass = case @campaign.status when "approved" then "text-bg-success" when "paused" then "text-bg-warning" else "text-bg-secondary" end %>
+    <span class="badge <%= klass %>"><%= @campaign.status %></span>
+  </div>
+  <div class="d-flex gap-2">
+    <%= link_to "Edit", edit_campaign_path(@campaign), class: "btn btn-sm btn-outline-primary" %>
+    <%= link_to "All campaigns", campaigns_path, class: "btn btn-sm btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="h5 mb-0">Steps</h2>
+    <%= link_to "Add step", new_campaign_step_path(@campaign), class: "btn btn-primary btn-sm" %>
+  </div>
+  <div class="card-body p-0">
+    <% if @campaign.steps.any? %>
+      <table class="table table-sm mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">#</th>
+            <th>Subject</th>
+            <th class="text-end">Offset (min)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @campaign.steps.each do |step| %>
+            <tr>
+              <td class="ps-3"><%= step.sequence_number %></td>
+              <td><%= step.template_subject.presence || content_tag(:span, "—", class: "text-muted") %></td>
+              <td class="text-end"><%= step.offset_min %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No steps yet.</div>
+    <% end %>
+  </div>
+</div>

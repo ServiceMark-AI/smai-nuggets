@@ -3,7 +3,9 @@ Rails.application.routes.draw do
   get "profile" => "profiles#show", as: :profile
   resources :job_proposals, only: [:index]
   resources :tenants, only: [:index, :show]
-  resources :campaigns
+  resources :campaigns do
+    resources :steps, only: [:new, :create], controller: "campaign_steps"
+  end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

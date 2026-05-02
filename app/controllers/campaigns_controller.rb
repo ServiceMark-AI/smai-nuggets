@@ -5,6 +5,9 @@ class CampaignsController < ApplicationController
     @campaigns = @campaigns.order(created_at: :desc)
   end
 
+  def show
+  end
+
   def new
   end
 

@@ -22,7 +22,7 @@
         <tbody>
           <% @campaigns.each do |c| %>
             <tr>
-              <td><%= c.name %></td>
+              <td><%= link_to c.name, campaign_path(c) %></td>
               <td>
                 <% klass = case c.status when "approved" then "text-bg-success" when "paused" then "text-bg-warning" else "text-bg-secondary" end %>
                 <span class="badge <%= klass %>"><%= c.status %></span>

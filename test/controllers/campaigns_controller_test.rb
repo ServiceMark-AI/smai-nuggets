@@ -31,6 +31,21 @@ class CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Winter Hold", response.body
   end
 
+  test "admin show renders the campaign with its steps" do
+    sign_in @admin
+    get campaign_url(@campaign)
+    assert_response :success
+    assert_match @campaign.name, response.body
+    assert_match "Welcome", response.body  # subject of approved_step_one fixture
+    assert_match "Add step", response.body
+  end
+
+  test "non-admin show is denied" do
+    sign_in @non_admin
+    get campaign_url(@campaign)
+    assert_redirected_to root_path
+  end
+
   test "admin sees the new form" do
     sign_in @admin
     get new_campaign_url
