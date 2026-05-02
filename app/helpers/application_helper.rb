@@ -1,7 +1,14 @@
 module ApplicationHelper
-  # Env vars whose absence we want admins to see warned about in the UI.
-  # Currently just the LLM API key driving PDF extraction — extend as needed.
-  REQUIRED_ENV_VARS = %w[GEMINI_API_KEY].freeze
+  # Env vars whose absence we want admins warned about in the UI.
+  # Mirrors .env.example so a fresh deploy can spot what's missing at a glance.
+  REQUIRED_ENV_VARS = %w[
+    GEMINI_API_KEY
+    AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY
+    AWS_REGION
+    AWS_BUCKET
+    BUGSNAG_API_KEY
+  ].freeze
 
   def missing_env_vars
     REQUIRED_ENV_VARS.reject { |key| ENV[key].present? }
