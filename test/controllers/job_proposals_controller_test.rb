@@ -198,4 +198,110 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Job Proposal ##{jp.id}", response.body
   end
+
+  # --- sort ---
+
+  test "default sort is created_at desc" do
+    sign_in @admin
+    get job_proposals_url
+    assert_response :success
+    # admin sees three fixture rows: created_at order is fixture-load order; assert presence
+    assert_match "Alice", response.body
+    assert_match "Bob", response.body
+    assert_match "Carol", response.body
+  end
+
+  test "sort by proposal_value asc orders cheapest first" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
+    assert_response :success
+    # Carol(5000) < Bob(8000) < Alice(12500): assert Carol appears before Alice
+    assert_operator response.body.index("Carol"), :<, response.body.index("Alice")
+  end
+
+  test "sort by proposal_value desc orders priciest first" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "proposal_value", dir: "desc" }
+    assert_response :success
+    assert_operator response.body.index("Alice"), :<, response.body.index("Carol")
+  end
+
+  test "invalid sort columns silently fall back to default" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "customer_email" }
+    assert_response :success
+  end
+
+  test "invalid sort direction silently falls back to desc" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "proposal_value", dir: "sideways" }
+    assert_response :success
+    assert_operator response.body.index("Alice"), :<, response.body.index("Carol")
+  end
+
+  test "sortable header renders the up arrow when active asc" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
+    assert_match "Proposal value", response.body
+    assert_match "↑", response.body
+  end
+
+  test "sortable header renders the down arrow when active desc" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "created_at", dir: "desc" }
+    assert_match "↓", response.body
+  end
+
+  test "sortable header renders the bidirectional icon for inactive columns" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "created_at", dir: "desc" }
+    # Proposal value is not the active column, so it should show the bidir icon
+    assert_match "↕", response.body
+  end
+
+  # --- search ---
+
+  test "search filters by customer first name" do
+    sign_in @admin
+    get job_proposals_url, params: { q: "Alic" }
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+    assert_no_match "Carol", response.body
+  end
+
+  test "search is case-insensitive" do
+    sign_in @admin
+    get job_proposals_url, params: { q: "alice" }
+    assert_response :success
+    assert_match "Alice", response.body
+  end
+
+  test "search across address fields" do
+    sign_in @admin
+    jp = job_proposals(:in_users_org)
+    jp.update!(customer_city: "Madison")
+    get job_proposals_url, params: { q: "Madison" }
+    assert_match "Alice", response.body
+  end
+
+  test "search uses parameterized SQL (no injection)" do
+    sign_in @admin
+    get job_proposals_url, params: { q: "'; DROP TABLE job_proposals; --" }
+    assert_response :success
+  end
+
+  test "search preserves filters across submits via query params" do
+    sign_in @admin
+    get job_proposals_url, params: { q: "alice", status: "new" }
+    assert_response :success
+    assert_match "Alice", response.body
+  end
+
+  test "filter form preserves the active sort via hidden fields" do
+    sign_in @admin
+    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
+    assert_select "input[type=hidden][name=sort][value=?]", "proposal_value"
+    assert_select "input[type=hidden][name=dir][value=?]", "asc"
+  end
 end
