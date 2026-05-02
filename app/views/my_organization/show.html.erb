@@ -1,0 +1,60 @@
+<% content_for :title, "My Organization" %>
+
+<h1 class="h3 mb-4">My Organization</h1>
+
+<% if @organization %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-body p-4">
+      <h2 class="h4 mb-3"><%= @organization.name %></h2>
+
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Tenant</dt>
+        <dd class="col-sm-9"><%= @organization.tenant.name %></dd>
+
+        <dt class="col-sm-3">Parent organization</dt>
+        <dd class="col-sm-9">
+          <% if @organization.parent %>
+            <%= @organization.parent.name %>
+          <% else %>
+            <span class="text-muted">— (top-level)</span>
+          <% end %>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <h3 class="h5 mb-0">Other members</h3>
+    </div>
+    <div class="card-body p-0">
+      <% if @other_members.any? %>
+        <table class="table mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @other_members.each do |user| %>
+              <% role = user.organizational_members.find_by(organization: @organization)&.role %>
+              <tr>
+                <td><%= user.full_name || content_tag(:span, "—", class: "text-muted") %></td>
+                <td><%= user.email %></td>
+                <td><span class="badge text-bg-secondary"><%= role %></span></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% else %>
+        <div class="p-4 text-center text-muted">No other members in this organization.</div>
+      <% end %>
+    </div>
+  </div>
+<% else %>
+  <div class="alert alert-info mb-0">
+    You're not a member of any organization yet. An admin needs to add you to one.
+  </div>
+<% end %>

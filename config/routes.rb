@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   get "profile" => "profiles#show", as: :profile
   get "profile/edit" => "profiles#edit", as: :edit_profile
   patch "profile" => "profiles#update"
+  get "my_organization" => "my_organization#show", as: :my_organization
   resources :job_proposals, only: [:index, :new, :create]
   resources :tenants, only: [:index, :show]
 
