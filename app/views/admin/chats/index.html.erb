@@ -1,0 +1,34 @@
+<% content_for :title, "Chats" %>
+
+<h1 class="h3 mb-3">Chats</h1>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <% if @chats.any? %>
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Model</th>
+            <th class="text-end">Messages</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @chats.each do |c| %>
+            <tr>
+              <td><%= c.id %></td>
+              <td><%= c.model&.name || "—" %></td>
+              <td class="text-end"><%= c.messages.size %></td>
+              <td><%= l(c.created_at, format: :short) %></td>
+              <td class="text-end"><%= link_to "View", admin_chat_path(c), class: "btn btn-sm btn-outline-primary" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No chats yet.</div>
+    <% end %>
+  </div>
+</div>

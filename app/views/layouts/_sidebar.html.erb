@@ -6,6 +6,12 @@
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Admin</h6>
       <%= link_to "Tenants", tenants_path, class: "nav-link #{'active' if controller_name == 'tenants'}" %>
       <%= link_to "Campaigns", campaigns_path, class: "nav-link #{'active' if controller_name == 'campaigns'}" %>
+
+      <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">LLM</h6>
+      <%= link_to "Chats", admin_chats_path, class: "nav-link #{'active' if controller_path == 'admin/chats'}" %>
+      <%= link_to "Messages", admin_messages_path, class: "nav-link #{'active' if controller_path == 'admin/messages'}" %>
+      <%= link_to "Tool Calls", admin_tool_calls_path, class: "nav-link #{'active' if controller_path == 'admin/tool_calls'}" %>
+      <%= link_to "Models", admin_models_path, class: "nav-link #{'active' if controller_path == 'admin/models'}" %>
     <% end %>
   </nav>
 </aside>

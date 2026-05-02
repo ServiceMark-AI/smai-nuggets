@@ -5,6 +5,13 @@ Rails.application.routes.draw do
   patch "profile" => "profiles#update"
   resources :job_proposals, only: [:index, :new, :create]
   resources :tenants, only: [:index, :show]
+
+  namespace :admin do
+    resources :chats, only: [:index, :show]
+    resources :messages, only: [:index]
+    resources :tool_calls, only: [:index]
+    resources :models, only: [:index]
+  end
   resources :campaigns do
     member do
       patch :approve
