@@ -5,7 +5,11 @@ class Admin::PdfProcessingRevisionsController < Admin::BaseController
   end
 
   def new
-    @revision = PdfProcessingRevision.new
+    current = PdfProcessingRevision.is_current
+    @revision = PdfProcessingRevision.new(
+      instructions: current&.instructions,
+      model: current&.model
+    )
   end
 
   def create

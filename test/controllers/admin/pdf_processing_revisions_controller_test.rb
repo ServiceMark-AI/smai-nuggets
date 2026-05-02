@@ -49,6 +49,25 @@ class Admin::PdfProcessingRevisionsControllerTest < ActionDispatch::IntegrationT
     assert_select "form select[name='pdf_processing_revision[model_id]']"
   end
 
+  test "new form pre-populates from the current revision when one exists" do
+    other_model = Model.create!(model_id: "another-model", name: "Another", provider: "test")
+    PdfProcessingRevision.create!(instructions: "Older instructions.", model: @model)
+    PdfProcessingRevision.create!(instructions: "The current instructions.", model: other_model)
+
+    sign_in @admin
+    get new_admin_pdf_processing_revision_url
+    assert_response :success
+    assert_select "form textarea[name='pdf_processing_revision[instructions]']", text: "The current instructions."
+    assert_select "form select[name='pdf_processing_revision[model_id]'] option[selected][value=?]", other_model.id.to_s
+  end
+
+  test "new form is empty when no revisions exist yet" do
+    sign_in @admin
+    get new_admin_pdf_processing_revision_url
+    assert_response :success
+    assert_select "form textarea[name='pdf_processing_revision[instructions]']", text: ""
+  end
+
   test "admin create with valid params persists with auto-assigned revision_number" do
     sign_in @admin
     assert_difference "PdfProcessingRevision.count", 1 do
