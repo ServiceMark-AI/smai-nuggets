@@ -49,7 +49,7 @@ PdfProcessingRevision.find_or_create_by!(instructions: pdf_extraction_prompt) do
   r.model = gemini_flash
 end
 
-# --- Demo data for the Job Proposals index --------------------------------
+# --- Demo tenant + admin/owner membership ----------------------------------
 
 demo_tenant = Tenant.find_or_create_by!(name: "Demo Roofing Co.")
 demo_org = demo_tenant.organizations.find_or_create_by!(name: "HQ")
@@ -64,18 +64,6 @@ demo_owner.update!(tenant: demo_tenant) if demo_owner.tenant != demo_tenant
 OrganizationalMember.find_or_create_by!(organization: demo_org, user: demo_owner) { |m| m.role = :admin }
 admin.update!(tenant: demo_tenant) if admin.tenant.nil?
 OrganizationalMember.find_or_create_by!(organization: demo_org, user: admin) { |m| m.role = :admin }
-
-def upsert_job_type!(tenant:, name:, type_code:, description:)
-  jt = JobType.find_or_initialize_by(tenant: tenant, name: name)
-  jt.type_code ||= type_code
-  jt.description ||= description
-  jt.save!
-  jt
-end
-
-roof_type   = upsert_job_type!(tenant: demo_tenant, name: "Roof Replacement", type_code: "ROOF-REPL",   description: "Full tear-off and re-roof.")
-gutter_type = upsert_job_type!(tenant: demo_tenant, name: "Gutter Install",   type_code: "GUTTER-INST", description: "Gutters and downspouts.")
-siding_type = upsert_job_type!(tenant: demo_tenant, name: "Siding",           type_code: "SIDING",      description: "Siding replacement.")
 
 # Baseline restoration job types — slug from SPEC-03 §7 becomes the type_code.
 RESTORATION_JOB_TYPES = [
@@ -107,72 +95,39 @@ RESTORATION_JOB_TYPES = [
 ].freeze
 
 RESTORATION_JOB_TYPES.each do |attrs|
-  JobType.find_or_create_by!(tenant: demo_tenant, type_code: attrs[:type_code]) do |jt|
+  JobType.find_or_create_by!(type_code: attrs[:type_code]) do |jt|
     jt.name = attrs[:name]
     jt.description = attrs[:description]
   end
 end
 
-DEMO_PROPOSALS = [
-  { first: "Alice",    last: "Adams",     city: "Springfield",  state: "IL", value:  9_800.00, status: :new,    type: :roof,   pipeline: "lead",        overlay: nil },
-  { first: "Brian",    last: "Becker",    city: "Naperville",   state: "IL", value: 12_450.50, status: :new,    type: :gutter, pipeline: "lead",        overlay: nil },
-  { first: "Carla",    last: "Cohen",     city: "Madison",      state: "WI", value:  6_300.00, status: :new,    type: :siding, pipeline: "contacted",   overlay: nil },
-  { first: "Devon",    last: "Diaz",      city: "Peoria",       state: "IL", value: 18_750.00, status: :open,   type: :roof,   pipeline: "qualified",   overlay: nil },
-  { first: "Erin",     last: "Edwards",   city: "Rockford",     state: "IL", value:  7_200.00, status: :open,   type: :gutter, pipeline: "qualified",   overlay: "hot" },
-  { first: "Felix",    last: "Foster",    city: "Joliet",       state: "IL", value: 22_400.00, status: :open,   type: :roof,   pipeline: "estimating",  overlay: nil },
-  { first: "Gina",     last: "Gomez",     city: "Aurora",       state: "IL", value: 10_980.00, status: :open,   type: :siding, pipeline: "estimating",  overlay: nil },
-  { first: "Henry",    last: "Hopkins",   city: "Champaign",    state: "IL", value: 14_500.00, status: :open,   type: :roof,   pipeline: "negotiating", overlay: nil },
-  { first: "Iris",     last: "Ito",       city: "Decatur",      state: "IL", value:  4_750.00, status: :open,   type: :gutter, pipeline: "negotiating", overlay: "hot" },
-  { first: "Jonas",    last: "Johnson",   city: "Bloomington",  state: "IL", value: 19_300.00, status: :open,   type: :roof,   pipeline: "won",         overlay: nil },
-  { first: "Kira",     last: "Kim",       city: "Schaumburg",   state: "IL", value: 11_650.00, status: :open,   type: :siding, pipeline: "won",         overlay: nil },
-  { first: "Liam",     last: "Lopez",     city: "Evanston",     state: "IL", value:  8_400.00, status: :open,   type: :gutter, pipeline: "negotiating", overlay: "stalled" },
-  { first: "Maya",     last: "Mehta",     city: "Skokie",       state: "IL", value: 16_200.00, status: :open,   type: :roof,   pipeline: "estimating",  overlay: "stalled" },
-  { first: "Noah",     last: "Nguyen",    city: "Cicero",       state: "IL", value:  5_900.00, status: :open,   type: :gutter, pipeline: "qualified",   overlay: nil },
-  { first: "Olivia",   last: "Ortiz",     city: "Berwyn",       state: "IL", value: 13_750.00, status: :closed, type: :roof,   pipeline: "won",         overlay: nil, lost: false },
-  { first: "Paul",     last: "Patel",     city: "Oak Park",     state: "IL", value:  9_600.00, status: :closed, type: :siding, pipeline: "won",         overlay: nil, lost: false },
-  { first: "Quinn",    last: "Quintero",  city: "Wheaton",      state: "IL", value: 21_000.00, status: :closed, type: :roof,   pipeline: "won",         overlay: nil, lost: false },
-  { first: "Rita",     last: "Reyes",     city: "Lombard",      state: "IL", value:  7_500.00, status: :closed, type: :gutter, pipeline: "lost",        overlay: nil, lost: true },
-  { first: "Sam",      last: "Singh",     city: "Glen Ellyn",   state: "IL", value: 12_900.00, status: :closed, type: :roof,   pipeline: "lost",        overlay: nil, lost: true },
-  { first: "Tina",     last: "Thomas",    city: "Hinsdale",     state: "IL", value:  4_200.00, status: :closed, type: :gutter, pipeline: "lost",        overlay: nil, lost: true },
-  { first: "Uma",      last: "Underwood", city: "La Grange",    state: "IL", value: 17_800.00, status: :closed, type: :siding, pipeline: "won",         overlay: nil, lost: false },
-  { first: "Victor",   last: "Vargas",    city: "Downers Grove", state: "IL", value:  8_950.00, status: :closed, type: :roof,   pipeline: "lost",        overlay: nil, lost: true },
-  { first: "Willa",    last: "Wong",      city: "Lisle",        state: "IL", value: 15_400.00, status: :open,   type: :roof,   pipeline: "estimating",  overlay: nil },
-  { first: "Xavier",   last: "Xu",        city: "Wheeling",     state: "IL", value: 19_950.00, status: :open,   type: :siding, pipeline: "negotiating", overlay: "hot" }
-]
+# --- Scenarios sourced from docs/campaigns/v1-output/ ---------------------
+# Layout: docs/campaigns/v1-output/<job_type_code>/<scenario_code>.md
+# Each markdown file carries `# Variant: <short name>` and an
+# `**Authoring hypothesis:** ...` line. Campaign content itself is not yet
+# wired up — Scenario#campaign_id stays null until that work lands.
 
-type_lookup = { roof: roof_type, gutter: gutter_type, siding: siding_type }
+campaigns_root = Rails.root.join("docs", "campaigns", "v1-output")
+if Dir.exist?(campaigns_root)
+  Dir.children(campaigns_root).sort.each do |type_dir|
+    type_path = campaigns_root.join(type_dir)
+    next unless File.directory?(type_path)
 
-DEMO_PROPOSALS.each_with_index do |row, i|
-  ref = "DEMO-#{1000 + i}"
-  proposal = JobProposal.find_or_initialize_by(internal_reference: ref)
-  proposal.tenant = demo_tenant
-  proposal.organization = demo_org
-  proposal.owner = demo_owner
-  proposal.created_by_user = demo_owner
-  proposal.job_type = type_lookup[row[:type]]
-  proposal.customer_first_name = row[:first]
-  proposal.customer_last_name = row[:last]
-  proposal.customer_title = "Mr."
-  proposal.customer_house_number = (100 + i * 7).to_s
-  proposal.customer_street = "Main Street"
-  proposal.customer_city = row[:city]
-  proposal.customer_state = row[:state]
-  proposal.customer_zip = "6000#{i % 10}"
-  proposal.proposal_value = row[:value]
-  proposal.job_description = "#{row[:type].to_s.tr('_', ' ').capitalize} job for #{row[:first]} #{row[:last]}."
-  proposal.status = row[:status]
-  proposal.pipeline_stage = row[:pipeline]
-  proposal.status_overlay = row[:overlay]
-  proposal.scenario_key = "demo"
+    job_type = JobType.find_by(type_code: type_dir)
+    next unless job_type # skip dirs whose type_code isn't a known JobType
 
-  if row[:status] == :closed
-    proposal.closed_at = (i + 1).days.ago
-    proposal.closed_by_user = demo_owner
-    if row[:lost]
-      proposal.loss_reason = ["Price", "Timing", "Competitor"].sample
-      proposal.loss_notes = "Customer chose another option."
+    Dir.glob(type_path.join("*.md")).sort.each do |md_path|
+      code = File.basename(md_path, ".md")
+      content = File.read(md_path)
+
+      short_name = content[/^#\s*Variant:\s*(.+?)\s*$/, 1] || code.tr("_", " ").capitalize
+      description = content[/\*\*Authoring hypothesis:\*\*\s*(.+?)\s*$/, 1]
+
+      Scenario.find_or_initialize_by(job_type: job_type, code: code).tap do |s|
+        s.short_name = short_name if s.short_name.blank?
+        s.description = description if s.description.blank?
+        s.save!
+      end
     end
   end
-
-  proposal.save!
 end

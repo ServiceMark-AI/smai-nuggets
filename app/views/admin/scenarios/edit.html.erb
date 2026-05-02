@@ -1,0 +1,11 @@
+<% content_for :title, "Edit Scenario" %>
+
+<%= link_to "← #{@scenario.short_name}", admin_scenario_path(@scenario), class: "small text-muted" %>
+
+<h1 class="h3 mt-2 mb-4">Edit Scenario</h1>
+
+<%= render "form",
+      form_url: admin_scenario_path(@scenario),
+      form_method: :patch,
+      submit_label: "Save Changes",
+      cancel_path: admin_scenario_path(@scenario) %>

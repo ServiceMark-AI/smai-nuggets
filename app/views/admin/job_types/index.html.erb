@@ -11,7 +11,6 @@
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th>Tenant</th>
             <th>Name</th>
             <th>Type code</th>
             <th>Description</th>
@@ -20,7 +19,6 @@
         <tbody>
           <% @job_types.each do |jt| %>
             <tr>
-              <td><%= link_to jt.tenant.name, admin_tenant_path(jt.tenant), class: "text-muted small" %></td>
               <td><%= link_to jt.name, admin_job_type_path(jt) %></td>
               <td><code><%= jt.type_code %></code></td>
               <td><%= jt.description.presence || content_tag(:span, "—", class: "text-muted") %></td>

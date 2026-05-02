@@ -1,13 +1,11 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  tenant: one
   name: Roof Replacement
   description: Full tear-off and re-roof.
   type_code: ROOF-REPL
 
 two:
-  tenant: two
   name: Gutter Install
   description: Gutter installation and downspouts.
   type_code: GUTTER-INST

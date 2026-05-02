@@ -2,14 +2,15 @@ class Admin::JobTypesController < Admin::BaseController
   before_action :load_job_type, only: [:show, :edit, :update, :destroy]
 
   def index
-    @job_types = JobType.includes(:tenant).order("tenants.name", :name)
+    @job_types = JobType.order(:name)
   end
 
   def show
+    @scenarios = @job_type.scenarios.order(:short_name)
   end
 
   def new
-    @job_type = JobType.new(tenant_id: params[:tenant_id])
+    @job_type = JobType.new
   end
 
   def create
@@ -44,6 +45,6 @@ class Admin::JobTypesController < Admin::BaseController
   end
 
   def job_type_params
-    params.require(:job_type).permit(:tenant_id, :name, :type_code, :description)
+    params.require(:job_type).permit(:name, :type_code, :description)
   end
 end

@@ -25,7 +25,7 @@ class Admin::JobTypesControllerTest < ActionDispatch::IntegrationTest
 
   # --- index ---
 
-  test "admin sees job types across all tenants" do
+  test "admin sees all job types" do
     sign_in @admin
     get admin_job_types_url
     assert_response :success
@@ -39,11 +39,10 @@ class Admin::JobTypesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", admin_job_type_path(@jt_one), text: @jt_one.name
   end
 
-  test "index shows the type_code and tenant columns" do
+  test "index shows the type_code column" do
     sign_in @admin
     get admin_job_types_url
     assert_match @jt_one.type_code, response.body
-    assert_match @jt_one.tenant.name, response.body
   end
 
   # --- show ---
@@ -64,21 +63,19 @@ class Admin::JobTypesControllerTest < ActionDispatch::IntegrationTest
 
   # --- new + create ---
 
-  test "new renders the form with a tenant selector" do
+  test "new renders the form" do
     sign_in @admin
     get new_admin_job_type_url
     assert_response :success
-    assert_select "select[name='job_type[tenant_id]']"
     assert_select "input[name='job_type[name]']"
     assert_select "input[name='job_type[type_code]']"
   end
 
-  test "create persists a job type to the chosen tenant" do
+  test "create persists a system-wide job type" do
     sign_in @admin
     assert_difference -> { JobType.count }, 1 do
       post admin_job_types_url, params: {
         job_type: {
-          tenant_id: tenants(:one).id,
           name: "Water Mitigation",
           type_code: "WTR-MIT",
           description: "Cat-3 cleanup"
@@ -87,22 +84,21 @@ class Admin::JobTypesControllerTest < ActionDispatch::IntegrationTest
     end
     jt = JobType.find_by(type_code: "WTR-MIT")
     assert_redirected_to admin_job_type_path(jt)
-    assert_equal tenants(:one), jt.tenant
   end
 
   test "create rejects invalid input" do
     sign_in @admin
     assert_no_difference -> { JobType.count } do
-      post admin_job_types_url, params: { job_type: { tenant_id: tenants(:one).id, name: "", type_code: "" } }
+      post admin_job_types_url, params: { job_type: { name: "", type_code: "" } }
     end
     assert_response :unprocessable_content
   end
 
-  test "create rejects duplicate type_code in the same tenant" do
+  test "create rejects duplicate type_code system-wide" do
     sign_in @admin
     assert_no_difference -> { JobType.count } do
       post admin_job_types_url, params: {
-        job_type: { tenant_id: @jt_one.tenant_id, name: "Different Name", type_code: @jt_one.type_code }
+        job_type: { name: "Different Name", type_code: @jt_one.type_code }
       }
     end
     assert_response :unprocessable_content

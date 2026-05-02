@@ -1,13 +1,8 @@
 require "test_helper"
 
 class JobTypeTest < ActiveSupport::TestCase
-  setup do
-    @tenant = tenants(:one)
-  end
-
   def valid_attrs(overrides = {})
     {
-      tenant: @tenant,
       name: "Water Mitigation",
       type_code: "WTR-MIT"
     }.merge(overrides)
@@ -30,17 +25,11 @@ class JobTypeTest < ActiveSupport::TestCase
     assert JobType.new(valid_attrs(type_code: "X" * 64)).valid?
   end
 
-  test "type_code is unique within a tenant (case-insensitive)" do
+  test "type_code is unique system-wide (case-insensitive)" do
     JobType.create!(valid_attrs)
     duplicate = JobType.new(valid_attrs(name: "Other"))
     refute duplicate.valid?
     case_diff = JobType.new(valid_attrs(name: "Lowercased", type_code: "wtr-mit"))
     refute case_diff.valid?
-  end
-
-  test "the same type_code may exist in a different tenant" do
-    JobType.create!(valid_attrs)
-    other = JobType.new(valid_attrs(tenant: tenants(:two)))
-    assert other.valid?
   end
 end

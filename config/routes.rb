@@ -24,7 +24,10 @@ Rails.application.routes.draw do
       resources :invitations, only: [:create]
     end
     resources :organizations, only: [:show]
-    resources :job_types
+    resources :job_types do
+      resources :scenarios, only: [:new, :create]
+    end
+    resources :scenarios, only: [:show, :edit, :update, :destroy]
     resources :campaigns do
       member do
         patch :approve
