@@ -1,0 +1,22 @@
+<% content_for :title, @tenant.name %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0"><%= @tenant.name %></h1>
+  <%= link_to "All tenants", tenants_path, class: "btn btn-sm btn-outline-secondary" %>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-4">
+    <h2 class="h5 mb-3">Organizations</h2>
+    <% roots = @tenant.organizations.where(parent_id: nil).order(:name) %>
+    <% if roots.any? %>
+      <ul class="list-unstyled mb-0">
+        <% roots.each do |org| %>
+          <%= render "organization_node", organization: org %>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-muted mb-0">No organizations.</p>
+    <% end %>
+  </div>
+</div>

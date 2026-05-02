@@ -1,0 +1,34 @@
+<% content_for :title, "Tenants" %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Tenants</h1>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <% if @tenants.any? %>
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th class="text-end">Organizations</th>
+            <th class="text-end">Users</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @tenants.each do |tenant| %>
+            <tr>
+              <td><%= tenant.name %></td>
+              <td class="text-end"><%= tenant.organizations.count %></td>
+              <td class="text-end"><%= tenant.users.count %></td>
+              <td class="text-end"><%= link_to "View", tenant_path(tenant), class: "btn btn-sm btn-outline-primary" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No tenants.</div>
+    <% end %>
+  </div>
+</div>

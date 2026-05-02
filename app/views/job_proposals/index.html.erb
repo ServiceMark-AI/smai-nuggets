@@ -1,0 +1,38 @@
+<% content_for :title, "Job Proposals" %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Job Proposals</h1>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <% if @job_proposals.any? %>
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Customer</th>
+            <th>Organization</th>
+            <th>Job Type</th>
+            <th>Status</th>
+            <th class="text-end">Proposal value</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @job_proposals.each do |jp| %>
+            <tr>
+              <td><%= [jp.customer_first_name, jp.customer_last_name].compact_blank.join(" ").presence || "—" %></td>
+              <td><%= jp.organization.name %></td>
+              <td><%= jp.job_type&.name || "—" %></td>
+              <td><span class="badge text-bg-secondary"><%= jp.status %></span></td>
+              <td class="text-end"><%= number_to_currency(jp.proposal_value) if jp.proposal_value %></td>
+              <td><%= jp.owner.email %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No job proposals yet.</div>
+    <% end %>
+  </div>
+</div>

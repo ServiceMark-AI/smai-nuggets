@@ -1,0 +1,18 @@
+<nav class="navbar navbar-expand bg-dark border-bottom" data-bs-theme="dark">
+  <div class="container-fluid">
+    <%= link_to "SMAI", (user_signed_in? ? root_path : new_user_session_path), class: "navbar-brand fw-bold" %>
+
+    <% if user_signed_in? %>
+      <div class="ms-auto dropdown">
+        <button class="btn btn-dark border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><%= link_to "Profile", profile_path, class: "dropdown-item" %></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "dropdown-item", form: { class: "m-0" } %></li>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+</nav>
