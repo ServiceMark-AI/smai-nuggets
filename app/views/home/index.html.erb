@@ -1,0 +1,12 @@
+<% content_for :title, "Home" %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="card-title h3 mb-3">Welcome<%= ", #{current_user.full_name || current_user.email}" %></h1>
+        <p class="card-text text-muted mb-0">You're signed in.</p>
+      </div>
+    </div>
+  </div>
+</div>

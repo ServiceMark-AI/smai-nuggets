@@ -1,0 +1,22 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  tenant: one
+  organization: one
+  owner: one
+  created_by_user: one
+  job_type: one
+  customer_first_name: Jane
+  customer_last_name: Doe
+  proposal_value: 12500.00
+  status: 0
+
+two:
+  tenant: one
+  organization: one
+  owner: one
+  created_by_user: one
+  customer_first_name: John
+  customer_last_name: Smith
+  proposal_value: 8000.00
+  status: 1

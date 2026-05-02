@@ -10,9 +10,64 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_040730) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_041526) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "job_proposal_attachments", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "job_proposal_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "uploaded_by_user_id"
+    t.index ["job_proposal_id"], name: "index_job_proposal_attachments_on_job_proposal_id"
+    t.index ["uploaded_by_user_id"], name: "index_job_proposal_attachments_on_uploaded_by_user_id"
+  end
+
+  create_table "job_proposals", force: :cascade do |t|
+    t.datetime "closed_at"
+    t.bigint "closed_by_user_id"
+    t.datetime "created_at", null: false
+    t.bigint "created_by_user_id", null: false
+    t.string "customer_city"
+    t.string "customer_first_name"
+    t.string "customer_house_number"
+    t.string "customer_last_name"
+    t.string "customer_state"
+    t.string "customer_street"
+    t.string "customer_title"
+    t.string "customer_zip"
+    t.string "internal_reference"
+    t.text "job_description"
+    t.bigint "job_type_id"
+    t.jsonb "last_reply"
+    t.text "loss_notes"
+    t.string "loss_reason"
+    t.bigint "organization_id", null: false
+    t.bigint "owner_id", null: false
+    t.string "pipeline_stage"
+    t.decimal "proposal_value", precision: 12, scale: 2
+    t.string "scenario_key"
+    t.integer "status", default: 0, null: false
+    t.string "status_details"
+    t.string "status_overlay"
+    t.bigint "tenant_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["closed_by_user_id"], name: "index_job_proposals_on_closed_by_user_id"
+    t.index ["created_by_user_id"], name: "index_job_proposals_on_created_by_user_id"
+    t.index ["job_type_id"], name: "index_job_proposals_on_job_type_id"
+    t.index ["organization_id"], name: "index_job_proposals_on_organization_id"
+    t.index ["owner_id"], name: "index_job_proposals_on_owner_id"
+    t.index ["tenant_id"], name: "index_job_proposals_on_tenant_id"
+  end
+
+  create_table "job_types", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.bigint "tenant_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tenant_id"], name: "index_job_types_on_tenant_id"
+  end
 
   create_table "organizational_members", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -65,6 +120,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_040730) do
     t.index ["tenant_id"], name: "index_users_on_tenant_id"
   end
 
+  add_foreign_key "job_proposal_attachments", "job_proposals"
+  add_foreign_key "job_proposal_attachments", "users", column: "uploaded_by_user_id"
+  add_foreign_key "job_proposals", "job_types"
+  add_foreign_key "job_proposals", "organizations"
+  add_foreign_key "job_proposals", "tenants"
+  add_foreign_key "job_proposals", "users", column: "closed_by_user_id"
+  add_foreign_key "job_proposals", "users", column: "created_by_user_id"
+  add_foreign_key "job_proposals", "users", column: "owner_id"
+  add_foreign_key "job_types", "tenants"
   add_foreign_key "organizational_members", "organizations"
   add_foreign_key "organizational_members", "users"
   add_foreign_key "organizations", "organizations", column: "parent_id"
