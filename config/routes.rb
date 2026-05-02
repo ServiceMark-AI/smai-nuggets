@@ -1,10 +1,16 @@
 Rails.application.routes.draw do
   devise_for :users
   get "profile" => "profiles#show", as: :profile
-  resources :job_proposals, only: [:index]
+  get "profile/edit" => "profiles#edit", as: :edit_profile
+  patch "profile" => "profiles#update"
+  resources :job_proposals, only: [:index, :new, :create]
   resources :tenants, only: [:index, :show]
   resources :campaigns do
-    resources :steps, only: [:new, :create], controller: "campaign_steps"
+    resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
+      collection do
+        patch :reorder
+      end
+    end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

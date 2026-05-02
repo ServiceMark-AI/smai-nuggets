@@ -1,0 +1,75 @@
+<% content_for :title, "New Job Proposal" %>
+
+<div class="row justify-content-center">
+  <div class="col-md-10 col-lg-8">
+    <h1 class="h3 mb-4">New Job Proposal</h1>
+
+    <%= form_with url: job_proposals_path, method: :post, multipart: true, local: true, html: { id: "job-upload-form" } do |f| %>
+      <label for="job-file-input" id="job-drop-zone"
+             class="d-block text-center p-5 border border-2 border-dashed rounded-3 bg-body-tertiary"
+             style="cursor: pointer; min-height: 240px; transition: background-color .15s, border-color .15s;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16" class="text-muted mb-3" aria-hidden="true">
+          <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+          <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+        </svg>
+        <h5 class="mb-1" id="job-drop-zone-headline">Drop a file here</h5>
+        <p class="text-muted mb-0">or click to choose one from your computer</p>
+        <%= file_field_tag :file, id: "job-file-input", class: "d-none" %>
+      </label>
+
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <%= link_to "Cancel", job_proposals_path, class: "btn btn-outline-secondary" %>
+        <%= f.submit "Upload", class: "btn btn-primary", id: "job-upload-submit", disabled: true %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  (function() {
+    function init() {
+      var zone = document.getElementById("job-drop-zone");
+      var input = document.getElementById("job-file-input");
+      var headline = document.getElementById("job-drop-zone-headline");
+      var submit = document.getElementById("job-upload-submit");
+      if (!zone || !input) return;
+
+      function setFile(files) {
+        if (!files || files.length === 0) return;
+        input.files = files;
+        headline.textContent = files[0].name;
+        submit.disabled = false;
+      }
+
+      input.addEventListener("change", function() { setFile(input.files); });
+
+      ["dragenter", "dragover"].forEach(function(evt) {
+        zone.addEventListener(evt, function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          zone.classList.add("border-primary", "bg-primary-subtle");
+        });
+      });
+
+      ["dragleave", "drop"].forEach(function(evt) {
+        zone.addEventListener(evt, function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          zone.classList.remove("border-primary", "bg-primary-subtle");
+        });
+      });
+
+      zone.addEventListener("drop", function(e) {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+          setFile(e.dataTransfer.files);
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  })();
+</script>

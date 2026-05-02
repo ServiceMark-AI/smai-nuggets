@@ -4,7 +4,10 @@
   <div class="col-md-8 col-lg-6">
     <div class="card shadow-sm">
       <div class="card-body p-4">
-        <h2 class="card-title mb-4">Your Profile</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="card-title mb-0">Your Profile</h2>
+          <%= link_to "Edit", edit_profile_path, class: "btn btn-sm btn-outline-primary" %>
+        </div>
 
         <dl class="row mb-0">
           <dt class="col-sm-4">Email</dt>

@@ -1,3 +1,6 @@
+<% reorder_url = reorder_campaign_steps_path(campaign) %>
+<% table_id = "campaign-steps-#{campaign.id}" %>
+
 <div class="card shadow-sm">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h2 class="h5 mb-0">Steps</h2>
@@ -5,20 +8,38 @@
   </div>
   <div class="card-body p-0">
     <% if campaign.steps.any? %>
-      <table class="table table-sm mb-0 align-middle">
+      <table class="table mb-0 align-middle">
         <thead class="table-light">
           <tr>
-            <th class="ps-3">#</th>
-            <th>Subject</th>
-            <th class="text-end">Offset (min)</th>
+            <th style="width: 32px;"></th>
+            <th style="width: 48px;">#</th>
+            <th>Step</th>
+            <th class="text-end" style="width: 140px;">Offset (min)</th>
+            <th class="text-end" style="width: 160px;"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="<%= table_id %>" data-reorder-url="<%= reorder_url %>">
           <% campaign.steps.each do |step| %>
-            <tr>
-              <td class="ps-3"><%= step.sequence_number %></td>
-              <td><%= step.template_subject.presence || content_tag(:span, "—", class: "text-muted") %></td>
+            <tr data-id="<%= step.id %>">
+              <td class="text-center text-muted drag-handle" style="cursor: grab;" title="Drag to reorder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                </svg>
+              </td>
+              <td class="sequence-number"><%= step.sequence_number %></td>
+              <td>
+                <div class="fw-semibold"><%= step.template_subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></div>
+                <% if step.template_body.present? %>
+                  <div class="text-muted small mt-1" style="white-space: pre-wrap;"><%= step.template_body %></div>
+                <% else %>
+                  <div class="text-muted small fst-italic mt-1">(no body)</div>
+                <% end %>
+              </td>
               <td class="text-end"><%= step.offset_min %></td>
+              <td class="text-end">
+                <%= link_to "Edit", edit_campaign_step_path(campaign, step), class: "btn btn-sm btn-outline-primary" %>
+                <%= button_to "Delete", campaign_step_path(campaign, step), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this step?" } } %>
+              </td>
             </tr>
           <% end %>
         </tbody>
@@ -28,3 +49,51 @@
     <% end %>
   </div>
 </div>
+
+<% if campaign.steps.any? %>
+  <script>
+    (function() {
+      function init() {
+        var tbody = document.getElementById("<%= j table_id %>");
+        if (!tbody || typeof Sortable === "undefined" || tbody.dataset.sortableInitialized) return;
+        tbody.dataset.sortableInitialized = "1";
+
+        var token = document.querySelector('meta[name="csrf-token"]');
+        var csrf = token ? token.content : "";
+
+        Sortable.create(tbody, {
+          handle: ".drag-handle",
+          animation: 150,
+          onEnd: function() {
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr[data-id]"));
+            var ids = rows.map(function(r) { return r.dataset.id; });
+
+            fetch(tbody.dataset.reorderUrl, {
+              method: "PATCH",
+              credentials: "same-origin",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+                "Accept": "application/json"
+              },
+              body: JSON.stringify({ ids: ids })
+            }).then(function(resp) {
+              if (resp.ok) {
+                rows.forEach(function(r, i) {
+                  var cell = r.querySelector(".sequence-number");
+                  if (cell) cell.textContent = i + 1;
+                });
+              }
+            });
+          }
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+<% end %>

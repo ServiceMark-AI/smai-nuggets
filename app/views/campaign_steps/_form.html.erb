@@ -1,0 +1,38 @@
+<%= form_with model: campaign_step, url: form_url, method: form_method, local: true do |f| %>
+  <% if campaign_step.errors.any? %>
+    <div class="alert alert-danger">
+      <h6 class="alert-heading mb-2"><%= pluralize(campaign_step.errors.count, "error") %> prevented this step from being saved:</h6>
+      <ul class="mb-0">
+        <% campaign_step.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row g-3 mb-3">
+    <div class="col-sm-4">
+      <%= f.label :sequence_number, class: "form-label" %>
+      <%= f.number_field :sequence_number, class: "form-control" %>
+    </div>
+    <div class="col-sm-4">
+      <%= f.label :offset_min, "Offset (minutes)", class: "form-label" %>
+      <%= f.number_field :offset_min, class: "form-control" %>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :template_subject, "Subject", class: "form-label" %>
+    <%= f.text_field :template_subject, class: "form-control" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :template_body, "Body", class: "form-label" %>
+    <%= f.text_area :template_body, class: "form-control", rows: 8 %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit class: "btn btn-primary" %>
+    <%= link_to "Cancel", edit_campaign_path(campaign), class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>

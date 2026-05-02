@@ -50,7 +50,7 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
         }
       }
     end
-    assert_redirected_to campaign_path(@campaign)
+    assert_redirected_to edit_campaign_path(@campaign)
     follow_redirect!
     assert_match "Step added.", response.body
     assert_match "Third touch", response.body
@@ -96,5 +96,93 @@ class CampaignStepsControllerTest < ActionDispatch::IntegrationTest
       }
     end
     assert_redirected_to root_path
+  end
+
+  test "admin sees the edit form" do
+    sign_in @admin
+    step = @campaign.steps.first
+    get edit_campaign_step_url(@campaign, step)
+    assert_response :success
+    assert_select "input[name='campaign_step[template_subject]'][value=?]", step.template_subject
+  end
+
+  test "admin update with valid params changes the step" do
+    sign_in @admin
+    step = @campaign.steps.first
+    patch campaign_step_url(@campaign, step), params: {
+      campaign_step: { sequence_number: step.sequence_number, offset_min: 999, template_subject: "Changed", template_body: "Updated body" }
+    }
+    assert_redirected_to edit_campaign_path(@campaign)
+    step.reload
+    assert_equal "Changed", step.template_subject
+    assert_equal 999, step.offset_min
+  end
+
+  test "admin update with invalid params re-renders the form" do
+    sign_in @admin
+    step = @campaign.steps.first
+    patch campaign_step_url(@campaign, step), params: {
+      campaign_step: { sequence_number: nil }
+    }
+    assert_response :unprocessable_content
+    assert_match(/can&#39;t be blank/, response.body)
+  end
+
+  test "admin destroy removes the step" do
+    sign_in @admin
+    step = @campaign.steps.first
+    assert_difference -> { @campaign.steps.count }, -1 do
+      delete campaign_step_url(@campaign, step)
+    end
+    assert_redirected_to edit_campaign_path(@campaign)
+  end
+
+  test "non-admin cannot edit, update, or destroy a step" do
+    sign_in @non_admin
+    step = @campaign.steps.first
+
+    get edit_campaign_step_url(@campaign, step)
+    assert_redirected_to root_path
+
+    patch campaign_step_url(@campaign, step), params: { campaign_step: { template_subject: "Bad" } }
+    assert_redirected_to root_path
+
+    assert_no_difference -> { @campaign.steps.count } do
+      delete campaign_step_url(@campaign, step)
+    end
+    assert_redirected_to root_path
+  end
+
+  test "admin reorder swaps sequence numbers" do
+    sign_in @admin
+    s1 = @campaign.steps.find_by!(sequence_number: 1)
+    s2 = @campaign.steps.find_by!(sequence_number: 2)
+
+    patch reorder_campaign_steps_url(@campaign), params: { ids: [s2.id, s1.id] }, as: :json
+    assert_response :no_content
+
+    assert_equal 1, s2.reload.sequence_number
+    assert_equal 2, s1.reload.sequence_number
+  end
+
+  test "reorder rejects ids that don't belong to the campaign" do
+    sign_in @admin
+    other_step = campaign_steps(:approved_step_one)  # belongs to @campaign already
+    foreign_id = 999_999
+
+    patch reorder_campaign_steps_url(@campaign), params: { ids: [other_step.id, foreign_id] }, as: :json
+    assert_response :unprocessable_content
+  end
+
+  test "non-admin cannot reorder" do
+    sign_in @non_admin
+    s1 = @campaign.steps.find_by!(sequence_number: 1)
+    s2 = @campaign.steps.find_by!(sequence_number: 2)
+
+    patch reorder_campaign_steps_url(@campaign), params: { ids: [s2.id, s1.id] }, as: :json
+    assert_redirected_to root_path
+
+    assert_equal 1, s1.reload.sequence_number
+    assert_equal 2, s2.reload.sequence_number
   end
 end

@@ -63,4 +63,52 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Bob", response.body
     assert_match "Carol", response.body
   end
+
+  test "new renders the upload form" do
+    sign_in @user
+    get new_job_proposal_url
+    assert_response :success
+    assert_select "form#job-upload-form"
+    assert_select "input[type='file'][name='file']"
+    assert_match(/Drop a file here/i, response.body)
+  end
+
+  test "create with no file re-renders the form with an error" do
+    sign_in @user
+    assert_no_difference "JobProposal.count" do
+      post job_proposals_url, params: {}
+    end
+    assert_response :unprocessable_content
+    assert_match(/Please choose a file/i, response.body)
+  end
+
+  test "create persists a proposal with the uploaded file as an attachment" do
+    sign_in @user
+    file = Rack::Test::UploadedFile.new(StringIO.new("hello world"), "text/plain", original_filename: "proposal.txt")
+
+    assert_difference "JobProposal.count", 1 do
+      post job_proposals_url, params: { file: file }
+    end
+    assert_redirected_to job_proposals_path
+
+    proposal = JobProposal.order(:created_at).last
+    assert_equal @user, proposal.owner
+    assert_equal @user, proposal.created_by_user
+    assert_equal @user.tenant, proposal.tenant
+    assert_equal 1, proposal.attachments.count
+    assert proposal.attachments.first.file.attached?
+    assert_equal "proposal.txt", proposal.attachments.first.file.filename.to_s
+  end
+
+  test "create fails when user has no organization" do
+    lonely = User.create!(email: "lonely2@example.com", password: "Password1", tenant: tenants(:one))
+    sign_in lonely
+    file = Rack::Test::UploadedFile.new(StringIO.new("x"), "text/plain", original_filename: "x.txt")
+
+    assert_no_difference "JobProposal.count" do
+      post job_proposals_url, params: { file: file }
+    end
+    assert_response :unprocessable_content
+    assert_match(/tenant and organization/i, response.body)
+  end
 end

@@ -1,0 +1,18 @@
+<% content_for :title, "Edit Step" %>
+
+<div class="row">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-1">Edit Step</h1>
+    <p class="text-muted mb-4">Campaign: <%= link_to @campaign.name, campaign_path(@campaign) %></p>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <%= render "campaign_steps/form",
+            campaign: @campaign,
+            campaign_step: @campaign_step,
+            form_url: campaign_step_path(@campaign, @campaign_step),
+            form_method: :patch %>
+      </div>
+    </div>
+  </div>
+</div>
