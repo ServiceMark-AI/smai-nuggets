@@ -20,6 +20,23 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", edit_profile_path, text: "Edit"
   end
 
+  test "show offers Setup G Suite when the user has no email delegations" do
+    sign_in @user
+    get profile_url
+    assert_select "form[action='/auth/google_oauth2']"
+    assert_match "No connected accounts", response.body
+  end
+
+  test "show hides Setup G Suite once the user has connected an account" do
+    @user.email_delegations.create!(provider: "google_oauth2", email: "owner@example.com", access_token: "tok")
+    sign_in @user
+    get profile_url
+    assert_select "form[action='/auth/google_oauth2']", false
+    assert_match "owner@example.com", response.body
+    # Disconnect button is still rendered for the existing delegation
+    assert_select "form[action=?]", email_delegation_path(@user.email_delegations.first)
+  end
+
   test "edit renders the form with current profile values" do
     @user.update!(first_name: "Jane", last_name: "Doe", phone_number: "555-1234")
     sign_in @user
