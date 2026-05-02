@@ -1,0 +1,35 @@
+<% content_for :title, "New Tenant" %>
+
+<div class="row">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-1">New Tenant</h1>
+    <p class="text-muted mb-4">The tenant name will also be used for the top-level organization.</p>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <%= form_with model: @tenant, url: admin_tenants_path, local: true do |f| %>
+          <% if @tenant.errors.any? %>
+            <div class="alert alert-danger">
+              <h6 class="alert-heading mb-2"><%= pluralize(@tenant.errors.count, "error") %> prevented this tenant from being saved:</h6>
+              <ul class="mb-0">
+                <% @tenant.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= f.label :name, class: "form-label" %>
+            <%= f.text_field :name, class: "form-control", autofocus: true, placeholder: "Acme Roofing" %>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Create tenant", class: "btn btn-primary" %>
+            <%= link_to "Cancel", admin_tenants_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
