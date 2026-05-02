@@ -1,0 +1,39 @@
+<% content_for :title, "New PDF Processing Revision" %>
+
+<div class="row">
+  <div class="col-md-10 col-lg-8">
+    <h1 class="h3 mb-4">New PDF Processing Revision</h1>
+
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <%= form_with model: @revision, url: admin_pdf_processing_revisions_path, local: true do |f| %>
+          <% if @revision.errors.any? %>
+            <div class="alert alert-danger">
+              <h6 class="alert-heading mb-2"><%= pluralize(@revision.errors.count, "error") %> prevented this revision from being saved:</h6>
+              <ul class="mb-0">
+                <% @revision.errors.full_messages.each do |msg| %>
+                  <li><%= msg %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+
+          <div class="mb-3">
+            <%= f.label :model_id, "Model", class: "form-label" %>
+            <%= f.collection_select :model_id, Model.order(:provider, :name), :id, ->(m) { "#{m.provider} / #{m.name}" }, { include_blank: "Select a model" }, class: "form-select" %>
+          </div>
+
+          <div class="mb-3">
+            <%= f.label :instructions, class: "form-label" %>
+            <%= f.text_area :instructions, class: "form-control", rows: 12 %>
+          </div>
+
+          <div class="d-flex gap-2">
+            <%= f.submit "Create revision", class: "btn btn-primary" %>
+            <%= link_to "Cancel", admin_pdf_processing_revisions_path, class: "btn btn-outline-secondary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

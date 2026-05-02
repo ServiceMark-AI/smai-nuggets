@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     resources :messages, only: [:index]
     resources :tool_calls, only: [:index]
     resources :models, only: [:index]
+    resources :pdf_processing_revisions, only: [:index, :new, :create]
   end
   resources :campaigns do
     member do

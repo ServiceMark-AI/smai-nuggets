@@ -1,0 +1,41 @@
+<% content_for :title, "PDF Processing Revisions" %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">PDF Processing Revisions</h1>
+  <%= link_to "New revision", new_admin_pdf_processing_revision_path, class: "btn btn-primary btn-sm" %>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <% if @revisions.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="text-end" style="width: 80px;">#</th>
+            <th>Instructions</th>
+            <th>Model</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @revisions.each do |r| %>
+            <tr>
+              <td class="text-end fw-semibold"><%= r.revision_number %></td>
+              <td><%= truncate(r.instructions, length: 200) %></td>
+              <td><%= r.model.name %></td>
+              <td><%= l(r.created_at, format: :short) %></td>
+              <td>
+                <% if r == @current %>
+                  <span class="badge text-bg-success">Current</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No revisions yet.</div>
+    <% end %>
+  </div>
+</div>

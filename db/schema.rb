@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_02_045328) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_02_045707) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -194,6 +194,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_045328) do
     t.index ["tenant_id"], name: "index_organizations_on_tenant_id"
   end
 
+  create_table "pdf_processing_revisions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "instructions", null: false
+    t.bigint "model_id", null: false
+    t.integer "revision_number", null: false
+    t.datetime "updated_at", null: false
+    t.index ["model_id"], name: "index_pdf_processing_revisions_on_model_id"
+    t.index ["revision_number"], name: "index_pdf_processing_revisions_on_revision_number", unique: true
+  end
+
   create_table "tenants", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -259,6 +269,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_02_045328) do
   add_foreign_key "organizational_members", "users"
   add_foreign_key "organizations", "organizations", column: "parent_id"
   add_foreign_key "organizations", "tenants"
+  add_foreign_key "pdf_processing_revisions", "models"
   add_foreign_key "tool_calls", "messages"
   add_foreign_key "users", "tenants"
 end
