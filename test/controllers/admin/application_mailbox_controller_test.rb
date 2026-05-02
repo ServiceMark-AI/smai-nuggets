@@ -32,11 +32,12 @@ class Admin::ApplicationMailboxControllerTest < ActionDispatch::IntegrationTest
     assert_match "Disconnect", response.body
   end
 
-  test "connect stashes the OAuth target and redirects to /auth/google_oauth2" do
+  test "show renders a form posting directly to /auth/google_oauth2 with the target hidden field" do
     sign_in @admin
-    post connect_admin_application_mailbox_url
-    assert_redirected_to "/auth/google_oauth2"
-    assert_equal "application_mailbox", session[:oauth_target]
+    get admin_application_mailbox_url
+    assert_select "form[action='/auth/google_oauth2'][method=post]" do
+      assert_select "input[type=hidden][name=target][value=application_mailbox]"
+    end
   end
 
   test "destroy removes the mailbox" do

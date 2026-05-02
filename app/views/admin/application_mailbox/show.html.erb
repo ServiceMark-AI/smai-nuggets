@@ -37,9 +37,10 @@
       </dl>
 
       <div class="d-flex gap-2">
-        <%= button_to "Reconnect", connect_admin_application_mailbox_path,
-              method: :post, class: "btn btn-outline-primary btn-sm",
-              form: { class: "d-inline" } %>
+        <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
+          <%= f.hidden_field :target, value: "application_mailbox" %>
+          <%= f.submit "Reconnect", class: "btn btn-outline-primary btn-sm" %>
+        <% end %>
         <%= button_to "Disconnect", admin_application_mailbox_path,
               method: :delete, class: "btn btn-outline-danger btn-sm",
               form: { class: "d-inline", data: { turbo_confirm: "Disconnect the application mailbox? Outbound emails will stop being sent until you reconnect." } } %>
@@ -49,9 +50,10 @@
         <span class="badge text-bg-secondary">Not connected</span>
         Outbound mail will be dropped until a mailbox is connected.
       </p>
-      <%= button_to "Connect a Google account", connect_admin_application_mailbox_path,
-            method: :post, class: "btn btn-primary",
-            form: { class: "d-inline" } %>
+      <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
+        <%= f.hidden_field :target, value: "application_mailbox" %>
+        <%= f.submit "Connect a Google account", class: "btn btn-primary" %>
+      <% end %>
     <% end %>
   </div>
 </div>

@@ -6,8 +6,9 @@ class EmailDelegationsController < ApplicationController
     end
 
     # OAuth flows can target either the singleton application mailbox or a
-    # per-user delegation. The initiator stashes a flag in the session.
-    if session.delete(:oauth_target) == "application_mailbox"
+    # per-user delegation. The initiating form sets a `target=application_mailbox`
+    # hidden field; OmniAuth round-trips it through auth.params.
+    if oauth_target(auth) == "application_mailbox"
       return create_application_mailbox(auth)
     end
 
@@ -27,7 +28,7 @@ class EmailDelegationsController < ApplicationController
   def failure
     # If the failure occurred during an application-mailbox connect attempt,
     # the user is an admin returning to the setup page.
-    if session.delete(:oauth_target) == "application_mailbox"
+    if request.params[:target] == "application_mailbox" || params[:target] == "application_mailbox"
       redirect_to admin_application_mailbox_path,
         alert: "Couldn't connect Google account: #{params[:message] || 'unknown error'}." and return
     end
@@ -41,6 +42,15 @@ class EmailDelegationsController < ApplicationController
   end
 
   private
+
+  # The `target` param survives the OAuth redirect via OmniAuth's
+  # request.env["omniauth.params"]. Fall back to the raw query/body param
+  # for the (rare) case where OmniAuth strips it.
+  def oauth_target(auth)
+    auth&.dig("params", "target") ||
+      request.env.dig("omniauth.params", "target") ||
+      params[:target]
+  end
 
   def create_application_mailbox(auth)
     unless current_user.is_admin

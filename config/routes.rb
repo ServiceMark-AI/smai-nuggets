@@ -21,9 +21,7 @@ Rails.application.routes.draw do
     resources :tool_calls, only: [:index]
     resources :models, only: [:index]
     resources :pdf_processing_revisions, only: [:index, :new, :create]
-    resource :application_mailbox, only: [:show, :destroy], controller: "application_mailbox" do
-      post :connect
-    end
+    resource :application_mailbox, only: [:show, :destroy], controller: "application_mailbox"
     resources :tenants, only: [:index, :show, :new, :create] do
       resources :invitations, only: [:create]
       resource :activations, only: [:show], controller: "activations"
