@@ -28,7 +28,11 @@ class Admin::CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     assert_match @campaign.name, response.body
     # Existing fixtures: sequence 1 + 2, so default for new should be 3
     assert_select "input[name='campaign_step[sequence_number]'][value='3']"
-    assert_select "input[name='campaign_step[offset_min]'][value='0']"
+    # Offset is now collected via days/hours/minutes triplets that compose
+    # into offset_min on save; for a new step all three default to 0.
+    assert_select "input[name='campaign_step[offset_days]'][value='0']"
+    assert_select "input[name='campaign_step[offset_hours]'][value='0']"
+    assert_select "input[name='campaign_step[offset_minutes]'][value='0']"
   end
 
   test "admin sees default sequence_number 1 on a campaign with no steps" do

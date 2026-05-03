@@ -15,15 +15,33 @@
       <%= f.label :sequence_number, class: "form-label" %>
       <%= f.number_field :sequence_number, class: "form-control" %>
     </div>
-    <div class="col-sm-4">
-      <%= f.label :offset_min, "Offset (minutes)", class: "form-label" %>
-      <%= f.number_field :offset_min, class: "form-control" %>
+    <div class="col-sm-8">
+      <label class="form-label">Offset</label>
+      <div class="row g-2">
+        <div class="col-4">
+          <div class="input-group">
+            <%= f.number_field :offset_days, value: campaign_step.offset_days, min: 0, class: "form-control" %>
+            <span class="input-group-text">d</span>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="input-group">
+            <%= f.number_field :offset_hours, value: campaign_step.offset_hours, min: 0, max: 23, class: "form-control" %>
+            <span class="input-group-text">h</span>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="input-group">
+            <%= f.number_field :offset_minutes, value: campaign_step.offset_minutes, min: 0, max: 59, class: "form-control" %>
+            <span class="input-group-text">m</span>
+          </div>
+        </div>
+      </div>
       <div class="form-text">
-        <% current_offset = campaign_step.offset_min.to_i %>
-        <% if current_offset > 0 %>
-          <%= humanize_offset_minutes(current_offset) %> after the previous step.
+        <% if campaign_step.offset_min.to_i > 0 %>
+          <%= humanize_offset_minutes(campaign_step.offset_min) %> after the previous step.
         <% else %>
-          0 = sends immediately. 60 = 1 hour. 1440 = 1 day. 10080 = 7 days.
+          0 across all three fields = sends immediately.
         <% end %>
       </div>
     </div>

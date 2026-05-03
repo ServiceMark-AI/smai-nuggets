@@ -60,7 +60,11 @@ class Admin::CampaignStepsController < Admin::BaseController
   end
 
   def campaign_step_params
-    params.require(:campaign_step).permit(:sequence_number, :offset_min, :template_subject, :template_body)
+    params.require(:campaign_step).permit(
+      :sequence_number, :offset_min,
+      :offset_days, :offset_hours, :offset_minutes,
+      :template_subject, :template_body
+    )
   end
 
   def next_sequence_number
