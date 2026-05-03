@@ -137,4 +137,59 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     invitation = Invitation.where(email: "rootinvite@example.com").last
     assert_equal @org, invitation.organization
   end
+
+  # --- destroy (revoke) ----------------------------------------------------
+
+  test "destroy redirects to sign-in when not signed in" do
+    delete invitation_path(@invitation)
+    assert_redirected_to new_user_session_path
+  end
+
+  test "tenant user can revoke a pending invitation in their tenant" do
+    inviter = User.create!(email: "revoker@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    assert_difference "Invitation.count", -1 do
+      delete invitation_path(@invitation)
+    end
+    assert_redirected_to users_path
+    assert_match(/Revoked invitation/i, flash[:notice].to_s)
+  end
+
+  test "user from another tenant cannot revoke a foreign invitation" do
+    other_tenant = Tenant.create!(name: "OtherCo")
+    other_org = other_tenant.organizations.create!(name: "HQ")
+    outsider = User.create!(email: "outsider@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
+    OrganizationalMember.create!(organization: other_org, user: outsider, role: :admin)
+    sign_in outsider
+
+    assert_no_difference "Invitation.count" do
+      delete invitation_path(@invitation)
+    end
+    assert_redirected_to users_path
+    assert_match(/not found/i, flash[:alert].to_s)
+  end
+
+  test "tenant-less user cannot revoke any invitation" do
+    orphan = User.create!(email: "orphan2@example.com", password: "Password1", is_pending: false)
+    sign_in orphan
+
+    assert_no_difference "Invitation.count" do
+      delete invitation_path(@invitation)
+    end
+    assert_match(/not found/i, flash[:alert].to_s)
+  end
+
+  test "destroy refuses to revoke an already-accepted invitation" do
+    @invitation.update!(accepted_at: Time.current)
+    inviter = User.create!(email: "revoker2@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    assert_no_difference "Invitation.count" do
+      delete invitation_path(@invitation)
+    end
+    assert_match(/already been accepted/i, flash[:alert].to_s)
+  end
 end

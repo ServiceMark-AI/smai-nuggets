@@ -54,4 +54,50 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_tenant_path(@tenant)
     assert_match(/email can/i, flash[:alert].to_s)
   end
+
+  # --- destroy (revoke) ----------------------------------------------------
+
+  test "non-admin cannot revoke invitations" do
+    invitation = @tenant.invitations.create!(organization: @org, invited_by_user: @admin, email: "x@example.com")
+    sign_in @non_admin
+
+    assert_no_difference "Invitation.count" do
+      delete admin_tenant_invitation_url(@tenant, invitation)
+    end
+    assert_redirected_to root_path
+  end
+
+  test "admin revokes a pending invitation in any tenant" do
+    invitation = @tenant.invitations.create!(organization: @org, invited_by_user: @admin, email: "revoke-me@example.com")
+    sign_in @admin
+
+    assert_difference "Invitation.count", -1 do
+      delete admin_tenant_invitation_url(@tenant, invitation)
+    end
+    assert_redirected_to admin_tenant_path(@tenant)
+    assert_match(/Revoked invitation/i, flash[:notice].to_s)
+  end
+
+  test "destroy with a foreign tenant id 404-ish redirects with not-found" do
+    other_tenant = Tenant.create!(name: "Other")
+    other_org = other_tenant.organizations.create!(name: "HQ")
+    invitation = other_tenant.invitations.create!(organization: other_org, invited_by_user: @admin, email: "lone@example.com")
+    sign_in @admin
+
+    assert_no_difference "Invitation.count" do
+      delete admin_tenant_invitation_url(@tenant, invitation)
+    end
+    assert_match(/not found/i, flash[:alert].to_s)
+  end
+
+  test "admin destroy refuses to revoke an already-accepted invitation" do
+    invitation = @tenant.invitations.create!(organization: @org, invited_by_user: @admin, email: "claimed@example.com")
+    invitation.update!(accepted_at: Time.current)
+    sign_in @admin
+
+    assert_no_difference "Invitation.count" do
+      delete admin_tenant_invitation_url(@tenant, invitation)
+    end
+    assert_match(/already been accepted/i, flash[:alert].to_s)
+  end
 end

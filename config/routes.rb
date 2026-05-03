@@ -9,7 +9,7 @@ Rails.application.routes.draw do
   authenticate :user, ->(u) { u.is_admin } do
     mount Sidekiq::Web => "/sidekiq"
   end
-  resources :invitations, only: [:show, :create]
+  resources :invitations, only: [:show, :create, :destroy]
   resources :users, only: [:index]
   get "profile" => "profiles#show", as: :profile
   get "profile/edit" => "profiles#edit", as: :edit_profile
@@ -34,7 +34,7 @@ Rails.application.routes.draw do
     resources :pdf_processing_revisions, only: [:index, :new, :create]
     resource :application_mailbox, only: [:show, :destroy], controller: "application_mailbox"
     resources :tenants, only: [:index, :show, :new, :create] do
-      resources :invitations, only: [:create]
+      resources :invitations, only: [:create, :destroy]
       resource :activations, only: [:show], controller: "activations"
       resources :job_type_activations, only: [:create, :destroy] do
         member { post :activate_all_scenarios }

@@ -89,6 +89,10 @@
                   <% end %>
                 </div>
               </div>
+              <%= button_to "Revoke", invitation_path(inv),
+                    method: :delete,
+                    class: "btn btn-sm btn-outline-danger",
+                    form: { class: "m-0", data: { turbo_confirm: "Revoke the pending invitation for #{inv.email}?" } } %>
             </li>
           <% end %>
         </ul>

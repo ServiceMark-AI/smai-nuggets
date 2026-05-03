@@ -33,6 +33,21 @@ class Admin::InvitationsController < Admin::BaseController
     end
   end
 
+  def destroy
+    invitation = @tenant.invitations.find_by(id: params[:id])
+    if invitation.nil?
+      redirect_to admin_tenant_path(@tenant), alert: "Invitation not found." and return
+    end
+    if invitation.accepted?
+      redirect_to admin_tenant_path(@tenant),
+        alert: "That invitation has already been accepted and can't be revoked." and return
+    end
+
+    email = invitation.email
+    invitation.destroy
+    redirect_to admin_tenant_path(@tenant), notice: "Revoked invitation for #{email}."
+  end
+
   private
 
   def set_tenant

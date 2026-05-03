@@ -60,6 +60,20 @@ class InvitationsController < ApplicationController
     end
   end
 
+  def destroy
+    invitation = current_user.tenant&.invitations&.find_by(id: params[:id])
+    if invitation.nil?
+      redirect_to users_path, alert: "Invitation not found." and return
+    end
+    if invitation.accepted?
+      redirect_to users_path, alert: "That invitation has already been accepted and can't be revoked." and return
+    end
+
+    email = invitation.email
+    invitation.destroy
+    redirect_to users_path, notice: "Revoked invitation for #{email}."
+  end
+
   private
 
   def invitation_body(invitation, tenant)
