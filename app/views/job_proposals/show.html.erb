@@ -6,6 +6,27 @@
   <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
 </h1>
 
+<% attachments = @job_proposal.attachments.select { |a| a.file.attached? } %>
+<% if attachments.any? %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header">
+      <h2 class="h5 mb-0">Uploaded file<%= "s" if attachments.size > 1 %></h2>
+    </div>
+    <div class="card-body">
+      <ul class="list-unstyled mb-0">
+        <% attachments.each do |att| %>
+          <li>
+            <%= link_to att.file.filename.to_s, rails_blob_path(att.file, disposition: "inline"), target: "_blank", rel: "noopener" %>
+            <span class="text-muted small ms-2">
+              uploaded <%= time_ago_in_words(att.created_at) %> ago<% if att.uploaded_by_user %> by <%= att.uploaded_by_user.display_name %><% end %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+<% end %>
+
 <div class="card shadow-sm mb-4">
   <div class="card-header">
     <h2 class="h5 mb-0">Customer</h2>
