@@ -472,6 +472,59 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/isn't paused/i, flash[:alert])
   end
 
+  # --- launch_campaign (manual relaunch from the show page) ---------------
+
+  test "launch_campaign redirects to sign-in when not signed in" do
+    post launch_campaign_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "launch_campaign creates a CampaignInstance when scenario + campaign are in place" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(scenario: scenarios(:sewage_backup))
+
+    assert_difference "CampaignInstance.count", 1 do
+      post launch_campaign_job_proposal_url(jp)
+    end
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/Campaign launched/i, flash[:notice].to_s)
+  end
+
+  test "launch_campaign reports already-running on a second click" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(scenario: scenarios(:sewage_backup))
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
+    assert_no_difference "CampaignInstance.count" do
+      post launch_campaign_job_proposal_url(jp)
+    end
+    assert_match(/already running/i, flash[:notice].to_s)
+  end
+
+  test "launch_campaign refuses with a clear message when no scenario is set" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(scenario: nil)
+
+    assert_no_difference "CampaignInstance.count" do
+      post launch_campaign_job_proposal_url(jp)
+    end
+    assert_match(/Pick a scenario/i, flash[:alert].to_s)
+  end
+
+  test "launch_campaign refuses when scenario has no attached campaign" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(scenario: scenarios(:clean_water)) # fixture: campaign: nil
+
+    assert_no_difference "CampaignInstance.count" do
+      post launch_campaign_job_proposal_url(jp)
+    end
+    assert_match(/no approved campaign/i, flash[:alert].to_s)
+  end
+
   # --- CTA column on the index ---
 
   test "index renders View job CTA for proposals not in a campaign" do

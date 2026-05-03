@@ -9,7 +9,7 @@ class JobProposalsController < ApplicationController
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
-  before_action :load_proposal, only: [:edit, :update, :resume]
+  before_action :load_proposal, only: [:edit, :update, :resume, :launch_campaign]
 
   def index
     scope = JobProposal
@@ -97,6 +97,31 @@ class JobProposalsController < ApplicationController
       redirect_to job_proposals_path, notice: "Campaign resumed."
     else
       redirect_to job_proposals_path, alert: "This campaign isn't paused."
+    end
+  end
+
+  # Manual relaunch from the proposal show page's Campaign card. Used when
+  # the automatic launch on update was skipped — usually because the
+  # scenario wasn't picked yet at save time, or a downstream automation
+  # hiccupped. Idempotent via CampaignLauncher: a second click while
+  # an instance already exists reports "already running" instead of
+  # creating a duplicate.
+  def launch_campaign
+    result = CampaignLauncher.launch(@job_proposal)
+    case result.reason
+    when :launched
+      redirect_to job_proposal_path(@job_proposal), notice: "Campaign launched."
+    when :already_running
+      redirect_to job_proposal_path(@job_proposal), notice: "Campaign is already running."
+    when :no_scenario
+      redirect_to job_proposal_path(@job_proposal),
+        alert: "Pick a scenario for this proposal first, then launch."
+    when :no_campaign
+      redirect_to job_proposal_path(@job_proposal),
+        alert: "The selected scenario has no approved campaign attached yet — ask an admin."
+    else
+      redirect_to job_proposal_path(@job_proposal),
+        alert: "Couldn't launch campaign (#{result.reason})."
     end
   end
 

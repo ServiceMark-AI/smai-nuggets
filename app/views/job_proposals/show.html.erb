@@ -84,10 +84,10 @@
 </div>
 
 <% campaign_instance = @job_proposal.campaign_instances.order(created_at: :desc).first %>
-<% if campaign_instance %>
-  <div class="card shadow-sm mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h2 class="h5 mb-0">Campaign</h2>
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="h5 mb-0">Campaign</h2>
+    <% if campaign_instance %>
       <% inst_status_class = case campaign_instance.status
          when "active"    then "text-bg-success"
          when "paused"    then "text-bg-warning"
@@ -95,7 +95,11 @@
          else "text-bg-danger" # stopped_on_*
          end %>
       <span class="badge <%= inst_status_class %>"><%= campaign_instance.status.humanize %></span>
-    </div>
+    <% else %>
+      <span class="badge text-bg-secondary">Not started</span>
+    <% end %>
+  </div>
+<% if campaign_instance %>
     <div class="card-body p-0">
       <dl class="row mb-0 px-3 pt-3">
         <dt class="col-sm-3">Campaign</dt>
@@ -149,8 +153,33 @@
         </tbody>
       </table>
     </div>
-  </div>
-<% end %>
+  <% else %>
+    <div class="card-body">
+      <% if @job_proposal.scenario.nil? %>
+        <p class="mb-2">No campaign has launched for this proposal — it doesn't have a scenario set yet.</p>
+        <%= link_to "Edit proposal", edit_job_proposal_path(@job_proposal), class: "btn btn-sm btn-primary" %>
+      <% elsif @job_proposal.scenario.campaign.nil? %>
+        <p class="mb-0">
+          The <strong><%= @job_proposal.scenario.short_name %></strong> scenario has no approved campaign attached yet, so there's nothing to launch.
+          <% if current_user.is_admin %>
+            Go to the
+            <%= link_to "scenario", admin_scenario_path(@job_proposal.scenario) %>
+            and pick a campaign.
+          <% else %>
+            Ask an admin to attach one.
+          <% end %>
+        </p>
+      <% else %>
+        <p class="mb-2">
+          No campaign instance has launched yet — usually this means the launch step was skipped (an automation hiccup, or the proposal was saved before the scenario was picked). The data is in place now; you can kick it off manually.
+        </p>
+        <%= button_to "Launch campaign", launch_campaign_job_proposal_path(@job_proposal),
+              method: :post, class: "btn btn-sm btn-primary",
+              form: { class: "m-0" } %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
 
 <div class="card shadow-sm">
   <div class="card-header">
