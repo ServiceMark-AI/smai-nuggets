@@ -4,10 +4,6 @@ module ApplicationHelper
   REQUIRED_ENV_VARS = %w[
     APP_HOST
     GEMINI_API_KEY
-    AWS_ACCESS_KEY_ID
-    AWS_SECRET_ACCESS_KEY
-    AWS_REGION
-    AWS_BUCKET
     GOOGLE_CLIENT_ID
     GOOGLE_CLIENT_SECRET
   ].freeze
@@ -18,10 +14,31 @@ module ApplicationHelper
   # is going out.
   DEV_REQUIRED_ENV_VARS = %w[TEST_TO_EMAIL].freeze
 
+  # Storage backend env-var groups. Either group fully set is enough —
+  # they're alternatives, not both required. Order matches production.rb's
+  # selection: GCS preferred, S3 fallback.
+  GCS_ENV_VARS = %w[GCS_PROJECT GCS_BUCKET].freeze
+  AWS_ENV_VARS = %w[AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_BUCKET].freeze
+
   def missing_env_vars
     required = REQUIRED_ENV_VARS.dup
     required.concat(DEV_REQUIRED_ENV_VARS) if development_environment?
-    required.reject { |key| ENV[key].present? }
+    missing = required.reject { |key| ENV[key].present? }
+    missing.concat(missing_storage_env_vars)
+    missing
+  end
+
+  # GCS is preferred when any GCS_* var is set; otherwise we expect AWS_*.
+  # The banner surfaces only the gaps for whichever provider the operator
+  # appears to have started configuring.
+  def missing_storage_env_vars
+    if GCS_ENV_VARS.any? { |key| ENV[key].present? }
+      GCS_ENV_VARS.reject { |key| ENV[key].present? }
+    elsif AWS_ENV_VARS.any? { |key| ENV[key].present? }
+      AWS_ENV_VARS.reject { |key| ENV[key].present? }
+    else
+      ["GCS_BUCKET (or AWS_BUCKET)"]
+    end
   end
 
   def development_environment?

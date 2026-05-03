@@ -25,6 +25,39 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
+  # --- storage env-var detection ---
+
+  test "missing_env_vars surfaces a generic storage hint when neither GCS nor AWS is configured" do
+    with_storage_env(gcs: {}, aws: {}) do
+      assert_includes missing_env_vars, "GCS_BUCKET (or AWS_BUCKET)"
+      refute_includes missing_env_vars, "AWS_ACCESS_KEY_ID"
+    end
+  end
+
+  test "missing_env_vars surfaces only GCS gaps once any GCS_* is set" do
+    with_storage_env(gcs: { "GCS_PROJECT" => "p" }, aws: {}) do
+      assert_includes missing_env_vars, "GCS_BUCKET"
+      refute_includes missing_env_vars, "GCS_PROJECT"
+      refute_includes missing_env_vars, "AWS_BUCKET"
+      refute_includes missing_env_vars, "AWS_ACCESS_KEY_ID"
+    end
+  end
+
+  test "missing_env_vars surfaces AWS gaps when only AWS_* is partially set" do
+    with_storage_env(gcs: {}, aws: { "AWS_ACCESS_KEY_ID" => "k" }) do
+      assert_includes missing_env_vars, "AWS_SECRET_ACCESS_KEY"
+      refute_includes missing_env_vars, "AWS_ACCESS_KEY_ID"
+      refute_includes missing_env_vars, "GCS_BUCKET"
+    end
+  end
+
+  test "missing_env_vars no longer flags AWS when GCS is fully configured" do
+    with_storage_env(gcs: { "GCS_PROJECT" => "p", "GCS_BUCKET" => "b" }, aws: {}) do
+      gcs_or_aws_misses = missing_env_vars.select { |v| v.start_with?("AWS_") || v.start_with?("GCS_") }
+      assert_empty gcs_or_aws_misses
+    end
+  end
+
   private
 
   def with_env(test_to_email:)
@@ -49,5 +82,22 @@ class ApplicationHelperTest < ActionView::TestCase
     yield
   ensure
     ApplicationHelper.define_method(:development_environment?, original)
+  end
+
+  # Set/clear all GCS_* and AWS_* env vars for the duration of the block,
+  # restoring whatever was there before.
+  STORAGE_KEYS = %w[GCS_PROJECT GCS_BUCKET GCS_CREDENTIALS
+                    AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_BUCKET].freeze
+
+  def with_storage_env(gcs:, aws:)
+    prior = STORAGE_KEYS.to_h { |k| [k, ENV[k]] }
+    STORAGE_KEYS.each { |k| ENV.delete(k) }
+    gcs.each { |k, v| ENV[k] = v }
+    aws.each { |k, v| ENV[k] = v }
+    yield
+  ensure
+    STORAGE_KEYS.each do |k|
+      prior[k].nil? ? ENV.delete(k) : ENV[k] = prior[k]
+    end
   end
 end
