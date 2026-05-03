@@ -42,6 +42,9 @@ gem "image_processing", "~> 1.2"
 # Background job processing backed by Redis [https://github.com/sidekiq/sidekiq]
 gem "sidekiq"
 
+# Cron-style scheduling for Sidekiq jobs [https://github.com/sidekiq-cron/sidekiq-cron]
+gem "sidekiq-cron"
+
 # Flexible authentication solution for Rails [https://github.com/heartcombo/devise]
 gem "devise"
 

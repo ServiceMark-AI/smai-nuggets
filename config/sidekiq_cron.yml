@@ -1,0 +1,5 @@
+campaign_sweep:
+  cron: "*/5 * * * *"
+  class: "CampaignSweepJob"
+  queue: default
+  description: "Sweeps approved active campaigns every 5 minutes and sends any due step emails."
