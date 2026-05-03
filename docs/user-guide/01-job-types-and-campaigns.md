@@ -4,11 +4,11 @@
 >
 > These steps live under `/admin/...` and require an account with `is_admin: true`.
 
-The catalog has three layers:
+There are three layers to set up:
 
 1. **Job types** — broad work categories shared system-wide (e.g. *Water Mitigation*, *Mold Remediation*).
 2. **Scenarios** — specific situations within a job type (e.g. *Pipe burst*, *Sewage backup*).
-3. **Campaigns** — outbound email cadences. A campaign is *attributed* to one of the catalog entities (today, a scenario) and runs against job proposals as a `CampaignInstance`.
+3. **Campaigns** — outbound email cadences. A campaign is *attributed* to a scenario (the only target supported today) and runs against job proposals as a `CampaignInstance`.
 
 You build them in that order — bottom up — because scenarios live under job types, and campaigns are attributed to scenarios.
 

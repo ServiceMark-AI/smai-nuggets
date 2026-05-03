@@ -1,0 +1,148 @@
+# 0. Production Setup (Heroku)
+
+> Audience: **infrastructure / system admin**.
+>
+> Run this checklist once, before any of the operator-facing instructions in §1–§4. It assumes a fresh Heroku app and a clean GitHub remote.
+
+This is not a step-by-step Heroku tutorial — it is the list of resources, config vars, and verifications specific to SMAI. If you are new to Heroku, the [Getting Started with Ruby on Rails](https://devcenter.heroku.com/articles/getting-started-with-rails7) article covers the underlying mechanics.
+
+---
+
+## 0.1 External services to provision
+
+Before touching Heroku, get accounts and credentials for the four external services SMAI talks to:
+
+| Service | Why we need it | What you'll grab |
+|---|---|---|
+| **AWS S3** | Active Storage for uploaded job-proposal files in production. | Access key id, secret access key, region, bucket name. |
+| **Google Cloud OAuth client** | Application mailbox uses Gmail send-on-behalf-of. Required for outbound invitation emails and campaign sends. | Client id, client secret, plus an OAuth callback URL registered for your Heroku domain. |
+| **Google AI Studio (Gemini)** | PDF extraction for uploaded estimates by `JobProposalProcessor`. | API key. |
+| **Bugsnag** | Error monitoring in production / staging. | API key. (A default key is hard-coded as a fallback; override in production.) |
+
+Notes on Google OAuth:
+
+1. Create an OAuth 2.0 client of type **Web application** in Google Cloud Console.
+2. Add the scope `https://www.googleapis.com/auth/gmail.send` (the app uses `email profile gmail.send` per `config/initializers/omniauth.rb`).
+3. Add the authorized redirect URI: `https://<your-heroku-domain>/auth/google_oauth2/callback`. Register a custom domain redirect too if you set one up in §0.6.
+4. Add at least one test user (the email of the operator account that will own the application mailbox) until the OAuth consent screen is moved to production.
+
+## 0.2 Create the Heroku app and pick a stack
+
+```bash
+heroku create <app-name>                                    # ruby buildpack auto-detected
+heroku stack:set heroku-24 -a <app-name>                    # current LTS as of writing
+heroku labs:enable runtime-dyno-metadata -a <app-name>      # exposes HEROKU_APP_NAME etc.
+```
+
+The repo already ships:
+
+- `Procfile` — defines `web`, `worker`, and a `release: bundle exec rails db:migrate` line that runs migrations on every deploy.
+- `Dockerfile` — production image, ignored by Heroku's default buildpack flow.
+
+## 0.3 Provision add-ons
+
+```bash
+# Postgres — sets DATABASE_URL automatically.
+heroku addons:create heroku-postgresql:essential-0 -a <app-name>
+
+# Redis (Heroku Key-Value Store) — sets REDIS_URL automatically; required by Sidekiq.
+heroku addons:create heroku-redis:mini -a <app-name>
+```
+
+Sidekiq reads `REDIS_URL` directly from the environment; no extra wiring needed beyond the add-on. The Sidekiq cron schedule lives in `config/sidekiq_cron.yml` and is loaded by `config/initializers/sidekiq.rb` on worker boot — `CampaignSweepJob` runs every five minutes and is the heartbeat for outbound sends.
+
+## 0.4 Set required config vars
+
+The app's `ApplicationHelper::REQUIRED_ENV_VARS` is the authoritative list — missing values are surfaced as a banner inside the app on every admin screen. Mirror it to Heroku:
+
+```bash
+heroku config:set \
+  RAILS_MASTER_KEY="$(cat config/master.key)" \
+  GEMINI_API_KEY=… \
+  AWS_ACCESS_KEY_ID=… \
+  AWS_SECRET_ACCESS_KEY=… \
+  AWS_REGION=us-east-1 \
+  AWS_BUCKET=… \
+  GOOGLE_CLIENT_ID=… \
+  GOOGLE_CLIENT_SECRET=… \
+  BUGSNAG_API_KEY=… \
+  -a <app-name>
+```
+
+Notes:
+
+- `RAILS_MASTER_KEY` decrypts `config/credentials.yml.enc`. If it's missing, the app boots but cannot read encrypted credentials.
+- `DATABASE_URL` and `REDIS_URL` are set by their add-ons — do not set them manually.
+- `RAILS_ENV=production`, `RACK_ENV=production`, `SECRET_KEY_BASE` are managed by the buildpack — do not override.
+- `WEB_CONCURRENCY` defaults to a sensible value based on dyno size; tune later if needed.
+
+## 0.5 Production URL host
+
+Outbound invitation and password-reset emails embed absolute URLs that come from `config.action_mailer.default_url_options[:host]` in `config/environments/production.rb`. The default is `example.com` — replace it with your Heroku domain (or your custom domain from §0.6) before the first deploy:
+
+```ruby
+# config/environments/production.rb
+config.action_mailer.default_url_options = { host: "your-app.example.com", protocol: "https" }
+```
+
+If you would rather drive this from an env var, change the line to read `ENV.fetch("APP_HOST")` and set `APP_HOST` as a Heroku config var. Either approach is fine; the env-var form makes staging vs production easier.
+
+## 0.6 (Optional) Custom domain and SSL
+
+```bash
+heroku domains:add app.example.com -a <app-name>
+# Follow the DNS_TARGET output to add a CNAME at your registrar.
+```
+
+Heroku provisions ACM certificates automatically once the DNS resolves. Update Google's OAuth redirect URI (§0.1) so the custom domain works at sign-in time.
+
+## 0.7 First deploy
+
+```bash
+git push heroku main
+```
+
+The release phase runs `bundle exec rails db:migrate` automatically. Then seed the catalog (job types, scenarios, baseline activations, demo data):
+
+```bash
+heroku run rails db:seed -a <app-name>
+```
+
+The seed file is idempotent — running it twice will not duplicate anything. It creates an `admin@example.com` system admin (password `Password1`); rotate that password immediately after first sign-in or override the user via the console:
+
+```bash
+heroku run rails console -a <app-name>
+> User.find_by(email: "admin@example.com").update!(password: "<long random>", password_confirmation: "<long random>")
+```
+
+## 0.8 Scale dynos
+
+```bash
+heroku ps:scale web=1 worker=1 -a <app-name>
+```
+
+The `worker` dyno runs Sidekiq, including the `CampaignSweepJob` cron entry. If `worker` is at zero, no campaign emails will go out — verify with `heroku ps -a <app-name>` after the first deploy.
+
+## 0.9 Connect the application mailbox
+
+The application mailbox is the Google account SMAI uses to send all outbound mail (invitations, campaign step emails). Connect it from inside the app, not from Heroku:
+
+1. Sign in as `admin@example.com` (or the rotated admin account from §0.7).
+2. Navigate to **Admin → Mailbox**.
+3. Click **Connect a Gmail account**.
+4. Complete the OAuth consent flow with the Google account that should be the system sender.
+
+The OAuth tokens are stored on the singleton `ApplicationMailbox` row; the Connect button is disabled until `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set (§0.4).
+
+## 0.10 Verification
+
+Walk through this short checklist before letting tenant users in:
+
+1. `https://<host>/up` returns 200 — the Rails health check exempted from the `host_authorization` middleware.
+2. `https://<host>/users/sign_in` loads and you can sign in as the admin.
+3. The admin sidebar shows **Tenants**, **Job Types**, **Campaigns**, and **Mailbox**. None of them surface the missing-env-var banner.
+4. `Admin → Mailbox` shows the connected account email.
+5. `heroku logs --tail -a <app-name>` shows `CampaignSweepJob` firing every five minutes from the worker dyno.
+6. Upload a small PDF on a test tenant and confirm `JobProposalProcessor` extracts fields (admin can verify under `Admin → Chats` since the LLM call is logged).
+
+When all six pass, hand the URL off and start with [§1](01-job-types-and-campaigns.md) for catalog setup, [§2](02-tenant-onboarding.md) for the first tenant, and [§3](03-user-onboarding-and-account.md) for the first invited user.

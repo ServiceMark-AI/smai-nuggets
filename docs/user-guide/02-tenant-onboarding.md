@@ -2,7 +2,7 @@
 
 > Audience: **system admin**.
 >
-> A tenant is the company-level container — its users, organizations, locations, and proposals all hang under it. Onboarding a tenant is a three-step ritual: create the tenant + root org, invite the first user, and activate the catalog the tenant is allowed to use.
+> A tenant is the company-level container — its users, organizations, locations, and proposals all hang under it. Onboarding a tenant is a three-step ritual: create the tenant + root org, invite the first user, and activate the job types and scenarios the tenant is allowed to use.
 
 ---
 
@@ -33,18 +33,13 @@ The first invitation usually goes to the company owner so they can self-service 
 1. From the tenant show page, find the **Invite a user** card on the right.
 2. Enter the recipient's email and click **Send invite**.
 
-Two outcomes are possible:
-
-- **Application mailbox is connected.** The invite email goes out from the system mailbox. The recipient gets a token link that expires in seven days.
-- **No application mailbox is connected.** The invitation row is still created, but no email is sent. A flash explains this — connect a mailbox at **Admin → Mailbox** and re-send.
-
-Pending invitations are listed on the tenant show page with their sent-at and expiry timestamps.
+The invite email goes out from the application mailbox and includes a token link that expires in seven days. Pending invitations are listed on the tenant show page with their sent-at and expiry timestamps.
 
 > Tenant users with an existing account can also send invites from the tenant-side **Users** page once they are members; see [§3.5](03-user-onboarding-and-account.md#35-inviting-teammates).
 
 ## 2.4 Activate job types and scenarios
 
-Tenants only see the catalog entries you activate for them. Activations are stored as `TenantJobType` and `TenantScenario` join records with an `is_active` flag.
+Tenants only see the job types and scenarios you activate for them. Activations are stored as `TenantJobType` and `TenantScenario` join records with an `is_active` flag.
 
 1. From the tenant show page, click **Manage activations** (top right).
 2. The activations table lists every job type system-wide. For each one you want the tenant to use:
