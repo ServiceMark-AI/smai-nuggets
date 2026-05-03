@@ -15,7 +15,8 @@
       "Bash(gh pr *)",
       "Bash(gh issue *)",
       "Bash(locations)",
-      "Bash(grep -nE \"\\(locations[ _]table|locations \\\\\\(|`locations`|Location-Level|Location Schema|## .*Location\\)\" docs/prd/PRD-*.md)"
+      "Bash(grep -nE \"\\(locations[ _]table|locations \\\\\\(|`locations`|Location-Level|Location Schema|## .*Location\\)\" docs/prd/PRD-*.md)",
+      "Bash(xargs cat *)"
     ]
   }
 }
