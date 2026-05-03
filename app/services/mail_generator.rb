@@ -81,19 +81,23 @@ class MailGenerator
   end
 
   # Render the step's subject and body with SAMPLE_VALUES substituted in,
-  # so the campaign show page can show a faithful preview without a real
-  # JobProposal. Returns an Output value object. Unknown placeholders are
-  # left in place (no exception) — the preview is for human eyeballs, not
-  # for sending.
+  # using THE SAME substitution path as send-time render — the only
+  # difference is the values hash (sample data) and the unresolved-field
+  # policy (kept in place, not raised). So if the rendered preview looks
+  # right, the live send will too.
   def self.preview(campaign_step:)
-    subject = substitute_sample(campaign_step.template_subject.to_s)
-    body    = substitute_sample(campaign_step.template_body.to_s)
-    Output.new(subject:, body:)
+    Output.new(
+      subject: substitute(campaign_step.template_subject, SAMPLE_VALUES),
+      body:    substitute(campaign_step.template_body,    SAMPLE_VALUES)
+    )
   end
 
-  def self.substitute_sample(text)
-    text.gsub(PLACEHOLDER_RE) do |match|
-      SAMPLE_VALUES.fetch($1, match)
+  # Single substitution engine. Replaces every `{key}` in `text` with
+  # `values[key].to_s`. Unknown keys (no entry in `values`) are left in
+  # place — the caller decides whether that's an error.
+  def self.substitute(text, values)
+    text.to_s.gsub(PLACEHOLDER_RE) do |match|
+      values.key?($1) ? values[$1].to_s : match
     end
   end
 
@@ -103,8 +107,9 @@ class MailGenerator
   end
 
   def call
-    subject = substitute(@campaign_step.template_subject.to_s)
-    body = substitute(@campaign_step.template_body.to_s)
+    values = KNOWN_KEYS.to_h { |k| [k, resolve(k)] }
+    subject = self.class.substitute(@campaign_step.template_subject, values)
+    body    = self.class.substitute(@campaign_step.template_body,    values)
 
     unresolved = (subject.scan(PLACEHOLDER_RE) + body.scan(PLACEHOLDER_RE)).flatten.uniq.sort
     if unresolved.any?
@@ -115,12 +120,6 @@ class MailGenerator
   end
 
   private
-
-  def substitute(text)
-    text.gsub(PLACEHOLDER_RE) do |match|
-      KNOWN_KEYS.include?($1) ? resolve($1).to_s : match
-    end
-  end
 
   def resolve(key)
     case key
