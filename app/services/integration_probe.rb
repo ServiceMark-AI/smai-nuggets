@@ -75,22 +75,55 @@ class IntegrationProbe
     )
   end
 
-  # ---- Gemini API: GET models ------------------------------------------
+  # ---- Gemini API: ask a real fact question on a cheap model -----------
+  # Sends a single generateContent call against a low-cost model with a
+  # tiny output cap (16 tokens). Confirms not just that the API key is
+  # accepted but that the model actually responded — catches scenarios
+  # where the key is valid but the model is unavailable, the project is
+  # over quota, or content filtering is rejecting prompts.
+
+  GEMINI_PROBE_MODEL = "gemini-2.5-flash-lite".freeze
+  GEMINI_PROBE_PROMPT = "What is the capital of France? Answer in one word.".freeze
 
   def gemini
     key = ENV["GEMINI_API_KEY"]
     return Result.new(state: :missing, details: "GEMINI_API_KEY is not set.") if key.blank?
 
-    response = get("https://generativelanguage.googleapis.com/v1beta/models?key=#{URI.encode_www_form_component(key)}")
-    if response.code.to_i.between?(200, 299)
-      Result.new(state: :ok, details: "models.list returned #{response.code}.")
-    else
-      Result.new(
+    url = "https://generativelanguage.googleapis.com/v1beta/models/#{GEMINI_PROBE_MODEL}:generateContent" \
+          "?key=#{URI.encode_www_form_component(key)}"
+    payload = {
+      contents: [{ parts: [{ text: GEMINI_PROBE_PROMPT }] }],
+      generationConfig: { maxOutputTokens: 16, temperature: 0 }
+    }
+    response = post_json(url, payload)
+
+    unless response.code.to_i.between?(200, 299)
+      return Result.new(
         state: :missing,
         details: "Gemini API rejected the request.",
         error_message: "HTTP #{response.code}: #{truncate(response.body)}"
       )
     end
+
+    answer = extract_gemini_answer(response.body)
+    if answer.blank?
+      return Result.new(
+        state: :warn,
+        details: "Gemini returned 200 but no text content was found in the response.",
+        error_message: truncate(response.body)
+      )
+    end
+
+    Result.new(
+      state: :ok,
+      details: "#{GEMINI_PROBE_MODEL} answered “#{GEMINI_PROBE_PROMPT}” → #{truncate(answer, n: 60)}"
+    )
+  end
+
+  def extract_gemini_answer(body)
+    data = JSON.parse(body) rescue {}
+    parts = data.dig("candidates", 0, "content", "parts") || []
+    parts.map { |p| p["text"] }.compact.join(" ").strip
   end
 
   # ---- Active Storage: cheap auth-check via the underlying service -----
@@ -130,8 +163,18 @@ class IntegrationProbe
   private
 
   def get(url)
-    Net::HTTP.start(URI(url).host, URI(url).port, use_ssl: true, open_timeout: 5, read_timeout: 5) do |http|
+    Net::HTTP.start(URI(url).host, URI(url).port, use_ssl: true, open_timeout: 5, read_timeout: 10) do |http|
       http.get(URI(url).request_uri)
+    end
+  end
+
+  def post_json(url, payload)
+    uri = URI(url)
+    req = Net::HTTP::Post.new(uri)
+    req["Content-Type"] = "application/json"
+    req.body = payload.to_json
+    Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) do |http|
+      http.request(req)
     end
   end
 
@@ -139,7 +182,7 @@ class IntegrationProbe
     uri = URI(url)
     req = Net::HTTP::Post.new(uri)
     req.set_form_data(params)
-    Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 5) do |http|
+    Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 10) do |http|
       http.request(req)
     end
   end

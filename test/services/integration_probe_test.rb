@@ -97,19 +97,34 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     assert_equal :missing, r.state
   end
 
-  test "gemini is :ok when the models endpoint returns 2xx" do
+  test "gemini is :ok when generateContent answers the fact question" do
     ENV["GEMINI_API_KEY"] = "k"
-    fake = Struct.new(:code, :body).new("200", "{}")
-    stub_instance_method(:get, fake) do
+    body = {
+      candidates: [{ content: { parts: [{ text: "Paris" }] } }]
+    }.to_json
+    fake = Struct.new(:code, :body).new("200", body)
+    stub_instance_method(:post_json, fake) do
       r = IntegrationProbe.run(:gemini)
       assert_equal :ok, r.state
+      assert_match "gemini-2.5-flash-lite", r.details
+      assert_match "Paris", r.details
     end
   end
 
-  test "gemini is :missing when the models endpoint returns non-2xx" do
+  test "gemini is :warn when the API returns 200 but no text" do
+    ENV["GEMINI_API_KEY"] = "k"
+    fake = Struct.new(:code, :body).new("200", "{}")
+    stub_instance_method(:post_json, fake) do
+      r = IntegrationProbe.run(:gemini)
+      assert_equal :warn, r.state
+      assert_match "no text content", r.details
+    end
+  end
+
+  test "gemini is :missing when generateContent returns non-2xx" do
     ENV["GEMINI_API_KEY"] = "bad"
     fake = Struct.new(:code, :body).new("403", '{"error":{"message":"API key invalid"}}')
-    stub_instance_method(:get, fake) do
+    stub_instance_method(:post_json, fake) do
       r = IntegrationProbe.run(:gemini)
       assert_equal :missing, r.state
       assert_match "API key invalid", r.error_message
