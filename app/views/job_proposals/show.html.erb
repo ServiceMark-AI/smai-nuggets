@@ -165,11 +165,11 @@
         <%= link_to "Edit proposal", edit_job_proposal_path(@job_proposal), class: "btn btn-sm btn-primary" %>
       <% elsif @job_proposal.scenario.campaign.nil? %>
         <p class="mb-0">
-          The <strong><%= @job_proposal.scenario.short_name %></strong> scenario has no approved campaign attached yet, so there's nothing to launch.
+          The <strong><%= @job_proposal.scenario.short_name %></strong> scenario has no campaign attached yet, so there's nothing to launch.
           <% if current_user.is_admin %>
             Go to the
             <%= link_to "scenario", admin_scenario_path(@job_proposal.scenario) %>
-            and pick a campaign.
+            and pick a campaign from the dropdown.
           <% else %>
             Ask an admin to attach one.
           <% end %>

@@ -522,7 +522,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference "CampaignInstance.count" do
       post launch_campaign_job_proposal_url(jp)
     end
-    assert_match(/no approved campaign/i, flash[:alert].to_s)
+    assert_match(/no campaign attached/i, flash[:alert].to_s)
   end
 
   # --- CTA column on the index ---

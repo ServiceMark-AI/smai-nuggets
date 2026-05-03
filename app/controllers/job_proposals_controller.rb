@@ -118,7 +118,7 @@ class JobProposalsController < ApplicationController
         alert: "Pick a scenario for this proposal first, then launch."
     when :no_campaign
       redirect_to job_proposal_path(@job_proposal),
-        alert: "The selected scenario has no approved campaign attached yet — ask an admin."
+        alert: "The selected scenario has no campaign attached yet — ask an admin to pick one on the scenario page."
     else
       redirect_to job_proposal_path(@job_proposal),
         alert: "Couldn't launch campaign (#{result.reason})."

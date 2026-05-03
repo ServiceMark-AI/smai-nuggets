@@ -71,6 +71,36 @@ class CatalogLoaderTest < ActiveSupport::TestCase
     assert_equal first.steps_created, second.steps_existing
   end
 
+  test "auto-curates each scenario's campaign_id to the freshly-created campaign" do
+    CatalogLoader.load!(io: @io)
+
+    Scenario.includes(:job_type).find_each do |scenario|
+      attributed = Campaign.find_by(attributed_to: scenario)
+      assert attributed, "scenario #{scenario.code} should have an attributed campaign"
+      assert_equal attributed.id, scenario.reload.campaign_id,
+        "scenario #{scenario.code} should be auto-curated to the attributed campaign so CampaignLauncher can find it"
+    end
+  end
+
+  test "auto-curation does not overwrite an admin's manual campaign pick" do
+    CatalogLoader.load!(io: @io)
+
+    # Simulate an admin picking a different campaign for one scenario
+    # (an A/B variant attributed to the same scenario).
+    scenario = Scenario.joins(:job_type).find_by!(job_types: { type_code: "water_mitigation" }, code: "pipe_burst")
+    custom = Campaign.create!(
+      name: "Custom A/B variant",
+      status: :approved,
+      attributed_to: scenario
+    )
+    scenario.update!(campaign: custom)
+
+    CatalogLoader.load!(io: StringIO.new)
+
+    assert_equal custom.id, scenario.reload.campaign_id,
+      "operator's manual pick should survive a second catalog:load"
+  end
+
   test "preserves operator edits to campaign name, status, and step content on a second run" do
     CatalogLoader.load!(io: @io)
     scenario = Scenario.joins(:job_type).find_by!(job_types: { type_code: "water_mitigation" }, code: "pipe_burst")

@@ -168,6 +168,15 @@ class CatalogLoader
     else
       @result.campaigns_existing += 1
     end
+
+    # Auto-curate the freshly-loaded campaign as the scenario's active
+    # choice (Scenario#campaign_id, the belongs_to). Without this,
+    # CampaignLauncher can't find a campaign to launch even though one
+    # exists attributed to the scenario. Idempotent: only sets when
+    # nil, so an admin who has manually picked a different attributed
+    # campaign for an A/B test won't get overwritten on re-run.
+    scenario.update!(campaign_id: campaign.id) if scenario.campaign_id.nil?
+
     campaign
   end
 
