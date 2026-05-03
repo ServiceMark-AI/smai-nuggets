@@ -75,6 +75,7 @@ Notes:
 - `DATABASE_URL` and `REDIS_URL` are set by their add-ons — do not set them manually.
 - `RAILS_ENV=production`, `RACK_ENV=production`, `SECRET_KEY_BASE` are managed by the buildpack — do not override.
 - `WEB_CONCURRENCY` defaults to a sensible value based on dyno size; tune later if needed.
+- **Optional: `TEST_TO_EMAIL`.** Outbound mail safety gate read by `app/jobs/campaign_sweep_job.rb`. When set, every campaign email is redirected to that address instead of the customer's. Leave it unset in real production. Set it temporarily (e.g. `TEST_TO_EMAIL=qa@yourcompany.com`) for staging, smoke-testing a deploy, or training. Devise mailers (password reset, account confirmations) are not affected by this gate.
 
 ## 0.5 Production URL host
 

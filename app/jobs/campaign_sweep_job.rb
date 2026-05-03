@@ -19,6 +19,23 @@ require "net/http"
 class CampaignSweepJob < ApplicationJob
   queue_as :default
 
+  # Outbound campaign mail goes through two gates:
+  #
+  #   1. production AND no TEST_TO_EMAIL  -> mail goes to host.customer_email (real send)
+  #   2. TEST_TO_EMAIL set (any env)      -> all mail is redirected to TEST_TO_EMAIL
+  #   3. otherwise (e.g. dev with no override) -> sweep is a no-op; nothing sends
+  #
+  # Devise mailers (password reset, registration) are unaffected — they go
+  # through Action Mailer, not this job.
+
+  def self.production_environment?
+    Rails.env.production?
+  end
+
+  def self.test_to_email_override
+    ENV["TEST_TO_EMAIL"].presence
+  end
+
   def perform
     mailbox = ApplicationMailbox.current
     unless mailbox
@@ -26,10 +43,19 @@ class CampaignSweepJob < ApplicationJob
       return
     end
 
+    unless self.class.production_environment? || self.class.test_to_email_override
+      Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
+      return
+    end
+
     due_step_instance_ids(Time.current).each { |id| process(id, mailbox) }
   end
 
   private
+
+  def recipient_for(host)
+    self.class.test_to_email_override || host.customer_email
+  end
 
   def due_step_instance_ids(now)
     CampaignStepInstance
@@ -70,14 +96,15 @@ class CampaignSweepJob < ApplicationJob
       return
     end
 
-    if host.customer_email.blank?
-      Rails.logger.warn "[CampaignSweepJob] missing customer_email on JobProposal #{host.id} for step instance #{step_instance.id}"
+    recipient = recipient_for(host)
+    if recipient.blank?
+      Rails.logger.warn "[CampaignSweepJob] no recipient resolvable for JobProposal #{host.id} (customer_email blank, no TEST_TO_EMAIL override) on step instance #{step_instance.id}"
       mark_failed(step_instance, instance)
       return
     end
 
     rendered = MailGenerator.render(campaign_step: step_instance.campaign_step, job_proposal: host)
-    sent = GmailSender.new(mailbox).send_email(to: host.customer_email, subject: rendered.subject, body: rendered.body)
+    sent = GmailSender.new(mailbox).send_email(to: recipient, subject: rendered.subject, body: rendered.body)
 
     if sent
       step_instance.update!(

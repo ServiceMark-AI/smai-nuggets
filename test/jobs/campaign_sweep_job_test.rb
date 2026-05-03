@@ -19,9 +19,23 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
       customer_street: "Oak Ridge"
     )
     @instance = CampaignInstance.create!(campaign: @campaign, host: @proposal, status: :active)
+
+    # Existing tests assume mail goes out. The send gates require either
+    # production OR TEST_TO_EMAIL set, so default tests to redirect-mode
+    # and let gate-specific tests below opt out explicitly.
+    @prior_test_to_email = ENV["TEST_TO_EMAIL"]
+    ENV["TEST_TO_EMAIL"] = "redirect@test.example.com"
   end
 
-  test "sends a due pending step and marks it sent" do
+  teardown do
+    if @prior_test_to_email.nil?
+      ENV.delete("TEST_TO_EMAIL")
+    else
+      ENV["TEST_TO_EMAIL"] = @prior_test_to_email
+    end
+  end
+
+  test "sends a due pending step and marks it sent (redirected to TEST_TO_EMAIL)" do
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
     CampaignSweepJob.new.perform
@@ -33,9 +47,41 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
 
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
-    assert_equal "alice@example.com", delivery[:to]
+    assert_equal "redirect@test.example.com", delivery[:to]
     assert_equal "ops@example.com", delivery[:from]
     assert_equal @step_one.template_subject, delivery[:subject]
+  end
+
+  test "in production with no TEST_TO_EMAIL, mail goes to the customer's address" do
+    ENV.delete("TEST_TO_EMAIL")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    with_production_environment(true) { CampaignSweepJob.new.perform }
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    assert_equal 1, GmailSender.deliveries.size
+    assert_equal "alice@example.com", GmailSender.deliveries.first[:to]
+  end
+
+  test "in development with no TEST_TO_EMAIL, the sweep is a no-op" do
+    ENV.delete("TEST_TO_EMAIL")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    with_production_environment(false) { CampaignSweepJob.new.perform }
+
+    assert_equal "pending", step_instance.reload.email_delivery_status
+    assert_empty GmailSender.deliveries
+  end
+
+  test "TEST_TO_EMAIL overrides the customer address in production too" do
+    ENV["TEST_TO_EMAIL"] = "qa@test.example.com"
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    with_production_environment(true) { CampaignSweepJob.new.perform }
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    assert_equal 1, GmailSender.deliveries.size
+    assert_equal "qa@test.example.com", GmailSender.deliveries.first[:to]
   end
 
   test "skips steps whose planned_delivery_at is in the future" do
@@ -87,11 +133,12 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal "active", @instance.reload.status
   end
 
-  test "marks step failed and stops instance when customer_email is missing" do
+  test "marks step failed and stops instance when customer_email is missing in production" do
+    ENV.delete("TEST_TO_EMAIL")
     @proposal.update!(customer_email: nil)
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
-    CampaignSweepJob.new.perform
+    with_production_environment(true) { CampaignSweepJob.new.perform }
 
     assert_equal "failed", step_instance.reload.email_delivery_status
     assert_equal "stopped_on_delivery_issue", @instance.reload.status
@@ -157,5 +204,13 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     yield
   ensure
     GmailSender.define_method(:send_email, original)
+  end
+
+  def with_production_environment(value)
+    original = CampaignSweepJob.singleton_method(:production_environment?)
+    CampaignSweepJob.define_singleton_method(:production_environment?) { value }
+    yield
+  ensure
+    CampaignSweepJob.define_singleton_method(:production_environment?, original)
   end
 end

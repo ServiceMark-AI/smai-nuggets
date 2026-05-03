@@ -11,8 +11,20 @@ module ApplicationHelper
     GOOGLE_CLIENT_SECRET
   ].freeze
 
+  # Required only in development, where CampaignSweepJob refuses to send
+  # unless either Rails.env is production or TEST_TO_EMAIL is set. Surface
+  # it in the banner so a developer notices before wondering why nothing
+  # is going out.
+  DEV_REQUIRED_ENV_VARS = %w[TEST_TO_EMAIL].freeze
+
   def missing_env_vars
-    REQUIRED_ENV_VARS.reject { |key| ENV[key].present? }
+    required = REQUIRED_ENV_VARS.dup
+    required.concat(DEV_REQUIRED_ENV_VARS) if development_environment?
+    required.reject { |key| ENV[key].present? }
+  end
+
+  def development_environment?
+    Rails.env.development?
   end
 
   GOOGLE_OAUTH_ENV_VARS = %w[GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET].freeze
