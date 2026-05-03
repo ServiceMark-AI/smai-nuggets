@@ -46,6 +46,8 @@ class CampaignLauncher
           email_delivery_status: :pending
         )
       end
+
+      @job_proposal.update!(pipeline_stage: :in_campaign)
     end
 
     Result.new(instance: instance, reason: :launched)

@@ -23,6 +23,19 @@ class CampaignLauncherTest < ActiveSupport::TestCase
     assert instance.status_active?
   end
 
+  test "launching marks the proposal as in_campaign" do
+    @proposal.update!(scenario: @scenario, pipeline_stage: nil)
+    CampaignLauncher.launch(@proposal)
+    assert_equal "in_campaign", @proposal.reload.pipeline_stage
+  end
+
+  test "no-op launch leaves the existing pipeline_stage alone" do
+    @proposal.update!(scenario: @scenario, pipeline_stage: "won")
+    CampaignInstance.create!(host: @proposal, campaign: campaigns(:approved_campaign), status: :active)
+    CampaignLauncher.launch(@proposal)
+    assert_equal "won", @proposal.reload.pipeline_stage
+  end
+
   test "step instances are pending with no rendered copy and offset planned_delivery_at" do
     @proposal.update!(scenario: @scenario)
     freeze_time = Time.zone.parse("2026-05-03T12:00:00Z")

@@ -63,6 +63,7 @@
             <th>Owner</th>
             <th>Created by</th>
             <%= sortable_header "created_at", "Created" %>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -83,6 +84,7 @@
               <td><%= jp.owner.display_name %></td>
               <td><%= jp.created_by_user.display_name %></td>
               <td><%= jp.created_at.to_date.to_fs(:long) %></td>
+              <td><%= job_proposal_cta_link(jp) %></td>
             </tr>
           <% end %>
         </tbody>

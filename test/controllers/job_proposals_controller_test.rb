@@ -434,4 +434,84 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/in flight/i, response.body)
     assert_equal "Alice", jp.reload.customer_first_name
   end
+
+  # --- resume ---
+
+  test "resume redirects to sign-in when not signed in" do
+    patch resume_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "resume returns 404 for a proposal outside the user's scope" do
+    sign_in @user
+    patch resume_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "resume flips the paused instance back to active and clears the overlay" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: "paused")
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :paused)
+
+    patch resume_job_proposal_url(jp)
+    assert_redirected_to job_proposals_path
+    assert_match(/Campaign resumed/i, flash[:notice])
+
+    assert instance.reload.status_active?
+    assert_nil jp.reload.status_overlay
+  end
+
+  test "resume is a no-op alert when no campaign is paused" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
+    patch resume_job_proposal_url(jp)
+    assert_redirected_to job_proposals_path
+    assert_match(/isn't paused/i, flash[:alert])
+  end
+
+  # --- CTA column on the index ---
+
+  test "index renders View job CTA for proposals not in a campaign" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil, status_overlay: nil)
+    get job_proposals_url
+    assert_select "a[href=?]", job_proposal_path(jp), text: /View job/
+  end
+
+  test "index renders Resume campaign CTA for paused in-flight proposals" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: "paused")
+    get job_proposals_url
+    assert_select "form[action=?]", resume_job_proposal_path(jp) do
+      assert_select "input[name=_method][value=patch]", true
+      assert_select "button", text: /Resume campaign/
+    end
+  end
+
+  test "index renders Fix delivery issue CTA pointing at the edit page" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: "delivery_issue")
+    get job_proposals_url
+    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Fix delivery issue/
+  end
+
+  test "index renders Open in Gmail CTA targeting a new tab" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: "customer_waiting")
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
+      gmail_thread_id: "THREAD-XYZ", email_delivery_status: :sent
+    )
+
+    get job_proposals_url
+    assert_select "a[target=_blank][href*=?]", "THREAD-XYZ", text: /Open in Gmail/
+  end
 end

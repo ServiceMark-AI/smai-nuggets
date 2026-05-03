@@ -9,7 +9,7 @@ class JobProposalsController < ApplicationController
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
-  before_action :load_proposal, only: [:edit, :update]
+  before_action :load_proposal, only: [:edit, :update, :resume]
 
   def index
     scope = JobProposal
@@ -77,6 +77,20 @@ class JobProposalsController < ApplicationController
 
   def edit
     set_form_options
+  end
+
+  def resume
+    instance = @job_proposal.campaign_instances.order(created_at: :desc).first
+
+    if instance&.status_paused?
+      JobProposal.transaction do
+        instance.update!(status: :active)
+        @job_proposal.update!(status_overlay: nil)
+      end
+      redirect_to job_proposals_path, notice: "Campaign resumed."
+    else
+      redirect_to job_proposals_path, alert: "This campaign isn't paused."
+    end
   end
 
   def update

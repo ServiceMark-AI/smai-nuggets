@@ -44,22 +44,23 @@ A few practical notes:
 - **Proposal value** — the total amount, formatted as currency.
 - **Owner** / **Created by** — who owns the proposal, and who uploaded it.
 - **Created** — the day it was uploaded.
+- **Action** — a single button telling you what to do next on this row. The button changes based on the proposal's state:
+  - **View job** — the campaign is running normally, or the proposal is closed (won/lost). Opens the proposal's detail page.
+  - **Open in Gmail** — the customer has replied. Opens the conversation in a new Gmail tab so you can read the full message and respond from your inbox.
+  - **Fix delivery issue** — the campaign couldn't deliver an email (bad address, mailbox bounced). Opens the proposal's edit page so you can correct the customer's email.
+  - **Resume campaign** — the campaign was paused. Click to resume; the next step picks up on the cadence.
 
 Click an address to open the proposal. The detail page shows a **Customer** card, a **Job** card, an **Ownership** card, and (when the customer has replied) the most recent reply.
-
-If a proposal needs your attention — paused, waiting on a customer reply, or hitting a delivery problem — you'll see a small badge on the row noting which. Open the proposal to see what to do next.
 
 ## 4c. Pausing & unpausing a campaign
 
 > Pause a single proposal's campaign when the customer asks for a delay or you've learned something that should keep emails from going out (vacation, traveling, escrow, family emergency). Pause the campaign *template* — different action, admin-only ([§1.5](01-job-types-and-campaigns.md#15-approve-pause-and-edit-the-campaign)) — when the content itself needs a fix.
 
-*Not yet built.* The screen for pausing or resuming an individual proposal's campaign is not in the product yet. Until it ships, ask an admin to pause for you. The planned flow:
+**Pausing.** *Not yet built.* The button to pause an individual proposal's campaign isn't in the product yet. Until it ships, ask an admin to pause for you.
 
-1. Open the proposal.
-2. In the **Campaign** card on that page, click **Pause**. The next scheduled email won't go out.
-3. Click **Resume** when you're ready. The cadence picks back up from where it left off — missed days are not retroactively sent; the timing is shifted forward.
+**Resuming.** When a proposal's campaign is paused, its row on the **Job Proposals** index shows a **Resume campaign** button in the **Action** column. Click it; the campaign goes back to running on the cadence the admin set up.
 
-This guide will be updated when the buttons land.
+> *Note:* today, after a long pause, any campaign steps whose scheduled time fell inside the pause window will fire on the next sweep — not be retroactively skipped. If that's not what you want, hold off on resuming until the gap is small.
 
 ## 4d. Customer responds
 
@@ -67,16 +68,15 @@ When a customer replies to a campaign email, the system stops sending — no mor
 
 What you'll see on the **Job Proposals** index:
 
-- The proposal's row carries a **waiting on customer** badge.
+- The row's **Action** button reads **Open in Gmail** — click it to jump straight to the conversation in a new tab and reply from your usual inbox.
 - The most recent reply (sender, time, subject, and a short preview) appears on the proposal's detail page.
 
 What to do:
 
-1. **Open the proposal.** Read the preview on the **Last reply** card.
-2. **Reply from your usual inbox.** A link to the conversation in Gmail is available on the detail page when the system can offer one — use it to read the full message and respond. Your reply goes to the customer the same way you'd send any email.
-3. **When the deal is decided**, mark the proposal won or lost ([§4e](#4e-marking-a-proposal-as-won--lost)).
+1. **Click Open in Gmail** on the proposal's row. Read the full thread and respond.
+2. **When the deal is decided**, mark the proposal won or lost ([§4e](#4e-marking-a-proposal-as-won--lost)).
 
-> **Delivery problem instead of a reply?** If the campaign couldn't deliver an email (bad address, the customer's mailbox bounced it), the proposal's row carries a **delivery problem** badge instead. Open the proposal, fix the customer's email address, and ask an admin to restart the campaign.
+> **Delivery problem instead of a reply?** If the campaign couldn't deliver an email (bad address, the customer's mailbox bounced it), the row's **Action** button reads **Fix delivery issue**. Click it to open the proposal's edit page and correct the customer's email address. *Restarting the campaign from a delivery problem is not yet built* ([#117](https://github.com/frizman21/smai-server/issues/117)) — for now, ask an admin.
 
 ## 4e. Marking a proposal as won / lost
 
