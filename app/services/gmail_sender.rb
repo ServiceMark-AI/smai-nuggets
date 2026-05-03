@@ -42,11 +42,16 @@ class GmailSender
   end
 
   # Send an already-built Mail::Message (e.g., one ActionMailer rendered).
-  # Replaces the From header with the credentials' email so Gmail accepts it.
+  # Replaces the From address with the credentials' email so Gmail accepts
+  # the message, but preserves the original display name (e.g. "SMAI User
+  # Support") set via Devise's `mailer_sender`. Recipients see
+  #   "SMAI User Support" <connected-mailbox@gmail.com>.
   def send_mail(mail)
+    rewritten_from = rewrite_from(mail)
+
     if Rails.env.test?
       self.class.deliveries << {
-        from: @credentials.email,
+        from: rewritten_from,
         to: Array(mail.to),
         subject: mail.subject,
         body: mail.body.to_s
@@ -55,12 +60,19 @@ class GmailSender
     end
 
     refresh_if_needed
-    mail["From"] = @credentials.email
+    mail["From"] = rewritten_from
     encoded = Base64.urlsafe_encode64(mail.encoded)
     post_send(encoded)
   end
 
   private
+
+  # Returns "Display Name" <connected@gmail.com> when the original From
+  # carried a display name; otherwise just the connected email.
+  def rewrite_from(mail)
+    display = mail[:from]&.display_names&.first
+    display.present? ? %("#{display}" <#{@credentials.email}>) : @credentials.email
+  end
 
   def post_send(encoded_raw)
     response = post_json(GMAIL_SEND_URL, { raw: encoded_raw }, bearer: @credentials.access_token)
