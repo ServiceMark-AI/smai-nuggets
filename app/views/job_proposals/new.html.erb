@@ -55,9 +55,14 @@
       // On submit: lock the controls and surface progress feedback so the
       // operator doesn't think the click missed (large PDFs + AI extraction
       // can take several seconds before the redirect to the Confirm page).
+      //
+      // Important: do NOT set `input.disabled = true` here. The browser
+      // collects form data AFTER the submit handler runs, so a disabled
+      // file input gets dropped from the POST and the request arrives
+      // file-less ("Please choose a file to upload"). Visual lock-out via
+      // pointer-events on the drop zone is enough to discourage re-clicks.
       form.addEventListener("submit", function() {
         submit.disabled = true;
-        input.disabled = true;
         zone.style.pointerEvents = "none";
         zone.style.opacity = "0.6";
         spinner.classList.remove("d-none");
