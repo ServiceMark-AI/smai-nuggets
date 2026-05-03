@@ -61,4 +61,25 @@ module ApplicationHelper
   def missing_google_oauth_env_vars
     GOOGLE_OAUTH_ENV_VARS.reject { |key| ENV[key].present? }
   end
+
+  # Render a CampaignStep offset (stored as minutes) in operator-friendly
+  # words. Examples:
+  #   0    → "Immediately"
+  #   45   → "45 minutes"
+  #   60   → "1 hour"
+  #   240  → "4 hours"
+  #   1440 → "1 day"
+  #   1530 → "1 day 1 hour 30 minutes"
+  def humanize_offset_minutes(minutes)
+    n = minutes.to_i
+    return "Immediately" if n.zero?
+
+    days, rem  = n.divmod(24 * 60)
+    hours, mins = rem.divmod(60)
+    parts = []
+    parts << pluralize(days,  "day")    if days  > 0
+    parts << pluralize(hours, "hour")   if hours > 0
+    parts << pluralize(mins,  "minute") if mins  > 0
+    parts.join(" ")
+  end
 end

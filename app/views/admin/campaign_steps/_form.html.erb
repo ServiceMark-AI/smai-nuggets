@@ -18,6 +18,14 @@
     <div class="col-sm-4">
       <%= f.label :offset_min, "Offset (minutes)", class: "form-label" %>
       <%= f.number_field :offset_min, class: "form-control" %>
+      <div class="form-text">
+        <% current_offset = campaign_step.offset_min.to_i %>
+        <% if current_offset > 0 %>
+          <%= humanize_offset_minutes(current_offset) %> after the previous step.
+        <% else %>
+          0 = sends immediately. 60 = 1 hour. 1440 = 1 day. 10080 = 7 days.
+        <% end %>
+      </div>
     </div>
   </div>
 
