@@ -1,7 +1,29 @@
+# Extracts customer / job-detail fields from an uploaded proposal PDF and
+# writes them onto the JobProposal. Three execution modes:
+#
+#   :ai       — credentials configured + extraction succeeded; fields applied
+#   :ai_failed — credentials configured + extraction errored; NO fields
+#                applied, error surfaces in the result so the controller
+#                can flash a message to the operator
+#   :stub     — credentials NOT configured (test env, or no API key
+#                set, or no current PdfProcessingRevision); the static
+#                stub_response fills the fields so dev UX still works
+#                without burning API credits
+#
+# Critically: the AI-failed path no longer silently substitutes the stub.
+# The previous behavior masked rate-limit / credit-depletion errors
+# because the operator saw plausible-looking sample data and assumed
+# the upload had been parsed.
 class JobProposalProcessor
   PROVIDER_ENV_KEYS = {
     "gemini" => "GEMINI_API_KEY"
   }.freeze
+
+  Result = Data.define(:mode, :error, :data) do
+    def stub? = mode == :stub
+    def ai_failed? = mode == :ai_failed
+    def applied? = mode != :ai_failed
+  end
 
   def initialize(job_proposal)
     @job_proposal = job_proposal
@@ -9,9 +31,19 @@ class JobProposalProcessor
 
   def process
     revision = PdfProcessingRevision.is_current
-    data = ai_credentials_available?(revision) ? extract_via_ai(revision) : stub_response
-    apply_extracted_fields(data) if data.is_a?(Hash)
-    data
+    if ai_credentials_available?(revision)
+      data = extract_via_ai(revision)
+      if data.is_a?(Hash)
+        apply_extracted_fields(data)
+        Result.new(mode: :ai, error: nil, data: data)
+      else
+        Result.new(mode: :ai_failed, error: @ai_error || "AI extraction returned no data.", data: nil)
+      end
+    else
+      data = stub_response
+      apply_extracted_fields(data)
+      Result.new(mode: :stub, error: nil, data: data)
+    end
   end
 
   private
@@ -40,7 +72,8 @@ class JobProposalProcessor
     end
   rescue StandardError => e
     Rails.logger.warn "[JobProposalProcessor] AI extraction failed (#{e.class}): #{e.message}"
-    stub_response
+    @ai_error = "#{e.class.name.demodulize}: #{e.message}"
+    nil
   end
 
   def stub_response

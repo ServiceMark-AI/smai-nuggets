@@ -66,9 +66,16 @@ class JobProposalsController < ApplicationController
     attachment.file.attach(file)
 
     if proposal.save
-      JobProposalProcessor.new(proposal).process
-      redirect_to edit_job_proposal_path(proposal),
-                  notice: "Proposal uploaded. Confirm the details below to launch the campaign."
+      result = JobProposalProcessor.new(proposal).process
+      if result.ai_failed?
+        redirect_to edit_job_proposal_path(proposal),
+                    alert: "Uploaded, but AI extraction failed (#{result.error}). Fill in the details manually below."
+      else
+        notice = result.stub? \
+          ? "Proposal uploaded. AI extraction is not configured, so fields are filled with sample data — confirm the details below before launching the campaign." \
+          : "Proposal uploaded. Confirm the details below to launch the campaign."
+        redirect_to edit_job_proposal_path(proposal), notice: notice
+      end
     else
       flash.now[:alert] = proposal.errors.full_messages.to_sentence
       render :new, status: :unprocessable_content
