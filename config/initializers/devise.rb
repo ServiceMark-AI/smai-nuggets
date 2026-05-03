@@ -24,12 +24,13 @@ Devise.setup do |config|
   # Configure the e-mail address which will be shown in Devise::Mailer,
   # note that it will be overwritten if you use your own mailer class
   # with default "from" parameter.
-  # The local-part of the From address is purely cosmetic — at delivery
-  # time GmailSender replaces it with the connected ApplicationMailbox
-  # account so Gmail accepts the message. The display name ("SMAI User
-  # Support") is preserved, so what the recipient sees is
-  #   SMAI User Support <connected-mailbox@gmail.com>.
-  config.mailer_sender = '"SMAI User Support" <support@smai.example>'
+  # The address part is a placeholder under the RFC-2606 .invalid TLD —
+  # GmailSender#rewrite_from replaces it with the connected
+  # ApplicationMailbox email at send time so Gmail accepts the message.
+  # Only the display name ("SMAI User Support") survives the rewrite,
+  # and that's what shows up in the recipient's client:
+  #   "SMAI User Support" <connected-mailbox@gmail.com>.
+  config.mailer_sender = '"SMAI User Support" <noreply@smai.invalid>'
 
   # Configure the class responsible to send e-mails.
   # config.mailer = 'Devise::Mailer'
