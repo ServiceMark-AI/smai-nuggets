@@ -233,13 +233,19 @@ The OAuth tokens are stored on the singleton `ApplicationMailbox` row; the Conne
 
 ## 0.10 Verification
 
+After the deploy is up, **Admin → Integrations** is the one-page health check you can lean on. It lists every external dependency with one of three states:
+
+- **OK** — fully configured / connected.
+- **Warning** — works but not optimal (e.g. Bugsnag is falling back to the bundled default key, or storage is partially configured).
+- **Missing** — not configured; the feature it gates won't work until you fix it.
+
 Walk through this short checklist before letting tenant users in:
 
-1. `https://<host>/up` returns 200 — the Rails health check exempted from the `host_authorization` middleware.
+1. `https://<host>/up` returns 200.
 2. `https://<host>/users/sign_in` loads and you can sign in as the admin.
-3. The admin sidebar shows **Tenants**, **Job Types**, **Campaigns**, and **Mailbox**. None of them surface the missing-env-var banner.
-4. `Admin → Mailbox` shows the connected account email.
-5. `heroku logs --tail -a <app-name>` shows `CampaignSweepJob` firing every five minutes from the worker dyno.
-6. Upload a small PDF on a test tenant and confirm `JobProposalProcessor` extracts fields (admin can verify under `Admin → Chats` since the LLM call is logged).
+3. **Admin → Integrations** shows zero **Missing** rows. Address any **Warning** rows you care about.
+4. **Admin → Mailbox** shows the connected account email (also visible on the Integrations page).
+5. `heroku logs --tail -a <app-name>` shows the campaign sweep firing every five minutes from the worker dyno.
+6. Upload a small PDF on a test tenant and confirm the customer fields populate after a few seconds.
 
-When all six pass, hand the URL off and start with [§1](01-job-types-and-campaigns.md) for catalog setup, [§2](02-tenant-onboarding.md) for the first tenant, and [§3](03-user-onboarding-and-account.md) for the first invited user.
+When all six pass, hand the URL off and start with [§1](01-job-types-and-campaigns.md) for the catalog, [§2](02-tenant-onboarding.md) for the first tenant, and [§3](03-user-onboarding-and-account.md) for the first invited user.

@@ -1,0 +1,56 @@
+<% content_for :title, "Integrations" %>
+
+<h1 class="h3 mb-1">Integrations</h1>
+<p class="text-muted mb-4">
+  Live status of every external service this app depends on. Use this page to confirm a deploy is healthy or to track down why something stopped working.
+</p>
+
+<div class="row g-2 mb-4">
+  <div class="col-auto">
+    <span class="badge text-bg-success">✓ <%= @counts[:ok] %> OK</span>
+  </div>
+  <% if @counts[:warn].to_i > 0 %>
+    <div class="col-auto">
+      <span class="badge text-bg-warning">⚠ <%= @counts[:warn] %> warning</span>
+    </div>
+  <% end %>
+  <% if @counts[:missing].to_i > 0 %>
+    <div class="col-auto">
+      <span class="badge text-bg-danger">✗ <%= @counts[:missing] %> missing</span>
+    </div>
+  <% end %>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 30%;">Integration</th>
+          <th style="width: 12%;">Status</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @statuses.each do |s| %>
+          <% badge_class, label = case s.state
+             when :ok      then ["text-bg-success", "✓ OK"]
+             when :warn    then ["text-bg-warning", "⚠ Warning"]
+             when :missing then ["text-bg-danger",  "✗ Missing"]
+             else                ["text-bg-secondary", s.state.to_s.humanize]
+             end %>
+          <tr>
+            <td><strong><%= s.name %></strong></td>
+            <td><span class="badge <%= badge_class %>"><%= label %></span></td>
+            <td>
+              <div><%= s.details %></div>
+              <% if s.recommendation.present? %>
+                <div class="small text-muted mt-1"><strong>Next step:</strong> <%= s.recommendation %></div>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -9,6 +9,7 @@
       <%= link_to "Job Types", admin_job_types_path, class: "nav-link #{'active' if controller_path == 'admin/job_types'}" %>
       <%= link_to "Campaigns", admin_campaigns_path, class: "nav-link #{'active' if controller_name == 'campaigns'}" %>
       <%= link_to "Mailbox", admin_application_mailbox_path, class: "nav-link #{'active' if controller_path == 'admin/application_mailbox'}" %>
+      <%= link_to "Integrations", admin_integrations_path, class: "nav-link #{'active' if controller_path == 'admin/integrations'}" %>
       <%= link_to "Bugsnag ↗", "https://app.bugsnag.com/smai/smai/overview", class: "nav-link", target: "_blank", rel: "noopener" %>
       <%= link_to "Sidekiq ↗", "/sidekiq", class: "nav-link", target: "_blank", rel: "noopener" %>
 

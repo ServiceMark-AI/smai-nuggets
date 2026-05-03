@@ -69,6 +69,8 @@ The most common cause is a revoked or expired Google connection on the applicati
 
 When this happens, the system stops sending campaign emails for affected proposals. Customer-reply detection still works, but new outbound steps wait silently. There's no email alert today; the way you find out is that someone notices customers haven't been hearing from them.
 
+> **Quick check:** an admin can open **Admin → Integrations** to see the live status of the application mailbox along with every other external service the app depends on. A red **Missing** row on the mailbox is the unambiguous tell.
+
 **The fix is always the same:**
 
 1. An admin opens **Admin → Mailbox**.
