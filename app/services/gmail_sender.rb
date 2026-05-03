@@ -65,6 +65,48 @@ class GmailSender
     post_send(encoded)
   end
 
+  # Sends a self-addressed probe email from the connected mailbox and
+  # returns the Gmail thread id from the API response. Used by the
+  # Integrations health check to confirm end-to-end sending — the
+  # threadId in the response proves Gmail accepted the message and
+  # filed it on a real conversation, not just that auth worked.
+  #
+  # Raises a SelfTestError on any failure (auth, send, or missing
+  # threadId in response). In test, no HTTP is made — a synthetic
+  # thread id is returned and the message is recorded on `deliveries`.
+  class SelfTestError < StandardError; end
+
+  def send_self_test
+    subject = "[SMAI] Integration self-test #{Time.current.iso8601}"
+    body    = "Automated connectivity check from the Integrations page. Safe to delete."
+
+    if Rails.env.test?
+      thread_id = "test-thread-#{SecureRandom.hex(4)}"
+      self.class.deliveries << {
+        from: @credentials.email, to: @credentials.email,
+        subject: subject, body: body, thread_id: thread_id
+      }
+      return thread_id
+    end
+
+    refresh_if_needed
+    raw = build_message(to: @credentials.email, subject: subject, body: body)
+    encoded = Base64.urlsafe_encode64(raw)
+    response = post_json(GMAIL_SEND_URL, { raw: encoded }, bearer: @credentials.access_token)
+
+    unless response.code.to_i.between?(200, 299)
+      raise SelfTestError, "Gmail send failed (#{response.code}): #{response.body.to_s.slice(0, 200)}"
+    end
+
+    data = JSON.parse(response.body) rescue {}
+    thread_id = data["threadId"]
+    if thread_id.blank?
+      raise SelfTestError, "Gmail accepted the send but returned no threadId: #{response.body.to_s.slice(0, 200)}"
+    end
+
+    thread_id
+  end
+
   private
 
   # Returns "Display Name" <connected@gmail.com> when the original From

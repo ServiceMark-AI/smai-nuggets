@@ -37,7 +37,12 @@ class IntegrationProbe
     Result.new(state: :missing, details: "Probe error.", error_message: "#{e.class}: #{e.message}")
   end
 
-  # ---- Application mailbox: refresh the OAuth token --------------------
+  # ---- Application mailbox: send a self-addressed probe email ---------
+  # Sends a real test message from the connected mailbox to itself and
+  # confirms Gmail returned a threadId. Catches revoked tokens, blocked
+  # scopes, and "looks configured but actually broken" states that a
+  # token-refresh-only check would miss. Cost: one email lands in the
+  # mailbox per "Re-check now" click — easy to filter on subject prefix.
 
   def application_mailbox
     mailbox = ApplicationMailbox.current
@@ -57,23 +62,17 @@ class IntegrationProbe
       )
     end
 
-    response = post_form(
-      "https://oauth2.googleapis.com/token",
-      client_id: ENV["GOOGLE_CLIENT_ID"],
-      client_secret: ENV["GOOGLE_CLIENT_SECRET"],
-      refresh_token: mailbox.refresh_token,
-      grant_type: "refresh_token"
+    thread_id = GmailSender.new(mailbox).send_self_test
+    Result.new(
+      state: :ok,
+      details: "Self-test email accepted by Gmail. Thread #{thread_id} delivered to #{mailbox.email}."
     )
-
-    if response.code.to_i.between?(200, 299)
-      Result.new(state: :ok, details: "Token refresh succeeded for #{mailbox.email}.")
-    else
-      Result.new(
-        state: :missing,
-        details: "Connected as #{mailbox.email}, but Google rejected the refresh token.",
-        error_message: "HTTP #{response.code}: #{truncate(response.body)}"
-      )
-    end
+  rescue GmailSender::SelfTestError => e
+    Result.new(
+      state: :missing,
+      details: "Connected as #{mailbox&.email}, but the self-test send failed.",
+      error_message: e.message
+    )
   end
 
   # ---- Gemini API: GET models ------------------------------------------

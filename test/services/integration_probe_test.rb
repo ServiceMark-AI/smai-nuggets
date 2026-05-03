@@ -53,7 +53,7 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     assert_match "Google OAuth credentials are missing", r.details
   end
 
-  test "application_mailbox is :ok when Google's token endpoint accepts the refresh" do
+  test "application_mailbox is :ok when the Gmail self-test send returns a thread id" do
     ApplicationMailbox.create!(
       provider: "google_oauth2", email: "ops@example.com",
       access_token: "tok", refresh_token: "rtok"
@@ -61,15 +61,19 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     ENV["GOOGLE_CLIENT_ID"] = "id"
     ENV["GOOGLE_CLIENT_SECRET"] = "secret"
 
-    fake_response = Struct.new(:code, :body).new("200", "{}")
-    stub_instance_method(:post_form, fake_response) do
-      r = IntegrationProbe.run(:application_mailbox)
-      assert_equal :ok, r.state
-      assert_match "Token refresh succeeded", r.details
-    end
+    r = IntegrationProbe.run(:application_mailbox)
+    assert_equal :ok, r.state
+    assert_match "Self-test email accepted by Gmail", r.details
+    assert_match(/Thread test-thread-/, r.details)
+
+    delivery = GmailSender.deliveries.last
+    assert_equal "ops@example.com", delivery[:from]
+    assert_equal "ops@example.com", delivery[:to]
+    assert_match(/Integration self-test/, delivery[:subject])
+    assert_not_nil delivery[:thread_id]
   end
 
-  test "application_mailbox is :missing when Google rejects the refresh token" do
+  test "application_mailbox is :missing when the Gmail send raises SelfTestError" do
     ApplicationMailbox.create!(
       provider: "google_oauth2", email: "ops@example.com",
       access_token: "tok", refresh_token: "rtok"
@@ -77,12 +81,11 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     ENV["GOOGLE_CLIENT_ID"] = "id"
     ENV["GOOGLE_CLIENT_SECRET"] = "secret"
 
-    fake_response = Struct.new(:code, :body).new("400", '{"error":"invalid_grant"}')
-    stub_instance_method(:post_form, fake_response) do
+    stub_send_self_test_to_raise(GmailSender::SelfTestError.new("Gmail send failed (401): {\"error\":\"invalid_credentials\"}")) do
       r = IntegrationProbe.run(:application_mailbox)
       assert_equal :missing, r.state
-      assert_match "rejected the refresh token", r.details
-      assert_match "invalid_grant", r.error_message
+      assert_match "self-test send failed", r.details
+      assert_match "invalid_credentials", r.error_message
     end
   end
 
@@ -240,5 +243,16 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     yield
   ensure
     ActiveStorage::Blob.define_singleton_method(:service, original)
+  end
+
+  # Make GmailSender#send_self_test raise a known error for the duration
+  # of the block, so the application_mailbox probe exercises its rescue
+  # branch.
+  def stub_send_self_test_to_raise(error)
+    original = GmailSender.instance_method(:send_self_test)
+    GmailSender.define_method(:send_self_test) { raise error }
+    yield
+  ensure
+    GmailSender.define_method(:send_self_test, original)
   end
 end
