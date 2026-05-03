@@ -60,4 +60,29 @@ module JobProposalsHelper
     return "https://mail.google.com/mail/u/0/" if thread_id.blank?
     "https://mail.google.com/mail/u/0/#all/#{thread_id}"
   end
+
+  # Operator-readable description of where a JobProposalAttachment's file
+  # actually lives. Active Storage decouples blob from backend, but the
+  # operator on the proposal show page needs a "I can find this file
+  # here" label, especially when troubleshooting bounces or mis-uploads.
+  # Returns a hash: { service: "Google Cloud Storage", location: "bucket your-bucket", key: "abc..." }.
+  # Falls back gracefully when the service object doesn't expose a
+  # familiar shape — newer Active Storage releases or custom services.
+  def attachment_storage_source(file)
+    blob = file.blob
+    service = ActiveStorage::Blob.services.fetch(blob.service_name) rescue blob.service
+    case service.class.name
+    when "ActiveStorage::Service::GCSService"
+      bucket = (service.instance_variable_get(:@config) || {})[:bucket] || ENV["GCS_BUCKET"]
+      { service: "Google Cloud Storage", location: bucket ? "bucket #{bucket}" : nil, key: blob.key }
+    when "ActiveStorage::Service::S3Service"
+      bucket = (service.bucket.name rescue nil) || ENV["AWS_BUCKET"]
+      { service: "Amazon S3", location: bucket ? "bucket #{bucket}" : nil, key: blob.key }
+    when "ActiveStorage::Service::DiskService"
+      root = service.instance_variable_get(:@root)
+      { service: "Local disk", location: root ? "path #{root}" : nil, key: blob.key }
+    else
+      { service: service.class.name.demodulize.sub("Service", ""), location: nil, key: blob.key }
+    end
+  end
 end
