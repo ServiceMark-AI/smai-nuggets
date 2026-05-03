@@ -25,6 +25,12 @@ class InvitationsController < ApplicationController
       return
     end
 
+    blockers = Invitation.send_blockers
+    if blockers.any?
+      redirect_to users_path, alert: "Can't send invitations yet: #{blockers.join(' ')}"
+      return
+    end
+
     organization = tenant.organizations.where(parent_id: nil).first || tenant.organizations.first
     if organization.nil?
       redirect_to users_path, alert: "Your tenant has no organization to attach the invite to."

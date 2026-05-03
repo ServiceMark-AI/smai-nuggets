@@ -47,4 +47,39 @@ class InvitationTest < ActiveSupport::TestCase
     @invitation.accept!(user)
     refute user.reload.is_pending
   end
+
+  # --- send_blockers ---
+
+  test "send_blockers is empty when APP_HOST is set and a mailbox is connected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    assert_empty Invitation.send_blockers
+    assert Invitation.can_send?
+  end
+
+  test "send_blockers reports the mailbox gap when no ApplicationMailbox exists" do
+    refute Invitation.can_send?
+    assert_match(/no Gmail account is connected/i, Invitation.send_blockers.join(" "))
+  end
+
+  test "send_blockers reports the APP_HOST gap when the env var is unset" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    prior = ENV.delete("APP_HOST")
+    begin
+      assert_match(/APP_HOST is not set/i, Invitation.send_blockers.join(" "))
+    ensure
+      ENV["APP_HOST"] = prior
+    end
+  end
+
+  test "send_blockers lists both gaps when both are missing" do
+    prior = ENV.delete("APP_HOST")
+    begin
+      blockers = Invitation.send_blockers
+      assert_match(/APP_HOST/i, blockers.join(" "))
+      assert_match(/Gmail account/i, blockers.join(" "))
+      assert_equal 2, blockers.size
+    ensure
+      ENV["APP_HOST"] = prior
+    end
+  end
 end

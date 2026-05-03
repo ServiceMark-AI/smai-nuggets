@@ -1,5 +1,9 @@
 ENV["RAILS_ENV"] ||= "test"
 ENV["OPENAI_API_KEY"] ||= "test-openai-key"
+# Default APP_HOST so the invitation send-blocker check (which gates the
+# create flow on APP_HOST + mailbox) doesn't trip in tests that aren't
+# specifically exercising that path. Tests can override per-block.
+ENV["APP_HOST"] ||= "test.example"
 require_relative "../config/environment"
 require "rails/test_help"
 

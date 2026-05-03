@@ -105,19 +105,30 @@
   <div class="modal fade" id="inviteUserModal" tabindex="-1" aria-labelledby="inviteUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
+        <% blockers = Invitation.send_blockers %>
+        <% if blockers.any? %>
+          <div class="modal-header">
+            <h5 class="modal-title" id="inviteUserModalLabel">Invitations aren't ready to send</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-2">An admin needs to finish setting up the app before invitations can go out:</p>
+            <ul class="mb-0">
+              <% blockers.each do |reason| %>
+                <li><%= reason %></li>
+              <% end %>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        <% else %>
         <%= form_with model: @invitation, url: invitations_path, local: true do |f| %>
           <div class="modal-header">
             <h5 class="modal-title" id="inviteUserModalLabel">Invite a user to <%= @tenant.name %></h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <% if current_user.email_delegations.empty? %>
-              <p class="small text-muted mb-3">
-                Connect a Gmail account on
-                <%= link_to "your profile", profile_path %>
-                so invitations can be sent. You can still create the invitation now — the email won't go out until you connect.
-              </p>
-            <% end %>
             <div class="mb-0">
               <%= f.label :email, "Email address", class: "form-label" %>
               <%= f.email_field :email, class: "form-control", placeholder: "name@example.com", required: true %>
@@ -127,6 +138,7 @@
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
             <%= f.submit "Send invite", class: "btn btn-primary" %>
           </div>
+        <% end %>
         <% end %>
       </div>
     </div>

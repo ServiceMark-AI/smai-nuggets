@@ -43,11 +43,21 @@ class Admin::TenantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
   end
 
-  test "show renders the invitation form when a tenant exists" do
+  test "show renders the invitation form when a tenant exists and the prereqs are met" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
     sign_in @admin
     get admin_tenant_url(tenants(:one))
     assert_response :success
     assert_select "form[action=?]", admin_tenant_invitations_path(tenants(:one))
     assert_select "input[name='invitation[email]']"
+  end
+
+  test "show replaces the invitation form with a warning when the mailbox isn't connected" do
+    sign_in @admin
+    get admin_tenant_url(tenants(:one))
+    assert_response :success
+    assert_select "form[action=?]", admin_tenant_invitations_path(tenants(:one)), count: 0
+    assert_match(/Invitations aren't ready to send/i, response.body)
+    assert_match(/Gmail account is connected/i, response.body)
   end
 end

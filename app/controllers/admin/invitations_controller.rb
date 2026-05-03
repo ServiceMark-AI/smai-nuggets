@@ -2,6 +2,12 @@ class Admin::InvitationsController < Admin::BaseController
   before_action :set_tenant
 
   def create
+    blockers = Invitation.send_blockers
+    if blockers.any?
+      redirect_to admin_tenant_path(@tenant),
+        alert: "Can't send invitations yet: #{blockers.join(' ')}" and return
+    end
+
     organization = @tenant.organizations.where(parent_id: nil).first ||
                    @tenant.organizations.first
     invitation = @tenant.invitations.build(

@@ -13,6 +13,24 @@ class Invitation < ApplicationRecord
     where("expires_at > ? AND accepted_at IS NULL", Time.current).find_by(token: token)
   end
 
+  # Operator-readable reasons the invite-send form should be disabled.
+  # Empty array means everything required to send is in place. Both
+  # conditions must hold:
+  #   - APP_HOST set (otherwise the absolute URL inside the email body
+  #     points at localhost or fails URL helpers entirely)
+  #   - ApplicationMailbox connected (otherwise there's no Gmail account
+  #     authenticated to send through)
+  def self.send_blockers
+    blockers = []
+    blockers << "APP_HOST is not set, so the invite link in the email would be broken." if ENV["APP_HOST"].blank?
+    blockers << "No Gmail account is connected as the application mailbox, so there's nothing to send through." if ApplicationMailbox.current.nil?
+    blockers
+  end
+
+  def self.can_send?
+    send_blockers.empty?
+  end
+
   def expired?
     expires_at <= Time.current
   end

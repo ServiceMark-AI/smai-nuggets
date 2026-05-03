@@ -76,19 +76,36 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/not assigned to a tenant/i, flash[:alert].to_s)
   end
 
-  test "without an application mailbox the invitation is created but no email is sent" do
+  test "without an application mailbox the invitation is refused with a clear blocker message" do
     inviter = User.create!(email: "inviter@example.com", password: "Password1", is_pending: false, tenant: @tenant)
     OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
     sign_in inviter
 
     GmailSender.reset_deliveries!
-    assert_difference "Invitation.count", 1 do
+    assert_no_difference "Invitation.count" do
       post invitations_path, params: { invitation: { email: "lead@example.com" } }
     end
     assert_empty GmailSender.deliveries
     assert_redirected_to users_path
-    follow_redirect!
-    assert_match(/no application mailbox is connected/i, response.body)
+    assert_match(/can't send invitations/i, flash[:alert].to_s)
+    assert_match(/no Gmail account is connected/i, flash[:alert].to_s)
+  end
+
+  test "without APP_HOST the invitation is refused with a clear blocker message" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "inviter-noapphost@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    prior = ENV.delete("APP_HOST")
+    begin
+      assert_no_difference "Invitation.count" do
+        post invitations_path, params: { invitation: { email: "lead@example.com" } }
+      end
+      assert_match(/APP_HOST is not set/i, flash[:alert].to_s)
+    ensure
+      ENV["APP_HOST"] = prior
+    end
   end
 
   test "invites send via the application mailbox when one is connected" do
@@ -116,6 +133,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create with blank email is rejected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
     inviter = User.create!(email: "inviter3@example.com", password: "Password1", is_pending: false, tenant: @tenant)
     OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
     sign_in inviter
@@ -128,6 +146,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create attaches the invite to the tenant's root org when both root and child orgs exist" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
     child = @tenant.organizations.create!(name: "InviteCo Branch", parent: @org)
     inviter = User.create!(email: "inviter4@example.com", password: "Password1", is_pending: false, tenant: @tenant)
     OrganizationalMember.create!(organization: child, user: inviter, role: :admin)

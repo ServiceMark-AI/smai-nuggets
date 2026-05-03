@@ -25,6 +25,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   test "lists members of the current user's tenant and shows the invite button" do
     other = User.create!(email: "second@example.com", password: "Password1", is_pending: false, tenant: @tenant)
     OrganizationalMember.create!(organization: @org, user: other, role: :member)
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
 
     sign_in @user
     get users_url

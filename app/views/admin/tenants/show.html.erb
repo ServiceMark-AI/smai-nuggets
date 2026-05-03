@@ -76,18 +76,23 @@
     <div class="card shadow-sm mb-3">
       <div class="card-body p-4">
         <h2 class="h5 mb-3">Invite a user</h2>
-        <% if current_user.email_delegations.empty? %>
-          <p class="small text-muted">
-            Connect a Gmail account on
-            <%= link_to "your profile", profile_path %>
-            so invitations can be sent. You can still create the invitation now — the email won't go out until you connect.
-          </p>
-        <% end %>
-        <%= form_with model: @invitation, url: admin_tenant_invitations_path(@tenant), local: true do |f| %>
-          <div class="input-group">
-            <%= f.email_field :email, class: "form-control", placeholder: "name@example.com", required: true %>
-            <%= f.submit "Send invite", class: "btn btn-primary" %>
+        <% blockers = Invitation.send_blockers %>
+        <% if blockers.any? %>
+          <div class="alert alert-warning mb-0">
+            <strong>Invitations aren't ready to send.</strong>
+            <ul class="mb-0 mt-2">
+              <% blockers.each do |reason| %>
+                <li><%= reason %></li>
+              <% end %>
+            </ul>
           </div>
+        <% else %>
+          <%= form_with model: @invitation, url: admin_tenant_invitations_path(@tenant), local: true do |f| %>
+            <div class="input-group">
+              <%= f.email_field :email, class: "form-control", placeholder: "name@example.com", required: true %>
+              <%= f.submit "Send invite", class: "btn btn-primary" %>
+            </div>
+          <% end %>
         <% end %>
       </div>
     </div>

@@ -18,14 +18,30 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "without an application mailbox the invitation is created but no email is sent" do
+  test "without an application mailbox the invitation is refused with a clear blocker message" do
     sign_in @admin
-    assert_difference "Invitation.count", 1 do
+    assert_no_difference "Invitation.count" do
       post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com" } }
     end
     assert_empty GmailSender.deliveries
-    follow_redirect!
-    assert_match(/no application mailbox is connected/i, response.body)
+    assert_redirected_to admin_tenant_path(@tenant)
+    assert_match(/can't send invitations/i, flash[:alert].to_s)
+    assert_match(/no Gmail account is connected/i, flash[:alert].to_s)
+  end
+
+  test "without APP_HOST the invitation is refused with a clear blocker message" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    sign_in @admin
+
+    prior = ENV.delete("APP_HOST")
+    begin
+      assert_no_difference "Invitation.count" do
+        post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com" } }
+      end
+      assert_match(/APP_HOST is not set/i, flash[:alert].to_s)
+    ensure
+      ENV["APP_HOST"] = prior
+    end
   end
 
   test "invites send via the application mailbox when one is connected" do
@@ -47,6 +63,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creating an invitation with a blank email is rejected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
     sign_in @admin
     assert_no_difference "Invitation.count" do
       post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "" } }
