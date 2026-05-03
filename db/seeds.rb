@@ -67,72 +67,9 @@ OrganizationalMember.find_or_create_by!(organization: demo_org, user: demo_owner
 admin.update!(tenant: demo_tenant) if admin.tenant.nil?
 OrganizationalMember.find_or_create_by!(organization: demo_org, user: admin) { |m| m.role = :admin }
 
-# Baseline restoration job types — slug from SPEC-03 §7 becomes the type_code.
-RESTORATION_JOB_TYPES = [
-  {
-    type_code: "general_cleaning",
-    name: "General Cleaning",
-    description: "One-time deep cleaning beyond normal janitorial scope: post-construction cleanup, move-in / move-out, odor remediation, and HVAC cleaning."
-  },
-  {
-    type_code: "mold_remediation",
-    name: "Mold Remediation",
-    description: "Containment, removal, and remediation of mold growth — including mold discovered during or after a water event."
-  },
-  {
-    type_code: "structural_cleaning",
-    name: "Structural Cleaning",
-    description: "Cleanup of structural surfaces after fire, smoke, or water damage. Soot and odor removal, deodorization, post-water deep cleaning."
-  },
-  {
-    type_code: "trauma_biohazard",
-    name: "Trauma / Biohazard",
-    description: "Trauma scene cleanup and biohazard exposure work — blood, bodily fluids, regulated materials. Legal review required before any communication ships."
-  },
-  {
-    type_code: "water_mitigation",
-    name: "Water Mitigation",
-    description: "Water removal, drying, and dehumidification after a water event. Time-sensitive — the first 48 hours determine downstream scope."
-  }
-].freeze
-
-RESTORATION_JOB_TYPES.each do |attrs|
-  JobType.find_or_create_by!(type_code: attrs[:type_code]) do |jt|
-    jt.name = attrs[:name]
-    jt.description = attrs[:description]
-  end
-end
-
-# --- Scenarios sourced from docs/campaigns/v1-output/ ---------------------
-# Layout: docs/campaigns/v1-output/<job_type_code>/<scenario_code>.md
-# Each markdown file carries `# Variant: <short name>` and an
-# `**Authoring hypothesis:** ...` line. Campaign content itself is not yet
-# wired up — Scenario#campaign_id stays null until that work lands.
-
-campaigns_root = Rails.root.join("docs", "campaigns", "v1-output")
-if Dir.exist?(campaigns_root)
-  Dir.children(campaigns_root).sort.each do |type_dir|
-    type_path = campaigns_root.join(type_dir)
-    next unless File.directory?(type_path)
-
-    job_type = JobType.find_by(type_code: type_dir)
-    next unless job_type # skip dirs whose type_code isn't a known JobType
-
-    Dir.glob(type_path.join("*.md")).sort.each do |md_path|
-      code = File.basename(md_path, ".md")
-      content = File.read(md_path)
-
-      short_name = content[/^#\s*Variant:\s*(.+?)\s*$/, 1] || code.tr("_", " ").capitalize
-      description = content[/\*\*Authoring hypothesis:\*\*\s*(.+?)\s*$/, 1]
-
-      Scenario.find_or_initialize_by(job_type: job_type, code: code).tap do |s|
-        s.short_name = short_name if s.short_name.blank?
-        s.description = description if s.description.blank?
-        s.save!
-      end
-    end
-  end
-end
+# Restoration job types and scenarios. Same code that powers the
+# `catalog:load` rake task used in production.
+CatalogLoader.load!
 
 # --- Demo tenant activations ------------------------------------------------
 # Activate every restoration job type for the demo tenant, plus every
@@ -140,7 +77,7 @@ end
 # flow per Admin::JobTypeActivationsController, so the demo tenant lights up
 # the full catalog out of the box.
 
-restoration_codes = RESTORATION_JOB_TYPES.map { |attrs| attrs[:type_code] }
+restoration_codes = CatalogLoader::RESTORATION_JOB_TYPES.map { |attrs| attrs[:type_code] }
 JobType.where(type_code: restoration_codes).includes(:scenarios).find_each do |job_type|
   TenantJobType.find_or_initialize_by(tenant: demo_tenant, job_type: job_type).tap do |tjt|
     tjt.is_active = true

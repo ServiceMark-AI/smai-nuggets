@@ -165,17 +165,48 @@ Heroku provisions ACM certificates automatically once the DNS resolves. Update G
 git push heroku main
 ```
 
-The release phase runs `bundle exec rails db:migrate` automatically. Then seed the catalog (job types, scenarios, baseline activations, demo data):
+The release phase runs `bundle exec rails db:migrate` automatically.
+
+## 0.7a Load the catalog (job types and scenarios)
+
+Tenants can't activate anything until the system-wide catalog of job types and scenarios is loaded. Run the catalog rake task once after the first deploy:
 
 ```bash
-heroku run rails db:seed -a <app-name>
+heroku run rails catalog:load -a <app-name>
 ```
 
-The seed file is idempotent — running it twice will not duplicate anything. It creates an `admin@example.com` system admin (password `Password1`); rotate that password immediately after first sign-in or override the user via the console:
+Expected output:
+
+```
+[catalog:load] Loading restoration job types...
+[catalog:load]   created job type: general_cleaning
+[catalog:load]   created job type: mold_remediation
+[catalog:load]   created job type: structural_cleaning
+[catalog:load]   created job type: trauma_biohazard
+[catalog:load]   created job type: water_mitigation
+[catalog:load] Loading scenarios from docs/campaigns/v1-output...
+[catalog:load]   created scenario: general_cleaning/commercial_deep_clean
+…
+[catalog:load] Done. 5 job types (5 new, 0 existing); 17 scenarios (17 new, 0 existing).
+```
+
+The task is idempotent — re-running it after the first load reports everything as `existing` and changes nothing. It also preserves any hand-edits an admin has made to a scenario's `short_name` or `description` from inside the app.
+
+> **Do not run `rails db:seed` in production.** The dev seed file creates a demo tenant, demo users with shared default passwords, and demo job proposals on top of the catalog data — none of which belong in a real install. `catalog:load` is the production-safe subset.
+
+## 0.7b Create the first admin user
+
+The seed file creates `admin@example.com` (password `Password1`) for development convenience. Production should not use those credentials. Create a real admin user from the Rails console:
 
 ```bash
 heroku run rails console -a <app-name>
-> User.find_by(email: "admin@example.com").update!(password: "<long random>", password_confirmation: "<long random>")
+> User.create!(email: "you@example.com", password: "<long random>", password_confirmation: "<long random>", is_admin: true, is_pending: false)
+```
+
+If the seed-style admin somehow exists in production (e.g. someone ran `db:seed` by mistake), rotate or destroy it:
+
+```ruby
+> User.find_by(email: "admin@example.com")&.update!(password: "<long random>", password_confirmation: "<long random>")
 ```
 
 ## 0.8 Scale dynos
