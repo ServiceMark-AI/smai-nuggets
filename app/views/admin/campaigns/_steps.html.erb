@@ -28,9 +28,10 @@
               </td>
               <td class="sequence-number"><%= step.sequence_number %></td>
               <td>
-                <div class="fw-semibold"><%= step.template_subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></div>
-                <% if step.template_body.present? %>
-                  <div class="text-muted small mt-1" style="white-space: pre-wrap;"><%= step.template_body %></div>
+                <% rendered = MailGenerator.preview(campaign_step: step) %>
+                <div class="fw-semibold"><%= rendered.subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></div>
+                <% if rendered.body.present? %>
+                  <div class="text-muted small mt-1" style="white-space: pre-wrap;"><%= rendered.body %></div>
                 <% else %>
                   <div class="text-muted small fst-italic mt-1">(no body)</div>
                 <% end %>
@@ -97,3 +98,30 @@
     })();
   </script>
 <% end %>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header">
+    <h2 class="h6 mb-0">Preview values</h2>
+  </div>
+  <div class="card-body p-0">
+    <p class="px-3 pt-3 mb-2 small text-muted">
+      Each step's subject and body above is rendered with these fake values substituted in for the merge fields, so you can see what the email would look like at send time. Real customer data is filled in when a job proposal is matched to this campaign.
+    </p>
+    <table class="table table-sm mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 240px;">Merge field</th>
+          <th>Sample value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% MailGenerator::KNOWN_KEYS.each do |key| %>
+          <tr>
+            <td><code>{<%= key %>}</code></td>
+            <td><%= MailGenerator::SAMPLE_VALUES[key] || content_tag(:span, "—", class: "text-muted") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

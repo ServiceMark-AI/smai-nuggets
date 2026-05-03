@@ -31,6 +31,31 @@ class MailGenerator
     location_name location_address state
   ].freeze
 
+  # Pre-populated fake values used by .preview to render an email
+  # exactly as it would look at send time, without needing a real
+  # JobProposal. Powers the campaign show page's "what does this look
+  # like?" panel. Keep aligned with KNOWN_KEYS — every key listed there
+  # should have a sample value here.
+  SAMPLE_VALUES = {
+    "customer_name"          => "Jane Doe",
+    "customer_first_name"    => "Jane",
+    "customer_last_name"     => "Doe",
+    "property_address"       => "123 Main Street, Springfield, IL 62701",
+    "property_address_short" => "123 Main Street",
+    "proposal_value"         => "$10,260.00",
+    "damage_description"     => "Category-1 clean-water damage from a supply-line failure in the laundry; affected the kitchen ceiling and ~220 ft² of hardwood downstairs.",
+    "originator_name"        => "Pat Sample",
+    "originator_first_name"  => "Pat",
+    "originator_last_name"   => "Sample",
+    "originator_phone"       => "(555) 123-4567",
+    "originator_email"       => "pat@example.com",
+    "company_name"           => "Acme Restoration",
+    "company_phone"          => "(555) 555-0100",
+    "location_name"          => "Main HQ",
+    "location_address"       => "100 Industrial Way, Springfield, IL 62701",
+    "state"                  => "Illinois"
+  }.freeze
+
   US_STATES = {
     "AL" => "Alabama",      "AK" => "Alaska",      "AZ" => "Arizona",
     "AR" => "Arkansas",     "CA" => "California",  "CO" => "Colorado",
@@ -53,6 +78,23 @@ class MailGenerator
 
   def self.render(campaign_step:, job_proposal:)
     new(campaign_step, job_proposal).call
+  end
+
+  # Render the step's subject and body with SAMPLE_VALUES substituted in,
+  # so the campaign show page can show a faithful preview without a real
+  # JobProposal. Returns an Output value object. Unknown placeholders are
+  # left in place (no exception) — the preview is for human eyeballs, not
+  # for sending.
+  def self.preview(campaign_step:)
+    subject = substitute_sample(campaign_step.template_subject.to_s)
+    body    = substitute_sample(campaign_step.template_body.to_s)
+    Output.new(subject:, body:)
+  end
+
+  def self.substitute_sample(text)
+    text.gsub(PLACEHOLDER_RE) do |match|
+      SAMPLE_VALUES.fetch($1, match)
+    end
   end
 
   def initialize(campaign_step, job_proposal)

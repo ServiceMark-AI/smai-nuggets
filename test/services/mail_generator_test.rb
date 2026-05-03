@@ -184,4 +184,32 @@ class MailGeneratorTest < ActiveSupport::TestCase
     )
     assert_equal "Texas", out.body
   end
+
+  # --- preview (sample values, no JobProposal) ---
+
+  test "preview substitutes SAMPLE_VALUES into both subject and body" do
+    out = MailGenerator.preview(
+      campaign_step: step(
+        subject: "Hi {customer_first_name} about {property_address_short}",
+        body:    "From {originator_name} at {company_name}. Total: {proposal_value}."
+      )
+    )
+    assert_equal "Hi Jane about 123 Main Street", out.subject
+    assert_equal "From Pat Sample at Acme Restoration. Total: $10,260.00.", out.body
+  end
+
+  test "preview leaves unknown placeholders in place rather than raising" do
+    out = MailGenerator.preview(
+      campaign_step: step(subject: "X", body: "Hi {bogus_field}!")
+    )
+    assert_equal "Hi {bogus_field}!", out.body
+  end
+
+  test "preview tolerates blank subject or body" do
+    out = MailGenerator.preview(
+      campaign_step: step(subject: "", body: nil)
+    )
+    assert_equal "", out.subject
+    assert_equal "", out.body
+  end
 end
