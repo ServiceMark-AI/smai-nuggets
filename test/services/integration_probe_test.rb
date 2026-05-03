@@ -121,6 +121,26 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     assert_match(/Local disk service/i, r.details)
   end
 
+  test "active_storage hits service.exist? on remote services and surfaces the service kind" do
+    fake = StubBucketService.new
+    stub_active_storage_service(fake) do
+      r = IntegrationProbe.run(:active_storage)
+      assert_equal :ok, r.state
+      assert_equal 1, fake.exist_calls
+      assert_match "GCS", r.details
+    end
+  end
+
+  test "active_storage surfaces a probe error if the remote call raises" do
+    fake = StubBucketService.new(raise_error: true)
+    stub_active_storage_service(fake) do
+      r = IntegrationProbe.run(:active_storage)
+      assert_equal :missing, r.state
+      assert_match "Probe error", r.details
+      assert_match "boom", r.error_message
+    end
+  end
+
   # --- redis -------------------------------------------------------------
 
   test "redis is :missing when REDIS_URL is unset" do
@@ -152,6 +172,28 @@ class IntegrationProbeTest < ActiveSupport::TestCase
   StubRedisConn = Struct.new(:reply) do
     def call(_command)
       reply
+    end
+  end
+
+  # Mimics a remote ActiveStorage service (GCS / S3) without inheriting
+  # from the real classes, so we don't autoload them. The class-level
+  # `name` override is the only thing IntegrationProbe inspects.
+  class StubBucketService
+    def self.name
+      "ActiveStorage::Service::GCSService"
+    end
+
+    def initialize(raise_error: false)
+      @raise_error = raise_error
+      @exist_calls = 0
+    end
+
+    attr_reader :exist_calls
+
+    def exist?(_key)
+      @exist_calls += 1
+      raise "boom" if @raise_error
+      false
     end
   end
 
@@ -187,5 +229,16 @@ class IntegrationProbeTest < ActiveSupport::TestCase
     yield
   ensure
     Sidekiq.define_singleton_method(:redis, original)
+  end
+
+  # Swap ActiveStorage::Blob.service for a stub for the duration of the
+  # block. Used to drive the remote-service branch of active_storage
+  # without autoloading the real GCS / S3 service classes.
+  def stub_active_storage_service(service)
+    original = ActiveStorage::Blob.singleton_class.instance_method(:service)
+    ActiveStorage::Blob.define_singleton_method(:service) { service }
+    yield
+  ensure
+    ActiveStorage::Blob.define_singleton_method(:service, original)
   end
 end

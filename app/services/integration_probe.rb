@@ -98,7 +98,13 @@ class IntegrationProbe
 
   def active_storage
     service = ActiveStorage::Blob.service
-    return Result.new(state: :ok, details: "Local disk service — no remote check.") if service.is_a?(ActiveStorage::Service::DiskService)
+    # Compare by class name string so we don't force the autoload of
+    # ActiveStorage::Service::DiskService when the app is configured for
+    # a remote service (GCS / S3) and the disk service hasn't been
+    # referenced anywhere. The constant is lazy-loaded.
+    if service.class.name == "ActiveStorage::Service::DiskService"
+      return Result.new(state: :ok, details: "Local disk service — no remote check.")
+    end
 
     # `service.exist?` issues a HEAD against the bucket for the given key.
     # We don't care whether the sentinel exists — only that the call
