@@ -24,68 +24,59 @@ A few practical notes:
 
 ## 4b. The proposal status board
 
-`Sidebar → Job Proposals` is the operating board. Each row represents one proposal.
+**Sidebar → Job Proposals** is your operating board. Each row is one proposal.
 
-**Filters (top of page):**
+**Filter the board** with the controls along the top:
 
 - **Search** — customer name, address fragment, or internal reference.
-- **Status** — `new`, `open`, `closed`.
-- **Owner** / **Created by** — restrict to a specific teammate.
-- **Sort** — column headers for *Proposal value* and *Created* are sortable; the active sort is preserved across filter submits via hidden fields.
+- **Status** — *new* (just uploaded), *open* (campaign running), or *closed* (won or lost).
+- **Owner** / **Created by** — narrow to a specific teammate.
+- **Sort** — click the **Proposal value** or **Created** column header to sort. Your filters are kept when you sort, and your sort is kept when you re-filter.
 
-**Columns:**
+**What each column shows:**
 
-- **Address** — links to the proposal show page.
-- **Customer** — first + last name (or `—` if not extracted).
-- **Organization** — which org owns the proposal (relevant if your tenant has multiple).
-- **Job Type** — derived from extraction; `—` if the model couldn't infer one.
-- **Status** — high-level lifecycle: `new` immediately after upload, `open` while a campaign is running, `closed` after a terminal outcome.
-- **Proposal value** — extracted total, formatted as currency.
-- **Owner** / **Created by** — display names (first + last) with email fallback.
-- **Created** — date the proposal was uploaded.
+- **Address** — click it to open the proposal.
+- **Customer** — first and last name. A dash means the system couldn't pull a name from the file; open the proposal to fill it in.
+- **Organization** — which of your tenant's organizations owns the proposal (only matters if you have more than one).
+- **Job Type** — what kind of work the system inferred from the upload. A dash means it couldn't tell.
+- **Status** — *new*, *open*, or *closed*.
+- **Proposal value** — the total amount, formatted as currency.
+- **Owner** / **Created by** — who owns the proposal, and who uploaded it.
+- **Created** — the day it was uploaded.
 
-**Underneath the visible columns**, each proposal also carries a `pipeline_stage` (`in_campaign`, `won`, `lost`) and an optional `status_overlay` modifier (`paused`, `customer_waiting`, `delivery_issue`) — these drive the operator state model documented in PRD-01 and SPEC-09. The overlay surfaces in the **Status details** of the show page.
+Click an address to open the proposal. The detail page shows a **Customer** card, a **Job** card, an **Ownership** card, and (when the customer has replied) the most recent reply.
 
-Click any row's address to drill into the proposal show page, where the customer card, job card, ownership card, and (where present) the snapshotted last reply are displayed.
+If a proposal needs your attention — paused, waiting on a customer reply, or hitting a delivery problem — you'll see a small badge on the row noting which. Open the proposal to see what to do next.
 
 ## 4c. Pausing & unpausing a campaign
 
-> Pause a single proposal's campaign run when the customer goes silent for a known good reason (vacation, traveling, in escrow). Pause the *campaign template* (admin-only, [§1.5](01-job-types-and-campaigns.md#15-approve-pause-and-edit-the-campaign)) when content needs a fix.
+> Pause a single proposal's campaign when the customer asks for a delay or you've learned something that should keep emails from going out (vacation, traveling, escrow, family emergency). Pause the campaign *template* — different action, admin-only ([§1.5](01-job-types-and-campaigns.md#15-approve-pause-and-edit-the-campaign)) — when the content itself needs a fix.
 
-Today, campaign-instance-level pause / resume is exposed at the data layer — a `CampaignInstance` has `status: active | paused | completed | stopped_on_reply | stopped_on_delivery_issue | stopped_on_closure`. The operator-facing UI to flip an instance between `active` and `paused` from the proposal show page is not yet wired up; the planned interaction:
+*Not yet built.* The screen for pausing or resuming an individual proposal's campaign is not in the product yet. Until it ships, ask an admin to pause for you. The planned flow:
 
-1. Open the proposal show page.
-2. In the **Campaign** card (forthcoming), click **Pause** to set the instance status to `paused`. The next scheduled step does not send.
-3. Click **Resume** when you are ready to continue. The cadence picks up from where it left off; missed sends are re-planned forward, not backfilled.
+1. Open the proposal.
+2. In the **Campaign** card on that page, click **Pause**. The next scheduled email won't go out.
+3. Click **Resume** when you're ready. The cadence picks back up from where it left off — missed days are not retroactively sent; the timing is shifted forward.
 
-Until that screen ships, an admin can flip status via the Rails console:
-
-```ruby
-proposal = JobProposal.find(<id>)
-instance = proposal.campaign_instances.last
-instance.update!(status: :paused)    # or :active to resume
-```
-
-This is intentionally a thin escape hatch — the supported flow will be the proposal show page.
+This guide will be updated when the buttons land.
 
 ## 4d. Customer responds
 
-Customer replies arrive into the application mailbox and are matched back to the campaign instance via `gmail_thread_id`, which is stamped on every `CampaignStepInstance` at send time.
+When a customer replies to a campaign email, the system stops sending — no more follow-ups go out on that thread. The proposal is flagged as **waiting on the customer** so you can spot it on the board.
 
-When a reply is detected:
+What you'll see on the **Job Proposals** index:
 
-1. The matching `CampaignInstance` is transitioned to `stopped_on_reply` — the campaign cadence halts immediately and no further sends are attempted on that thread.
-2. A snapshot of the inbound message (`from`, `at`, `subject`, `snippet`) is written to `JobProposal.last_reply` (a JSONB column) so the reply is visible on the proposal show page without re-fetching from Gmail.
-3. The proposal's `status_overlay` is set to `customer_waiting` — on the index, the row is treated as a needs-attention item.
+- The proposal's row carries a **waiting on customer** badge.
+- The most recent reply (sender, time, subject, and a short preview) appears on the proposal's detail page.
 
-What you do next:
+What to do:
 
-1. Open the proposal from the index. The **Last reply** card shows the snippet, who it came from, and when.
-2. Click into Gmail (the show page exposes a deep link to the thread when one is available) to read the full reply and respond from your operator inbox.
-3. Once the conversation is converging on an outcome, mark the proposal won or lost ([§4e](#4e-marking-a-proposal-as-won--lost)).
+1. **Open the proposal.** Read the preview on the **Last reply** card.
+2. **Reply from your usual inbox.** A link to the conversation in Gmail is available on the detail page when the system can offer one — use it to read the full message and respond. Your reply goes to the customer the same way you'd send any email.
+3. **When the deal is decided**, mark the proposal won or lost ([§4e](#4e-marking-a-proposal-as-won--lost)).
 
-> Delivery failures (bounces, hard rejections) follow a parallel path: the `CampaignStepInstance.email_delivery_status` flips to `failed` or `bounced`, the `CampaignInstance` transitions to `stopped_on_delivery_issue`, and the proposal's `status_overlay` is set to `delivery_issue`. The right move is usually to fix the email address on the proposal and start a fresh instance.
+> **Delivery problem instead of a reply?** If the campaign couldn't deliver an email (bad address, the customer's mailbox bounced it), the proposal's row carries a **delivery problem** badge instead. Open the proposal, fix the customer's email address, and ask an admin to restart the campaign.
 
 ## 4e. Marking a proposal as won / lost
 
-> *Not yet built.* This subsection is a placeholder. The Mark Won / Mark Lost CTAs and confirmation flows specified in SPEC-09 are not implemented in the current build; this guide will be updated when they ship.
+> *Not yet built.* The **Mark Won** and **Mark Lost** buttons aren't in the product yet. This guide will be updated when they ship.

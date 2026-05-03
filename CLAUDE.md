@@ -35,9 +35,39 @@ docker-compose exec web bundle exec rails console
 
 ## User guide maintenance
 
-The operator-facing user guide lives in [docs/user-guide/](docs/user-guide/) and is hosted on GitHub. Treat it as a deliverable, not a side artifact:
+The operator-facing user guide lives in [docs/user-guide/](docs/user-guide/) and is hosted on GitHub. Treat it as a deliverable, not a side artifact.
 
-- **When a feature ships, changes, or is removed, review the user guide for any section it touches and update it in the same change.** Sections in scope: §0 production setup, §1 job types & campaigns, §2 tenant onboarding, §3 user onboarding & account, §4 campaign maintenance.
-- **Audience is operators, not developers.** Use domain language (job types, scenarios, campaigns, proposals, application mailbox) and concrete UI paths (sidebar items, button labels). Do not name model classes, controllers, columns, env vars, or service objects in user-facing prose unless an admin would actually type them — keep that level of detail out of §1–§4 and confine it to §0 (which is infra-facing) or footnoted asides.
-- **Keep cross-references live.** Section anchors follow GitHub's slug rules (period stripped from `1.5` → `15`, ` & ` and ` / ` collapse to `--`). When a section is renumbered or renamed, update every link that pointed at it. A quick sweep: `grep -nE '§[0-9]' docs/user-guide/`.
-- **If a feature is genuinely "doesn't exist yet," leave the placeholder visible** (see §4e). Do not invent UX that isn't built.
+### Audience
+
+§1, §2, §3, and §4 are written **for the people using the product**, not the people building it. The reader is a restoration-business owner or office manager — they have never read the codebase, do not know what a model or a controller is, and do not care. They came here to do a job and want to know which buttons to press, what to expect to see, and what to do when something goes wrong.
+
+§0 is the only infra-facing section. It is written for whoever deploys the app to Heroku. Technical references (env vars, add-on names, Procfile, source files) belong here.
+
+### What does NOT belong in §1–§4 user prose
+
+Do not write any of the following in user-facing sections, even as parenthetical asides or footnotes — they are signals that the writer slipped into developer-mode:
+
+- **Model class names**: `JobProposal`, `CampaignInstance`, `CampaignStepInstance`, `ApplicationMailbox`, `Scenario`, etc.
+- **Controller / job / service names**: `JobProposalProcessor`, `CampaignSweepJob`, `GmailSender`, `EmailDelegationsController`.
+- **Column or attribute names**: `scenario_key`, `pipeline_stage`, `status_overlay`, `last_reply`, `gmail_thread_id`, `email_delivery_status`, `is_active`, `parent_id`.
+- **Enum values as code**: `:active`, `:paused`, `stopped_on_reply`, `customer_waiting`. Use the operator-facing label instead ("paused", "waiting on the customer", "delivery problem").
+- **Env vars and infrastructure terms**: `GEMINI_API_KEY`, `RAILS_ENV`, JSONB, transaction, FK, polymorphic, find_or_create_by.
+- **PRD / SPEC document numbers** as authority citations ("per SPEC-09 §6.4"). The user guide is what an operator reads; if a PRD constraint is operator-relevant, restate it in plain English.
+- **Rails-console escape hatches**. If the only way to do something is `rails console`, the feature is not yet user-facing — leave the section blank or describe the planned UX as "not yet built" (see §4e).
+
+### What DOES belong in §1–§4
+
+- **The exact sidebar item, page, button, or link the reader clicks** (e.g. *Sidebar → Job Proposals*, *Click + New job*, *Open the Manage activations link at top right*).
+- **What the page looks like and where things sit** (e.g. *the Invite a user card on the right*, *a green badge appears next to the row*).
+- **What the reader will see happen** (e.g. *the new row appears at the top of the list*, *the email goes out within 5 minutes*).
+- **The domain words the product itself uses**: job type, scenario, campaign, proposal, application mailbox, activation, tenant, organization, location.
+- **Practical follow-ups for the common failure modes** — phrased as "if X looks wrong, do Y," not as "the foo column is set to bar."
+
+### Pre-merge checklist
+
+Before considering a user-guide change done:
+
+1. **`grep -nE 'JobProposal|CampaignInstance|ApplicationMailbox|scenario_key|pipeline_stage|status_overlay|gmail_thread_id|email_delivery_status|JSONB|find_or_create_by|polymorphic' docs/user-guide/0[1-4]*`** — should return **nothing**. Any hit is technical leakage in operator prose.
+2. **Cross-references resolve.** Section anchors follow GitHub's slug rules (period stripped from `1.5` → `15`, ` & ` and ` / ` collapse to `--`). When a section is renumbered or renamed, update every link that pointed at it. Sweep with `grep -nE '§[0-9]' docs/user-guide/`.
+3. **Update the user guide in the same change as any feature that ships, changes, or is removed.**
+4. **Leave placeholders visible for un-built features** (see §4e). Do not invent UX that isn't built.
