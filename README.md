@@ -8,7 +8,7 @@ Operator-facing documentation — production setup, tenant onboarding, account m
 
 **Have a suggested change to the user guide?** File a GitHub issue rather than editing the docs directly — that way the change can be discussed, scoped, and landed alongside any code adjustments it implies.
 
-> [Open a new issue for the user guide →](https://github.com/frizman21/smai-server/issues/new?title=Docs%3A+user+guide+update&labels=documentation&body=Section%3A+%28e.g.+%C2%A73.5+Connected+email+accounts%29%0AWhat%27s+wrong+or+missing%3A%0A%0ASuggested+change%3A%0A)
+> [Open a new issue for the user guide →](https://github.com/frizman21/smai-server/issues/new?title=Docs%3A+user+guide+update&labels=user-guide&body=Section%3A+%28e.g.+%C2%A73.5+Connected+email+accounts%29%0AWhat%27s+wrong+or+missing%3A%0A%0ASuggested+change%3A%0A)
 
 ## For developers
 
