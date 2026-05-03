@@ -2,6 +2,7 @@ module ApplicationHelper
   # Env vars whose absence we want admins warned about in the UI.
   # Mirrors .env.example so a fresh deploy can spot what's missing at a glance.
   REQUIRED_ENV_VARS = %w[
+    APP_HOST
     GEMINI_API_KEY
     AWS_ACCESS_KEY_ID
     AWS_SECRET_ACCESS_KEY

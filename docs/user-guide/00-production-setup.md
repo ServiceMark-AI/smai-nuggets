@@ -109,6 +109,7 @@ The app's `ApplicationHelper::REQUIRED_ENV_VARS` is the authoritative list — m
 # from §0.1a Step 4 — paste the file's contents inline.
 heroku config:set \
   RAILS_MASTER_KEY="$(cat config/master.key)" \
+  APP_HOST=<your-heroku-domain> \
   GEMINI_API_KEY=… \
   GCS_PROJECT=<your-project-id> \
   GCS_BUCKET=<your-bucket-name> \
@@ -141,14 +142,14 @@ Notes:
 
 ## 0.5 Production URL host
 
-Outbound invitation and password-reset emails embed absolute URLs that come from `config.action_mailer.default_url_options[:host]` in `config/environments/production.rb`. The default is `example.com` — replace it with your Heroku domain (or your custom domain from §0.6) before the first deploy:
+Outbound invitation and password-reset emails embed absolute URLs that come from `config.action_mailer.default_url_options[:host]` in `config/environments/production.rb`. The host is read from the `APP_HOST` env var:
 
 ```ruby
 # config/environments/production.rb
-config.action_mailer.default_url_options = { host: "your-app.example.com", protocol: "https" }
+config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST"), protocol: "https" }
 ```
 
-If you would rather drive this from an env var, change the line to read `ENV.fetch("APP_HOST")` and set `APP_HOST` as a Heroku config var. Either approach is fine; the env-var form makes staging vs production easier.
+`ENV.fetch` raises if `APP_HOST` is unset, so the app fails to boot rather than silently sending links pointing at `example.com`. Set `APP_HOST` to your Heroku domain (or your custom domain from §0.6) — it's already in the §0.4 `heroku config:set` block. Staging and production each carry their own value, no code edits required.
 
 ## 0.6 (Optional) Custom domain and SSL
 

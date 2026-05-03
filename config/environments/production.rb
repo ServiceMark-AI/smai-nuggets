@@ -66,8 +66,11 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   # config.action_mailer.raise_delivery_errors = false
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "example.com" }
+  # Host used by absolute URLs in outbound mailer templates (invitations,
+  # password resets, etc.). APP_HOST must be set on Heroku — the fetch
+  # raises on boot if it's missing, which is preferable to silently
+  # emitting links pointing at example.com.
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST"), protocol: "https" }
 
   # Outbound mail goes through the singleton ApplicationMailbox via Gmail
   # OAuth. Connect at /admin/application_mailbox before relying on Devise mail.
