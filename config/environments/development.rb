@@ -32,8 +32,20 @@ Rails.application.configure do
   # Change to :null_store to avoid any caching.
   config.cache_store = :memory_store
 
-  # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # Storage backend selection mirrors production.rb so dev uploads honor
+  # the same GCS_BUCKET / AWS_BUCKET env vars when set. If neither is
+  # configured, dev falls back to local disk under storage/. Devs who
+  # want to test the full cloud round-trip set GCS_BUCKET (and either
+  # GCS_CREDENTIALS or run `gcloud auth application-default login`);
+  # otherwise leave them unset and uploads stay local.
+  config.active_storage.service =
+    if ENV["GCS_BUCKET"].present?
+      :google
+    elsif ENV["AWS_BUCKET"].present?
+      :amazon
+    else
+      :local
+    end
 
   # Don't care if the mailer can't send.
   config.action_mailer.raise_delivery_errors = false
