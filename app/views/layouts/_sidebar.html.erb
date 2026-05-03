@@ -10,6 +10,7 @@
       <%= link_to "Campaigns", admin_campaigns_path, class: "nav-link #{'active' if controller_name == 'campaigns'}" %>
       <%= link_to "Mailbox", admin_application_mailbox_path, class: "nav-link #{'active' if controller_path == 'admin/application_mailbox'}" %>
       <%= link_to "Bugsnag ↗", "https://app.bugsnag.com/smai/smai/overview", class: "nav-link", target: "_blank", rel: "noopener" %>
+      <%= link_to "Sidekiq ↗", "/sidekiq", class: "nav-link", target: "_blank", rel: "noopener" %>
 
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">LLM</h6>
       <%= link_to "Chats", admin_chats_path, class: "nav-link #{'active' if controller_path == 'admin/chats'}" %>

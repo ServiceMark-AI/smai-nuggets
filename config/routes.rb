@@ -1,5 +1,14 @@
+require "sidekiq/web"
+
 Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: "users/registrations" }
+
+  # Sidekiq's built-in web UI. Gated behind Devise sign-in + admin flag —
+  # the constraint short-circuits with a 404 (not a redirect to sign in)
+  # for unauthorized users so the path doesn't advertise itself.
+  authenticate :user, ->(u) { u.is_admin } do
+    mount Sidekiq::Web => "/sidekiq"
+  end
   resources :invitations, only: [:show, :create]
   resources :users, only: [:index]
   get "profile" => "profiles#show", as: :profile
