@@ -2,7 +2,6 @@ module ApplicationHelper
   # Env vars whose absence we want admins warned about in the UI.
   # Mirrors .env.example so a fresh deploy can spot what's missing at a glance.
   REQUIRED_ENV_VARS = %w[
-    APP_HOST
     GEMINI_API_KEY
     GOOGLE_CLIENT_ID
     GOOGLE_CLIENT_SECRET
@@ -14,6 +13,13 @@ module ApplicationHelper
   # is going out.
   DEV_REQUIRED_ENV_VARS = %w[TEST_TO_EMAIL].freeze
 
+  # Required only outside development. APP_HOST drives the host portion of
+  # absolute URLs in mailers (invitations, password resets) and is read
+  # only by config/environments/production.rb, which falls back to
+  # "localhost" if unset. The banner flags it in non-dev environments so
+  # the fallback's broken-looking links don't go out unnoticed.
+  PROD_REQUIRED_ENV_VARS = %w[APP_HOST].freeze
+
   # Storage backend env-var groups. Either group fully set is enough —
   # they're alternatives, not both required. Order matches production.rb's
   # selection: GCS preferred, S3 fallback.
@@ -23,6 +29,7 @@ module ApplicationHelper
   def missing_env_vars
     required = REQUIRED_ENV_VARS.dup
     required.concat(DEV_REQUIRED_ENV_VARS) if development_environment?
+    required.concat(PROD_REQUIRED_ENV_VARS) unless development_environment?
     missing = required.reject { |key| ENV[key].present? }
     missing.concat(missing_storage_env_vars)
     missing

@@ -67,10 +67,13 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Host used by absolute URLs in outbound mailer templates (invitations,
-  # password resets, etc.). APP_HOST must be set on Heroku — the fetch
-  # raises on boot if it's missing, which is preferable to silently
-  # emitting links pointing at example.com.
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST"), protocol: "https" }
+  # password resets, etc.). APP_HOST should be set on Heroku to your
+  # public domain; the localhost fallback keeps a fresh deploy bootable
+  # even before someone has run `heroku config:set APP_HOST=...`. The
+  # admin missing-env banner surfaces APP_HOST as missing in production
+  # when it's unset, so a deploy that boots with the fallback still gets
+  # flagged loudly inside the app.
+  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "https" }
 
   # Outbound mail goes through the singleton ApplicationMailbox via Gmail
   # OAuth. Connect at /admin/application_mailbox before relying on Devise mail.

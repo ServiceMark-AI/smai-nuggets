@@ -25,6 +25,30 @@ class ApplicationHelperTest < ActionView::TestCase
     end
   end
 
+  test "missing_env_vars surfaces APP_HOST outside development when unset" do
+    with_app_host(nil) do
+      with_development(false) do
+        assert_includes missing_env_vars, "APP_HOST"
+      end
+    end
+  end
+
+  test "missing_env_vars omits APP_HOST in development even when unset" do
+    with_app_host(nil) do
+      with_development(true) do
+        refute_includes missing_env_vars, "APP_HOST"
+      end
+    end
+  end
+
+  test "missing_env_vars omits APP_HOST outside development when set" do
+    with_app_host("app.example.com") do
+      with_development(false) do
+        refute_includes missing_env_vars, "APP_HOST"
+      end
+    end
+  end
+
   # --- storage env-var detection ---
 
   test "missing_env_vars surfaces a generic storage hint when neither GCS nor AWS is configured" do
@@ -73,6 +97,22 @@ class ApplicationHelperTest < ActionView::TestCase
       ENV.delete("TEST_TO_EMAIL")
     else
       ENV["TEST_TO_EMAIL"] = prior
+    end
+  end
+
+  def with_app_host(value)
+    prior = ENV["APP_HOST"]
+    if value.nil?
+      ENV.delete("APP_HOST")
+    else
+      ENV["APP_HOST"] = value
+    end
+    yield
+  ensure
+    if prior.nil?
+      ENV.delete("APP_HOST")
+    else
+      ENV["APP_HOST"] = prior
     end
   end
 
