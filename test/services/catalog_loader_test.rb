@@ -3,6 +3,10 @@ require "test_helper"
 class CatalogLoaderTest < ActiveSupport::TestCase
   setup do
     # Catalog loader is global — clean slate before each case.
+    CampaignStepInstance.destroy_all
+    CampaignInstance.destroy_all
+    CampaignStep.destroy_all
+    Campaign.destroy_all
     Scenario.destroy_all
     JobType.where(type_code: CatalogLoader::RESTORATION_JOB_TYPES.map { |attrs| attrs[:type_code] }).destroy_all
     @io = StringIO.new
@@ -20,14 +24,69 @@ class CatalogLoaderTest < ActiveSupport::TestCase
     assert_equal expected_codes.sort, JobType.where(type_code: expected_codes).pluck(:type_code).sort
   end
 
-  test "is idempotent — second run creates nothing and reports everything as existing" do
+  test "creates one campaign per scenario in status :new with steps populated from the source markdown" do
+    result = CatalogLoader.load!(io: @io)
+
+    assert_equal 17, result.campaigns_created
+    assert_equal 0, result.campaigns_existing
+    assert result.steps_created > 0,
+      "expected campaign steps to be created from the markdown"
+
+    Scenario.includes(:job_type).find_each do |scenario|
+      campaign = Campaign.find_by(attributed_to_type: "Scenario", attributed_to_id: scenario.id)
+      assert campaign, "scenario #{scenario.code} should have an attributed campaign"
+      assert campaign.status_new?, "default campaign should be status :new pending operator approval"
+      assert_equal "#{scenario.job_type.name} — #{scenario.short_name}", campaign.name
+
+      assert campaign.steps.any?, "campaign for #{scenario.code} should have at least one step"
+      campaign.steps.each do |step|
+        assert step.template_subject.present?, "step #{step.sequence_number} of #{scenario.code} should have a subject"
+        assert step.template_body.present?, "step #{step.sequence_number} of #{scenario.code} should have a body"
+      end
+    end
+  end
+
+  test "parses cadence-overview offsets into minutes (Hour N → N*60, Day N → N*1440)" do
     CatalogLoader.load!(io: @io)
+    scenario = Scenario.joins(:job_type).find_by!(job_types: { type_code: "water_mitigation" }, code: "clean_water_flooding")
+    campaign = Campaign.find_by!(attributed_to: scenario)
+
+    step1 = campaign.steps.find_by!(sequence_number: 1)
+    step6 = campaign.steps.find_by!(sequence_number: 6)
+    assert_equal 0, step1.offset_min, "Hour 0 should map to 0 minutes"
+    assert_equal 5 * 24 * 60, step6.offset_min, "Day 5 should map to 7200 minutes"
+  end
+
+  test "is idempotent — second run creates nothing and reports everything as existing" do
+    first = CatalogLoader.load!(io: @io)
 
     second = CatalogLoader.load!(io: StringIO.new)
     assert_equal 0, second.job_types_created
     assert_equal 5, second.job_types_existing
     assert_equal 0, second.scenarios_created
     assert_equal 17, second.scenarios_existing
+    assert_equal 0, second.campaigns_created
+    assert_equal 17, second.campaigns_existing
+    assert_equal 0, second.steps_created
+    assert_equal first.steps_created, second.steps_existing
+  end
+
+  test "preserves operator edits to campaign name, status, and step content on a second run" do
+    CatalogLoader.load!(io: @io)
+    scenario = Scenario.joins(:job_type).find_by!(job_types: { type_code: "water_mitigation" }, code: "pipe_burst")
+    campaign = Campaign.find_by!(attributed_to: scenario)
+    campaign.update!(name: "Custom name", status: :approved, approved_by_user: users(:admin), approved_at: 1.day.ago)
+    step = campaign.steps.first
+    step.update!(template_subject: "Operator override", template_body: "Hand-edited body.")
+
+    CatalogLoader.load!(io: StringIO.new)
+
+    campaign.reload
+    step.reload
+    assert_equal "Custom name", campaign.name
+    assert campaign.status_approved?
+    assert_equal "Operator override", step.template_subject
+    assert_equal "Hand-edited body.", step.template_body
   end
 
   test "preserves description and short_name when run a second time on a hand-edited scenario" do
@@ -70,6 +129,8 @@ class CatalogLoaderTest < ActiveSupport::TestCase
 
     assert_match(/5 job types/, result.summary)
     assert_match(/17 scenarios/, result.summary)
+    assert_match(/17 campaigns/, result.summary)
+    assert_match(/campaign steps/, result.summary)
     assert_match(/Done\./, @io.string)
   end
 end

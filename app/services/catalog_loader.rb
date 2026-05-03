@@ -1,11 +1,20 @@
-# Loads the production-safe catalog data: restoration job types and the
-# scenarios authored under docs/campaigns/v1-output/. Idempotent — safe to
-# run any number of times against an existing database. No tenants, users,
-# or demo proposals are touched here; that lives in db/seeds.rb for dev.
+# Loads the production-safe catalog data: restoration job types, the
+# scenarios authored under docs/campaigns/v1-output/, and a default
+# Campaign per scenario with steps populated from the same source
+# markdown. Idempotent — safe to run any number of times against an
+# existing database. No tenants, users, or demo proposals are touched
+# here; that lives in db/seeds.rb for dev.
 #
 # Used by:
 #   - rake task `catalog:load` (production setup, see docs/user-guide/00-production-setup.md)
 #   - db/seeds.rb (dev seeding chains through here)
+#
+# Campaign loading notes:
+#   - Default campaigns are created in status :new so an admin reviews
+#     and approves them via the UI before any sends happen.
+#   - Existing campaigns and steps are NEVER overwritten. If an admin
+#     hand-edited a step body or renamed a campaign, re-running
+#     catalog:load preserves those edits — only missing rows are added.
 class CatalogLoader
   RESTORATION_JOB_TYPES = [
     {
@@ -37,12 +46,22 @@ class CatalogLoader
 
   CAMPAIGNS_ROOT = Rails.root.join("docs", "campaigns", "v1-output")
 
-  Result = Struct.new(:job_types_created, :job_types_existing, :scenarios_created, :scenarios_existing, keyword_init: true) do
+  Result = Struct.new(
+    :job_types_created, :job_types_existing,
+    :scenarios_created, :scenarios_existing,
+    :campaigns_created, :campaigns_existing,
+    :steps_created, :steps_existing,
+    keyword_init: true
+  ) do
     def summary
       "#{job_types_created + job_types_existing} job types " \
       "(#{job_types_created} new, #{job_types_existing} existing); " \
       "#{scenarios_created + scenarios_existing} scenarios " \
-      "(#{scenarios_created} new, #{scenarios_existing} existing)"
+      "(#{scenarios_created} new, #{scenarios_existing} existing); " \
+      "#{campaigns_created + campaigns_existing} campaigns " \
+      "(#{campaigns_created} new, #{campaigns_existing} existing); " \
+      "#{steps_created + steps_existing} campaign steps " \
+      "(#{steps_created} new, #{steps_existing} existing)"
     end
   end
 
@@ -54,7 +73,9 @@ class CatalogLoader
     @io = io
     @result = Result.new(
       job_types_created: 0, job_types_existing: 0,
-      scenarios_created: 0, scenarios_existing: 0
+      scenarios_created: 0, scenarios_existing: 0,
+      campaigns_created: 0, campaigns_existing: 0,
+      steps_created: 0, steps_existing: 0
     )
   end
 
@@ -64,6 +85,9 @@ class CatalogLoader
 
     log "Loading scenarios from #{CAMPAIGNS_ROOT.relative_path_from(Rails.root)}..."
     load_scenarios
+
+    log "Loading default campaigns + steps from the same files..."
+    load_campaigns
 
     log "Done. #{@result.summary}"
     @result
@@ -116,6 +140,117 @@ class CatalogLoader
         end
       end
     end
+  end
+
+  def load_campaigns
+    Scenario.includes(:job_type).find_each do |scenario|
+      md_path = CAMPAIGNS_ROOT.join(scenario.job_type.type_code, "#{scenario.code}.md")
+      next unless File.exist?(md_path)
+
+      content = File.read(md_path)
+      campaign = ensure_campaign(scenario)
+      ensure_campaign_steps(campaign, content)
+    end
+  end
+
+  def ensure_campaign(scenario)
+    campaign = Campaign.find_or_initialize_by(
+      attributed_to_type: "Scenario", attributed_to_id: scenario.id
+    )
+    if campaign.new_record?
+      campaign.assign_attributes(
+        name: "#{scenario.job_type.name} — #{scenario.short_name}",
+        status: :new
+      )
+      campaign.save!
+      @result.campaigns_created += 1
+      log "  created campaign: #{scenario.job_type.type_code}/#{scenario.code}"
+    else
+      @result.campaigns_existing += 1
+    end
+    campaign
+  end
+
+  def ensure_campaign_steps(campaign, content)
+    offsets = parse_cadence_offsets(content)
+    parse_step_blocks(content).each do |step_data|
+      step = campaign.steps.find_or_initialize_by(sequence_number: step_data[:sequence_number])
+      if step.new_record?
+        step.assign_attributes(
+          offset_min: offsets[step_data[:sequence_number]] || 0,
+          template_subject: step_data[:template_subject],
+          template_body: step_data[:template_body]
+        )
+        step.save!
+        @result.steps_created += 1
+      else
+        @result.steps_existing += 1
+      end
+    end
+  end
+
+  # Cadence overview rows look like:
+  #   | 1 | Hour 0 | 0 | Deliver the proposal ... |
+  #   | 2 | Hour 4 | 4h | Add operational specificity ... |
+  #   | 6 | Day 5 | 3d | Soft return ... |
+  # Returns { 1 => 0, 2 => 240, ..., 6 => 7200 } in minutes.
+  def parse_cadence_offsets(content)
+    offsets = {}
+    content.scan(/^\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|/) do |num, timing|
+      offsets[num.to_i] = timing_to_minutes(timing)
+    end
+    offsets
+  end
+
+  def timing_to_minutes(timing)
+    case timing
+    when /\bHour\s+(\d+)/i then Regexp.last_match(1).to_i * 60
+    when /\bDay\s+(\d+)/i  then Regexp.last_match(1).to_i * 24 * 60
+    else 0
+    end
+  end
+
+  # Step blocks look like:
+  #   ## Step 1
+  #
+  #   **Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+  #
+  #   `Water cleanup at {property_address_short}`
+  #
+  #   **Body:**
+  #
+  #   The proposal for the water cleanup at {property_address_short} ...
+  #
+  #   ---
+  def parse_step_blocks(content)
+    blocks = content.split(/^## Step /).drop(1)
+    blocks.filter_map do |block|
+      num = block[/\A(\d+)/, 1]&.to_i
+      next unless num
+
+      subject = extract_subject(block)
+      body = extract_body(block)
+      next unless subject && body
+
+      { sequence_number: num, template_subject: subject, template_body: body }
+    end
+  end
+
+  def extract_subject(block)
+    # Subject sits on its own line below the **Subject ...** heading,
+    # usually backtick-wrapped. Tolerate either form.
+    raw = block[/\*\*Subject[^*]*\*\*\s*\n+(.+?)\n/m, 1]
+    return nil unless raw
+    raw = raw.strip
+    raw.start_with?("`") && raw.end_with?("`") ? raw[1..-2] : raw
+  end
+
+  def extract_body(block)
+    # Body is everything between **Body:** and the next horizontal rule
+    # (--- on its own line) or end of block. Some authored files put the
+    # body on the same line as the heading (no newline between), others
+    # leave a blank line — \s* handles both.
+    block[/\*\*Body:\*\*\s*(.+?)(?:^---\s*$|\z)/m, 1]&.strip
   end
 
   def log(message)
