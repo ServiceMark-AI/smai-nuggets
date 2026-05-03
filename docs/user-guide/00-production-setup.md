@@ -24,7 +24,7 @@ Notes on Google OAuth:
 1. Create an OAuth 2.0 client of type **Web application** in Google Cloud Console.
 2. Add the scope `https://www.googleapis.com/auth/gmail.send` (the app uses `email profile gmail.send` per `config/initializers/omniauth.rb`).
 3. Add the authorized redirect URI: `https://<your-heroku-domain>/auth/google_oauth2/callback`. Register a custom domain redirect too if you set one up in §0.6.
-4. Add at least one test user (the email of the operator account that will own the application mailbox) until the OAuth consent screen is moved to production.
+4. **Add every tester to the OAuth test-user list, one at a time.** While the OAuth consent screen is in **Testing** mode, only Google accounts on this allowlist can complete the consent flow — anyone else gets blocked with `Error 403: access_denied`. Open the project's [APIs & Services → OAuth consent screen → **Audience**](https://console.cloud.google.com/auth/audience) page (make sure your project is selected in the top-left picker), scroll to **Test users**, and click **+ Add users**. Google's UI does not support bulk paste; expect to add each address on its own. Plan accordingly during onboarding — tester sign-ins will fail until their address is on the list, and there's a Google-imposed cap of 100 test users while in Testing mode. The list can be removed in one shot by publishing the OAuth consent screen to **Production**, which requires Google's verification review.
 
 ## 0.1a Provision Google Cloud Storage (preferred)
 
