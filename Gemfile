@@ -54,6 +54,9 @@ gem "cancancan"
 # AWS S3 SDK for Active Storage [https://guides.rubyonrails.org/active_storage_overview.html#amazon-s3-service]
 gem "aws-sdk-s3", require: false
 
+# Google Cloud Storage SDK for Active Storage [https://guides.rubyonrails.org/active_storage_overview.html#google-cloud-storage-service]
+gem "google-cloud-storage", "~> 1.11", require: false
+
 # LLM toolkit with chat / message persistence [https://rubyllm.com]
 gem "ruby_llm"
 

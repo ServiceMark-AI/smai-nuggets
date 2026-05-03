@@ -13,12 +13,15 @@ amazon:
   region: <%= ENV["AWS_REGION"] %>
   bucket: <%= ENV["AWS_BUCKET"] %>
 
-# Remember not to checkin your GCS keyfile to a repository
-# google:
-#   service: GCS
-#   project: your_project
-#   credentials: <%= Rails.root.join("path/to/gcs.keyfile") %>
-#   bucket: your_own_bucket-<%= Rails.env %>
+# Authentication: GCS_CREDENTIALS (entire JSON keyfile contents) is materialized
+# to a tempfile by config/initializers/gcs_credentials.rb on boot, which sets
+# GOOGLE_APPLICATION_CREDENTIALS so this service uses Application Default
+# Credentials. On a developer machine, you can skip GCS_CREDENTIALS and run
+# `gcloud auth application-default login` instead.
+google:
+  service: GCS
+  project: <%= ENV["GCS_PROJECT"] %>
+  bucket: <%= ENV["GCS_BUCKET"] %>
 
 # mirror:
 #   service: Mirror
