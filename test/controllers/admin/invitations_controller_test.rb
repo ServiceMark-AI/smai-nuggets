@@ -72,6 +72,61 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/email can/i, flash[:alert].to_s)
   end
 
+  # --- existing-user disposition ------------------------------------------
+
+  test "admin: inviting an existing same-tenant user adds them to the org without sending an invite" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    other_org = @tenant.organizations.create!(name: "Branch")
+    existing = User.create!(email: "teammate2@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: other_org, user: existing, role: :member)
+    sign_in @admin
+
+    GmailSender.reset_deliveries!
+    assert_no_difference "Invitation.count" do
+      assert_difference "OrganizationalMember.count", 1 do
+        post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "teammate2@example.com" } }
+      end
+    end
+    assert_empty GmailSender.deliveries
+    assert_includes existing.reload.organizations, @org
+    assert_match(/Added teammate2@example.com/i, flash[:notice].to_s)
+  end
+
+  test "admin: existing user already in target org is rejected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    same_org_user = User.create!(email: "alreadyhere2@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: same_org_user, role: :member)
+    sign_in @admin
+
+    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "alreadyhere2@example.com" } }
+    end
+    assert_match(/already a member/i, flash[:alert].to_s)
+  end
+
+  test "admin: existing user in a different tenant is rejected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    other_tenant = Tenant.create!(name: "OtherTenant2")
+    other_org = other_tenant.organizations.create!(name: "Other HQ")
+    cross_user = User.create!(email: "elsewhere2@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
+    OrganizationalMember.create!(organization: other_org, user: cross_user, role: :member)
+    sign_in @admin
+
+    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "elsewhere2@example.com" } }
+    end
+    assert_match(/another tenant/i, flash[:alert].to_s)
+  end
+
+  test "admin: invite to admin email rejects" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    sign_in @admin
+    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: @admin.email } }
+    end
+    assert_match(/system admin/i, flash[:alert].to_s)
+  end
+
   # --- destroy (revoke) ----------------------------------------------------
 
   test "non-admin cannot revoke invitations" do

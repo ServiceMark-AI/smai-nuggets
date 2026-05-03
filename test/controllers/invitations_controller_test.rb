@@ -157,6 +157,75 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @org, invitation.organization
   end
 
+  # --- existing-user disposition ------------------------------------------
+
+  test "inviting an email that matches a user in the same tenant adds them to the org without sending an invite" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "inviter-existing@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    other_org = @tenant.organizations.create!(name: "Branch")
+    existing_user = User.create!(email: "teammate@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: other_org, user: existing_user, role: :member)
+
+    GmailSender.reset_deliveries!
+    assert_no_difference "Invitation.count" do
+      assert_difference "OrganizationalMember.count", 1 do
+        post invitations_path, params: { invitation: { email: "teammate@example.com" } }
+      end
+    end
+    assert_empty GmailSender.deliveries
+    assert_includes existing_user.reload.organizations, @org
+    assert_match(/Added teammate@example.com/i, flash[:notice].to_s)
+  end
+
+  test "inviting an email already in the target org is rejected with a friendly message" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "inviter-already@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    same_org_user = User.create!(email: "alreadyhere@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: same_org_user, role: :member)
+
+    assert_no_difference "Invitation.count" do
+      assert_no_difference "OrganizationalMember.count" do
+        post invitations_path, params: { invitation: { email: "alreadyhere@example.com" } }
+      end
+    end
+    assert_match(/already a member/i, flash[:alert].to_s)
+  end
+
+  test "inviting an email belonging to a different tenant is rejected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "inviter-cross@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    other_tenant = Tenant.create!(name: "OtherTenant")
+    other_org = other_tenant.organizations.create!(name: "Other HQ")
+    cross_user = User.create!(email: "elsewhere@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
+    OrganizationalMember.create!(organization: other_org, user: cross_user, role: :member)
+
+    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+      post invitations_path, params: { invitation: { email: "elsewhere@example.com" } }
+    end
+    assert_match(/another tenant/i, flash[:alert].to_s)
+  end
+
+  test "inviting an email belonging to a system admin is rejected" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "inviter-adminemail@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+      post invitations_path, params: { invitation: { email: users(:admin).email } }
+    end
+    assert_match(/system admin/i, flash[:alert].to_s)
+  end
+
   # --- destroy (revoke) ----------------------------------------------------
 
   test "destroy redirects to sign-in when not signed in" do
