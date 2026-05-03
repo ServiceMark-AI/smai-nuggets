@@ -1,5 +1,5 @@
 campaign_sweep:
-  cron: "*/5 * * * *"
+  cron: "<%= Rails.env.development? ? '* * * * *' : '*/5 * * * *' %>"
   class: "CampaignSweepJob"
   queue: default
-  description: "Sweeps approved active campaigns every 5 minutes and sends any due step emails."
+  description: "Sweeps approved active campaigns and sends due step emails. Every minute in development for fast iteration; every 5 minutes elsewhere."
