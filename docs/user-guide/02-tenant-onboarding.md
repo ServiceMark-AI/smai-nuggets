@@ -35,7 +35,7 @@ The first invitation usually goes to the company owner so they can self-service 
 
 The invite email goes out from the application mailbox and includes a token link that expires in seven days. Pending invitations are listed on the tenant show page with their sent-at and expiry timestamps.
 
-> Tenant users with an existing account can also send invites from the tenant-side **Users** page once they are members; see [§3.5](03-user-onboarding-and-account.md#35-inviting-teammates).
+> Tenant users with an existing account can also send invites from the tenant-side **Users** page once they are members; see [§3.6](03-user-onboarding-and-account.md#36-inviting-teammates).
 
 ## 2.4 Activate job types and scenarios
 

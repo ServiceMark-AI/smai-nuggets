@@ -9,22 +9,18 @@
 ## 4a. Upload a job to start a campaign
 
 1. **Sidebar → Job Proposals**.
-2. Click **+ New job** (top right). The page shows a drag-and-drop zone.
-3. Either drop a PDF estimate / proposal onto the zone, or click it and pick a file. The submit button enables once a file is selected.
+2. Click **+ New job** (top right). A drag-and-drop zone appears.
+3. Drop your PDF estimate or proposal onto the zone, or click it to pick a file from your computer. The **Upload** button enables once a file is selected.
 4. Click **Upload**.
 
-What happens next:
+You land back on the **Job Proposals** index with the new row at the top. The system reads the PDF, fills in the customer's name, address, job description, total amount, internal reference, and the inferred job type, and starts the campaign for the matching scenario. The first email goes out on the cadence the admin set up for that campaign.
 
-1. A `JobProposal` row is created against your tenant, your organization, and you as both `owner` and `created_by_user`.
-2. The file is attached as a `JobProposalAttachment`.
-3. `JobProposalProcessor` runs synchronously:
-   - If a Gemini API key is configured (`GEMINI_API_KEY`), it sends the file to the model with the current `PdfProcessingRevision` instructions and parses the JSON response.
-   - It writes the extracted fields back onto the proposal: customer name, address, job description, monetary amounts, internal reference, and the inferred job type.
-4. Provided the inferred job type and scenario are activated for your tenant, the matching `Campaign` is looked up and a `CampaignInstance` is started against the proposal — the campaign begins running per its step cadence.
+A few practical notes:
 
-You are redirected back to the proposals index with the new row at the top.
-
-> If the file fails to process or your tenant is not yet assigned, the redirect carries an alert explaining what happened. The row may still be created in a partial state for triage.
+- **Give it a moment.** Reading the PDF takes a few seconds. If the new row's customer name or amount looks blank right after upload, refresh the page.
+- **Check the inferred job type.** Open the new row and confirm the **Job Type** matches the work — if extraction misread the document, the wrong campaign would start. Tell an admin if it's consistently wrong on a particular form layout.
+- **Job type or scenario not activated for your tenant?** No campaign starts. The proposal is still saved, but it sits idle until your admin activates the matching job type and scenario for your tenant ([§2.4](02-tenant-onboarding.md#24-activate-job-types-and-scenarios)).
+- **Upload error?** A red banner at the top of the page explains what went wrong (e.g. unreadable file, missing tenant assignment). Fix the listed issue and try again.
 
 ## 4b. The proposal status board
 
