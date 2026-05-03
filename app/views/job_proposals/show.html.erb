@@ -2,9 +2,18 @@
 
 <%= link_to "← Back to Job Proposals", job_proposals_path, class: "small text-muted" %>
 
-<h1 class="h3 mt-2 mb-4">
-  <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
-</h1>
+<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+  <h1 class="h3 mb-0">
+    <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
+  </h1>
+  <%# Same CTA function the index uses. Suppress view_job here since
+      the operator is literally viewing the job — the alternatives
+      (Open in Gmail, Fix delivery issue, Resume campaign) are still
+      actionable. %>
+  <% if @job_proposal.cta != :view_job %>
+    <%= job_proposal_cta_link(@job_proposal) %>
+  <% end %>
+</div>
 
 <% attachments = @job_proposal.attachments.select { |a| a.file.attached? } %>
 <% if attachments.any? %>
