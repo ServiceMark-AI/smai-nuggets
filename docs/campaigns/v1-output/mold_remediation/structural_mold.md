@@ -25,15 +25,15 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Mold work at {{property_address_short}}`
+`Mold work at {property_address_short}`
 
 **Body:**
 
-The proposal for the mold work at {{property_address_short}} is attached, based on what we walked through at the property. It covers what we saw on the framing and sheathing side, the access and demolition work the scope implies, and the sequencing we discussed.
+The proposal for the mold work at {property_address_short} is attached, based on what we walked through at the property. It covers what we saw on the framing and sheathing side, the access and demolition work the scope implies, and the sequencing we discussed.
 
-Structural mold scope is genuinely hard to pin down without testing, because what's visible on the surface is usually a fraction of what the testing finds once the consultant gets behind walls and into cavities. The proposal reflects what we expect based on the walkthrough, and we're licensed to do this work in {{state}}, but the protocol from the licensed environmental consultant is what actually defines the boundaries of the remediation scope.
+Structural mold scope is genuinely hard to pin down without testing, because what's visible on the surface is usually a fraction of what the testing finds once the consultant gets behind walls and into cavities. The proposal reflects what we expect based on the walkthrough, and we're licensed to do this work in {state}, but the protocol from the licensed environmental consultant is what actually defines the boundaries of the remediation scope.
 
 Take your time reviewing it. If you have questions or want to walk through the scope live, give me a call or reply here. When you're ready to move forward on the consultant referral and getting testing scheduled, just let me know and we'll get it set up.
 
@@ -41,9 +41,9 @@ Take your time reviewing it. If you have questions or want to walk through the s
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Testing the mold at {{property_address_short}}`
+`Testing the mold at {property_address_short}`
 
 **Body:**
 
@@ -57,9 +57,9 @@ If the consultant referral hasn't gone out yet or you're stuck on the testing lo
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Protocol stage at {{property_address_short}}`
+`Protocol stage at {property_address_short}`
 
 **Body:**
 
@@ -73,9 +73,9 @@ If you want to talk through what to expect once the protocol arrives, give me a 
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`The mold remediation at {{property_address_short}}`
+`The mold remediation at {property_address_short}`
 
 **Body:**
 
@@ -89,13 +89,13 @@ If something has shifted on your end and the timing isn't right anymore, that's 
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Following up on the mold at {{property_address_short}}`
+`Following up on the mold at {property_address_short}`
 
 **Body:**
 
-It's been a few weeks since we walked the property at {{property_address_short}}, so things have likely either gotten handled or moved in a different direction. Both are fine outcomes.
+It's been a few weeks since we walked the property at {property_address_short}, so things have likely either gotten handled or moved in a different direction. Both are fine outcomes.
 
 The reason I'm reaching back out: structural mold jobs that stall in the protocol-writing window sometimes sit longer than the homeowner intended, not because the situation resolved but because the paperwork lost momentum. If that's where you ended up, the path forward is still the same one we walked through, and we're still here to do the work whenever you're ready to pick it back up.
 
@@ -110,7 +110,7 @@ If something comes up on this or anything related, I'm here.
 | R1 — Sounds like someone who knows the work | true | Each step references operational specifics a competent professional would know: the surface-versus-actual-scope reality of structural mold, the consultant-bounds-the-demolition logic, the protocol-writing handoff window, the lab-turnaround variance, and the framing-and-sheathing scope language. |
 | R2 — Avoids marketing automation language | true | No banned openers; mid-cadence steps open with substance (testing logic at Step 2, protocol-stage status at Step 3, time-progression shift at Step 4, soft-return acknowledgment at Step 5). No "circle back," "checking in," "touching base," "just wanted to," or similar constructions in any opener or closing. |
 | R3 — Scenario-specific | true | Variant could not swap in another mold scenario without rewriting. Structural mold's specific reality, scope hard to assess without testing, framing and sheathing in play, the consultant's protocol bounding demolition, runs through every step and is load-bearing in Steps 1, 2, and 3. |
-| R4 — No industry jargon | true | No IICRC, S520, TDLR, or regulatory acronyms. Soft licensing allusion uses the calibrated "we're licensed to do this work in {{state}}" form per the v0.8 merge-field update. No "PPE," "HEPA," "containment," or category language. "Remediation" used sparingly alongside plain-language alternatives like "the work" and "demolition." |
+| R4 — No industry jargon | true | No IICRC, S520, TDLR, or regulatory acronyms. Soft licensing allusion uses the calibrated "we're licensed to do this work in {state}" form per the v0.8 merge-field update. No "PPE," "HEPA," "containment," or category language. "Remediation" used sparingly alongside plain-language alternatives like "the work" and "demolition." |
 | R5 — Trust contract preserved | true | No health claims anywhere; the customer's anxiety is not named or amplified, and the structural framing keeps focus on materials, scope, and process. No false urgency, no coverage promises, no pipeline-management language ("close out," "for our records," "no expectation either way" all absent). Step 4's late-cadence push is customer-situation framing only. |
 | R6 — Pulls toward onsite | true | Steps 2 through 5 acknowledge questions and pull toward live conversation rather than resolving in writing. Step 1 is the appropriate exception (proposal delivery from a prior walkthrough, decision-oriented CTA). No specific timeline, scope, or coverage commitments made via email. |
 

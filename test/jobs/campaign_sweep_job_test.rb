@@ -146,7 +146,7 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
   end
 
   test "marks step failed and stops instance when render has unresolved merge fields" do
-    @step_one.update!(template_body: "Hi {{totally_unknown_field}}")
+    @step_one.update!(template_body: "Hi {totally_unknown_field}")
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
     CampaignSweepJob.new.perform

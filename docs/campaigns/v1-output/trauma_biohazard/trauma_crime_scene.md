@@ -23,13 +23,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Cleanup work at {{property_address_short}}`
+`Cleanup work at {property_address_short}`
 
 **Body:**
 
-The proposal for the cleanup work at {{property_address_short}} is attached, based on what we walked through when we were there. Every job in this category is a little different, and the scope reflects what we actually saw rather than a standard package.
+The proposal for the cleanup work at {property_address_short} is attached, based on what we walked through when we were there. Every job in this category is a little different, and the scope reflects what we actually saw rather than a standard package.
 
 What I can tell you is that we've handled a lot of these. Unmarked vehicles, no signage, in and out as quickly as the work allows. Once access is arranged, you don't need to be there while the crew is working unless you want to be. Most jobs in this category we can start within 24 to 48 hours of approval.
 
@@ -39,9 +39,9 @@ Take whatever time you need to review the proposal. When you're ready to move fo
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Next steps for the cleanup at {{property_address_short}}`
+`Next steps for the cleanup at {property_address_short}`
 
 **Body:**
 
@@ -55,15 +55,15 @@ If you'd rather walk through any of this on the phone, give me a call when it's 
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`If we can still help at {{property_address_short}}`
+`If we can still help at {property_address_short}`
 
 **Body:**
 
 A couple of weeks on from when we first came out, my guess is this has either been handled or moved in a different direction, and either of those is a fine outcome.
 
-The reason I'm reaching back out: situations like this sometimes get partially addressed and then a piece resurfaces later, or the original plan falls through and the family is back to figuring out who to call. If anything along those lines has come up at {{property_address_short}}, the offer still stands and the proposal is still good.
+The reason I'm reaching back out: situations like this sometimes get partially addressed and then a piece resurfaces later, or the original plan falls through and the family is back to figuring out who to call. If anything along those lines has come up at {property_address_short}, the offer still stands and the proposal is still good.
 
 If something's changed and we can help, give me a call.
 

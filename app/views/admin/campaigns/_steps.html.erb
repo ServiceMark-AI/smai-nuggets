@@ -117,7 +117,7 @@
       <tbody>
         <% MailGenerator::KNOWN_KEYS.each do |key| %>
           <tr>
-            <td><code>{{<%= key %>}}</code></td>
+            <td><code>{<%= key %>}</code></td>
             <td><%= MailGenerator::SAMPLE_VALUES[key] || content_tag(:span, "—", class: "text-muted") %></td>
           </tr>
         <% end %>

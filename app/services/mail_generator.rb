@@ -19,11 +19,7 @@ class MailGenerator
 
   Output = Data.define(:subject, :body)
 
-  # Placeholders are double-curly Mustache-style `{{key}}` to match the
-  # convention used in the authored campaign markdown under
-  # docs/campaigns/v1-output/. Single-brace `{key}` is treated as
-  # literal text and is not substituted.
-  PLACEHOLDER_RE = /\{\{([a-z_]+)\}\}/
+  PLACEHOLDER_RE = /\{([a-z_]+)\}/
 
   KNOWN_KEYS = %w[
     customer_name customer_first_name customer_last_name

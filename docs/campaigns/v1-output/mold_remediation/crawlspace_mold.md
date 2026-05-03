@@ -25,15 +25,15 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Crawlspace mold work at {{property_address_short}}`
+`Crawlspace mold work at {property_address_short}`
 
 **Body:**
 
-The proposal for the crawlspace mold work at {{property_address_short}} is attached, based on what we walked through when we were out at the property.
+The proposal for the crawlspace mold work at {property_address_short} is attached, based on what we walked through when we were out at the property.
 
-Crawlspace mold is one of the more common things we get called on, and the sequence is a little different than most people expect. We're licensed in {{state}} to do the remediation side, but a licensed environmental consultant has to do the testing and write the protocol first; we then execute to that protocol. We work with consultants regularly and can connect you with one if you don't already have one lined up.
+Crawlspace mold is one of the more common things we get called on, and the sequence is a little different than most people expect. We're licensed in {state} to do the remediation side, but a licensed environmental consultant has to do the testing and write the protocol first; we then execute to that protocol. We work with consultants regularly and can connect you with one if you don't already have one lined up.
 
 Take your time reviewing the proposal. If you want to walk through any part of it, give me a call or reply here. When you're ready to move forward on getting testing scheduled, let me know and we'll get the consultant in the loop.
 
@@ -41,9 +41,9 @@ Take your time reviewing the proposal. If you want to walk through any part of i
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Testing and remediation at {{property_address_short}}`
+`Testing and remediation at {property_address_short}`
 
 **Body:**
 
@@ -57,13 +57,13 @@ If you want a referral to a consultant we work with regularly, I can send a few 
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Crawlspace protocol at {{property_address_short}}`
+`Crawlspace protocol at {property_address_short}`
 
 **Body:**
 
-About a week in on the crawlspace at {{property_address_short}}, so depending on how the testing has moved, you're probably waiting on the protocol or have it in hand.
+About a week in on the crawlspace at {property_address_short}, so depending on how the testing has moved, you're probably waiting on the protocol or have it in hand.
 
 This is the spot in the process where we like to check in, because once the protocol is written we can get a crew on the schedule pretty quickly. Crawlspaces are a confined-space job, so we plan the work around access points, ventilation conditions, and what the protocol calls for on the framing and any insulation that has to come out. Most crawlspace remediations we do run two to four days of active work, depending on scope.
 
@@ -73,13 +73,13 @@ If the protocol's written, send it over and we'll line up a start date. If it's 
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`The crawlspace timeline at {{property_address_short}}`
+`The crawlspace timeline at {property_address_short}`
 
 **Body:**
 
-A couple of weeks on from when we first talked about the crawlspace at {{property_address_short}}, and protocol-writing sometimes takes longer than expected, especially if the consultant ran into unusual conditions or the lab turnaround stretched.
+A couple of weeks on from when we first talked about the crawlspace at {property_address_short}, and protocol-writing sometimes takes longer than expected, especially if the consultant ran into unusual conditions or the lab turnaround stretched.
 
 If you've got the protocol now and want to talk through scheduling, give me a call or reply here. If the testing or protocol is still in motion, that's not unusual; let me know where things stand and I can be useful or stay out of the way, whichever helps.
 
@@ -89,13 +89,13 @@ If something else has come up that's changed the picture on the crawlspace work,
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Checking on the crawlspace at {{property_address_short}}`
+`Checking on the crawlspace at {property_address_short}`
 
 **Body:**
 
-Several weeks on from the original conversation about the crawlspace at {{property_address_short}}, so things have likely either gotten handled or moved in another direction. Either of those is a fine outcome.
+Several weeks on from the original conversation about the crawlspace at {property_address_short}, so things have likely either gotten handled or moved in another direction. Either of those is a fine outcome.
 
 The reason I'm reaching back out: crawlspace situations can sit quietly for a while and then resurface, especially if the underlying moisture source wasn't fully addressed, or if the testing turned up something more involved than the original plumber or HVAC tech flagged. If anything's come up since we last talked, even if the original work was done by someone else, the conversation is still worth having.
 
@@ -110,7 +110,7 @@ If something does come up, I'm here.
 | R1 — Sounds like someone who knows the work | true | Operational specifics (testing-and-remediation split as regulated structure, sample-to-protocol turnaround, confined-space crawlspace work, two-to-four-day remediation duration, working with consultants regularly) signal experience without becoming technical. |
 | R2 — Avoids marketing automation language | true | No banned openings; mid-cadence steps open on substance (testing-and-remediation split clarification, week-in protocol check-in, two-weeks-in acknowledgment, several-weeks-in soft return). No CRM template fill-in phrasing. |
 | R3 — Scenario-specific | true | Crawlspace specifics are load-bearing throughout: customer hearing about it secondhand from plumber/HVAC tech, confined-space job planning, framing and insulation as protocol elements, moisture source as resurfacing risk. Variant cannot be swapped to visible_mold_growth or structural_mold without rewriting most prose. |
-| R4 — No industry jargon | true | No IICRC, S520, TDLR, EPA, OSHA, or category language. Soft state-licensing allusion uses the permitted "we're licensed in {{state}}" form per R4 mold rule and v0.8 {{state}} merge field addition. "Remediation" used sparingly. |
+| R4 — No industry jargon | true | No IICRC, S520, TDLR, EPA, OSHA, or category language. Soft state-licensing allusion uses the permitted "we're licensed in {state}" form per R4 mold rule and v0.8 {state} merge field addition. "Remediation" used sparingly. |
 | R5 — Trust contract preserved | true | No health claims anywhere (crawlspace-to-living-space air communication is operationally tempting and explicitly avoided). No pipeline-management language ("close out the file," "decision needs to happen," "let me know either way for our records" do not appear). No coverage promises. No automated-approval framing. Customer-situation framing throughout. |
 | R6 — Pulls toward onsite | true | Step 1 CTA is decision-oriented (proposal already delivered from prior walkthrough). Mid- and late-cadence steps offer phone or in-person follow-up rather than trying to resolve protocol or scope questions in writing. Step 4 explicitly offers to follow up with the consultant directly rather than answering hypothetical timing questions. |
 

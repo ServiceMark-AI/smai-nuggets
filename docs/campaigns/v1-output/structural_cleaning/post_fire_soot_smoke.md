@@ -25,13 +25,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Fire cleanup at {{property_address_short}}`
+`Fire cleanup at {property_address_short}`
 
 **Body:**
 
-The proposal for the fire cleanup at {{property_address_short}} is attached. The scope and pricing reflect what we walked through together at the property, and it covers the cleaning work needed to handle the soot and smoke residue across the affected areas.
+The proposal for the fire cleanup at {property_address_short} is attached. The scope and pricing reflect what we walked through together at the property, and it covers the cleaning work needed to handle the soot and smoke residue across the affected areas.
 
 One thing worth knowing as you review it: soot is acidic, and it does more damage to surfaces and materials the longer it sits. That is part of why we want to move once you are ready, not as sales pressure but as the operational reality of how these jobs work. The proposal is built around getting in and getting the cleaning handled before that damage compounds.
 
@@ -41,9 +41,9 @@ Take whatever time you need to review the numbers. If you want to walk through a
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`The cleaning scope at {{property_address_short}}`
+`The cleaning scope at {property_address_short}`
 
 **Body:**
 
@@ -57,15 +57,15 @@ If you want to walk through any of this live, easier by phone. Otherwise reply h
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Moving on the fire cleanup at {{property_address_short}}`
+`Moving on the fire cleanup at {property_address_short}`
 
 **Body:**
 
 About a week on from the fire now, and this is the point in the timeline where the soot-acidity issue stops being a footnote and starts being the main thing. Surfaces and materials that have been sitting under soot for this long are taking real damage every day, and the parts of the structure that could have been cleaned and saved a week ago start moving into a category where they need to be replaced instead. That changes the scope of the job and the size of the claim, and it does not change in your favor.
 
-I want to be direct with you here, not pushy. We need to get started on the cleaning at {{property_address_short}}. The longer this waits, the more damage builds up under the soot, and that damage is the kind that is hard to reverse once it has set in. We have done a lot of these jobs and we know how to move quickly without making the day harder than it already is.
+I want to be direct with you here, not pushy. We need to get started on the cleaning at {property_address_short}. The longer this waits, the more damage builds up under the soot, and that damage is the kind that is hard to reverse once it has set in. We have done a lot of these jobs and we know how to move quickly without making the day harder than it already is.
 
 If you are ready to move forward, reply here or call and we will get the crew scheduled. If something is holding you up, the cleanup we discussed, the insurance side, anything else, the easiest way to work through it is on the phone.
 
@@ -73,9 +73,9 @@ If you are ready to move forward, reply here or call and we will get the crew sc
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`The fire cleanup window at {{property_address_short}}`
+`The fire cleanup window at {property_address_short}`
 
 **Body:**
 
@@ -89,15 +89,15 @@ If you have questions you would rather walk through live, give me a call when it
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Following up on the fire cleanup at {{property_address_short}}`
+`Following up on the fire cleanup at {property_address_short}`
 
 **Body:**
 
 Two weeks on from the fire now, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome, and I am not writing to push.
 
-The reason I am reaching back out: fire cleanup jobs sometimes look settled and then surface again. The original vendor's scope did not cover everything, the cleaning got partway done and stopped, the smoke smell did not come out the way it was supposed to, or what looked clean at the surface is showing problems underneath. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having and we are happy to come look.
+The reason I am reaching back out: fire cleanup jobs sometimes look settled and then surface again. The original vendor's scope did not cover everything, the cleaning got partway done and stopped, the smoke smell did not come out the way it was supposed to, or what looked clean at the surface is showing problems underneath. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having and we are happy to come look.
 
 If something comes up, I am here.
 

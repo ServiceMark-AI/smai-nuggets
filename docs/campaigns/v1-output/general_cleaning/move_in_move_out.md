@@ -24,13 +24,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Move-out clean at {{property_address_short}}`
+`Move-out clean at {property_address_short}`
 
 **Body:**
 
-The proposal for the move-in / move-out clean at {{property_address_short}} is attached, based on the walkthrough we did at the property. It covers the rooms in scope, what we're handling that a regular cleaning service typically wouldn't, and the timing we discussed against your transition date.
+The proposal for the move-in / move-out clean at {property_address_short} is attached, based on the walkthrough we did at the property. It covers the rooms in scope, what we're handling that a regular cleaning service typically wouldn't, and the timing we discussed against your transition date.
 
 Most jobs at this scope take a full day with a crew, sometimes a day and a half if the prior occupant left more behind than usual or if specific surfaces need extra attention. The proposal reflects what we saw at the walkthrough; if anything looks different once we're back in the space with the cleaning crew, we'll keep you in the loop before any scope adjusts.
 
@@ -40,9 +40,9 @@ Take your time reviewing it. If you have questions or want to walk through any p
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Scheduling the clean at {{property_address_short}}`
+`Scheduling the clean at {property_address_short}`
 
 **Body:**
 
@@ -56,9 +56,9 @@ If it would help to talk through scheduling on the phone, give me a call when it
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Locking in the date at {{property_address_short}}`
+`Locking in the date at {property_address_short}`
 
 **Body:**
 
@@ -72,15 +72,15 @@ When you're ready to move forward, reply here or give me a call and we'll get th
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Following up on the clean at {{property_address_short}}`
+`Following up on the clean at {property_address_short}`
 
 **Body:**
 
 Wanted to reach out before this slips. If your transition date has come and gone, or if you ended up handling the cleaning a different way, that's a fine outcome.
 
-The reason I'm checking in: move-in / move-out cleans sometimes get half-done by a regular cleaning crew or skipped entirely, and the gap shows up later when the new occupant is already in the space. If anything has come up at {{property_address_short}}, even after the move, we can still come do the work.
+The reason I'm checking in: move-in / move-out cleans sometimes get half-done by a regular cleaning crew or skipped entirely, and the gap shows up later when the new occupant is already in the space. If anything has come up at {property_address_short}, even after the move, we can still come do the work.
 
 If something comes up, I'm here.
 

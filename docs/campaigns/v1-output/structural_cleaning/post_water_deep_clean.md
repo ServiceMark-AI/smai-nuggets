@@ -25,13 +25,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Cleanup proposal for {{property_address_short}}`
+`Cleanup proposal for {property_address_short}`
 
 **Body:**
 
-The proposal for the deep cleaning work at {{property_address_short}} is attached, based on what we walked through at the property. It covers the cleaning scope, the surfaces and materials involved, and the timeline we discussed.
+The proposal for the deep cleaning work at {property_address_short} is attached, based on what we walked through at the property. It covers the cleaning scope, the surfaces and materials involved, and the timeline we discussed.
 
 This work sits between standard mitigation and full restoration. The water event is past; what's left is cleaning what was affected so it can be returned to condition rather than replaced. Surface deposits and residues from a water event do tend to bond more firmly the longer they sit, which is the main reason moving sooner than later is worth thinking about.
 
@@ -41,9 +41,9 @@ If you have questions or want to walk through any part of the proposal, give me 
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`What the cleanup at {{property_address_short}} covers`
+`What the cleanup at {property_address_short} covers`
 
 **Body:**
 
@@ -57,9 +57,9 @@ If you want to walk through what's in or out of scope, easiest to do that on the
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Timing on the cleanup at {{property_address_short}}`
+`Timing on the cleanup at {property_address_short}`
 
 **Body:**
 
@@ -73,9 +73,9 @@ If you want to move forward, reply here or give me a call and we'll get on the s
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`The cleanup work at {{property_address_short}}`
+`The cleanup work at {property_address_short}`
 
 **Body:**
 
@@ -89,15 +89,15 @@ If you have questions or want to walk through where things stand, easiest by pho
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
+**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
 
-`Following up on the cleanup at {{property_address_short}}`
+`Following up on the cleanup at {property_address_short}`
 
 **Body:**
 
 A couple of weeks on from the original water event now, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.
 
-The reason I'm reaching back out: post-water cleaning sometimes looks settled at the surface and then surfaces a different problem later. Lingering staining on a baseboard, a soft area in flooring that didn't seem affected at first, a smell that wasn't there before, those are the kinds of things that show up when the cleaning piece wasn't fully addressed. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having.
+The reason I'm reaching back out: post-water cleaning sometimes looks settled at the surface and then surfaces a different problem later. Lingering staining on a baseboard, a soft area in flooring that didn't seem affected at first, a smell that wasn't there before, those are the kinds of things that show up when the cleaning piece wasn't fully addressed. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having.
 
 If something comes up, I'm here.
 
