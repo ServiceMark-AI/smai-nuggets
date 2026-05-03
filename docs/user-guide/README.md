@@ -29,3 +29,11 @@ The sections below are written in the order you would touch them when standing t
 - **Paths** like `/admin/tenants` refer to the URL after your hostname (e.g. `https://app.example.com/admin/tenants`).
 - **Admin-only** screens require a user with the system-admin flag set. Tenant users do not see the **Admin** group in the sidebar.
 - The seeded restoration job types (Water Mitigation, Mold Remediation, Structural Cleaning, General Cleaning, Trauma / Biohazard) are referenced by their `type_code` in templates and specs.
+
+## Suggesting changes
+
+Spotted something wrong, missing, or out of date? File a GitHub issue rather than editing the docs directly — that way the change can be discussed, scoped, and landed alongside any code adjustments it implies.
+
+> [Open a new issue for the user guide →](https://github.com/frizman21/smai-server/issues/new?title=Docs%3A+user+guide+update&labels=user-guide&body=Section%3A+%28e.g.+%C2%A73.5+Connected+email+accounts%29%0AWhat%27s+wrong+or+missing%3A%0A%0ASuggested+change%3A%0A)
+
+The link above prefills the title, the `user-guide` label, and a short body template (Section, What's wrong or missing, Suggested change).

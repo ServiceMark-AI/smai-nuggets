@@ -4,11 +4,7 @@ The Rails server behind ServiceMark AI — multi-tenant, Postgres-backed, Sideki
 
 ## User guide
 
-Operator-facing documentation — production setup, tenant onboarding, account management, and day-to-day campaign work — lives in [`docs/user-guide/`](docs/user-guide/). Start at the [index](docs/user-guide/README.md).
-
-**Have a suggested change to the user guide?** File a GitHub issue rather than editing the docs directly — that way the change can be discussed, scoped, and landed alongside any code adjustments it implies.
-
-> [Open a new issue for the user guide →](https://github.com/frizman21/smai-server/issues/new?title=Docs%3A+user+guide+update&labels=user-guide&body=Section%3A+%28e.g.+%C2%A73.5+Connected+email+accounts%29%0AWhat%27s+wrong+or+missing%3A%0A%0ASuggested+change%3A%0A)
+Operator-facing documentation — production setup, tenant onboarding, account management, and day-to-day campaign work — lives in [`docs/user-guide/`](docs/user-guide/README.md).
 
 ## For developers
 
