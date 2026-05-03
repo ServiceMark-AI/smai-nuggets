@@ -1,9 +1,19 @@
 <% content_for :title, "Integrations" %>
 
-<h1 class="h3 mb-1">Integrations</h1>
-<p class="text-muted mb-4">
-  Live status of every external service this app depends on. Use this page to confirm a deploy is healthy or to track down why something stopped working.
-</p>
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h3 mb-1">Integrations</h1>
+    <p class="text-muted mb-0">
+      Live status of every external service this app depends on. Use this page to confirm a deploy is healthy or to track down why something stopped working.
+    </p>
+  </div>
+  <%= button_to "Re-check now",
+        check_admin_integrations_path,
+        method: :post,
+        class: "btn btn-outline-primary btn-sm",
+        form: { class: "m-0" },
+        data: { turbo_confirm: nil } %>
+</div>
 
 <div class="row g-2 mb-4">
   <div class="col-auto">
@@ -21,31 +31,76 @@
   <% end %>
 </div>
 
+<%
+  state_badge = ->(state) {
+    case state
+    when :ok, "ok"           then ["text-bg-success", "✓ OK"]
+    when :warn, "warn"       then ["text-bg-warning", "⚠ Warning"]
+    when :missing, "missing" then ["text-bg-danger",  "✗ Missing"]
+    when :unknown, "unknown" then ["text-bg-secondary", "Not yet checked"]
+    else                          ["text-bg-secondary", state.to_s.humanize]
+    end
+  }
+
+  # Map IntegrationStatus row name -> IntegrationCheck key for the live
+  # column. Rows not in this map don't have a connectivity probe.
+  live_check_keys = {
+    "Application Mailbox (Gmail)" => "application_mailbox",
+    "Gemini API (PDF extraction)" => "gemini",
+    "Active Storage"              => "active_storage",
+    "Redis (Sidekiq)"             => "redis"
+  }
+%>
+
 <div class="card shadow-sm">
   <div class="card-body p-0">
     <table class="table mb-0 align-middle">
       <thead class="table-light">
         <tr>
-          <th style="width: 30%;">Integration</th>
-          <th style="width: 12%;">Status</th>
-          <th>Details</th>
+          <th style="width: 26%;">Integration</th>
+          <th style="width: 11%;">Configured</th>
+          <th>Configuration details</th>
+          <th style="width: 14%;">Last live check</th>
+          <th>Live check details</th>
         </tr>
       </thead>
       <tbody>
         <% @statuses.each do |s| %>
-          <% badge_class, label = case s.state
-             when :ok      then ["text-bg-success", "✓ OK"]
-             when :warn    then ["text-bg-warning", "⚠ Warning"]
-             when :missing then ["text-bg-danger",  "✗ Missing"]
-             else                ["text-bg-secondary", s.state.to_s.humanize]
-             end %>
+          <% cfg_class, cfg_label = state_badge.call(s.state) %>
+          <% live = @live_checks[live_check_keys[s.name]] %>
           <tr>
             <td><strong><%= s.name %></strong></td>
-            <td><span class="badge <%= badge_class %>"><%= label %></span></td>
+            <td><span class="badge <%= cfg_class %>"><%= cfg_label %></span></td>
             <td>
               <div><%= s.details %></div>
               <% if s.recommendation.present? %>
                 <div class="small text-muted mt-1"><strong>Next step:</strong> <%= s.recommendation %></div>
+              <% end %>
+            </td>
+            <td>
+              <% if live_check_keys[s.name].nil? %>
+                <span class="text-muted small">N/A</span>
+              <% elsif live.nil? %>
+                <% _, label = state_badge.call(:unknown) %>
+                <span class="badge text-bg-secondary"><%= label %></span>
+              <% else %>
+                <% live_class, live_label = state_badge.call(live.state) %>
+                <span class="badge <%= live_class %>"><%= live_label %></span>
+                <div class="small text-muted mt-1">
+                  <%= time_ago_in_words(live.last_checked_at) %> ago
+                </div>
+              <% end %>
+            </td>
+            <td>
+              <% if live_check_keys[s.name].nil? %>
+                <span class="text-muted">—</span>
+              <% elsif live.nil? %>
+                <span class="text-muted small">Click <strong>Re-check now</strong> to run this probe.</span>
+              <% else %>
+                <div><%= live.details %></div>
+                <% if live.error_message.present? %>
+                  <div class="small text-danger mt-1"><%= live.error_message %></div>
+                <% end %>
               <% end %>
             </td>
           </tr>

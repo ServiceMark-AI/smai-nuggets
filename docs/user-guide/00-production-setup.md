@@ -233,11 +233,16 @@ The OAuth tokens are stored on the singleton `ApplicationMailbox` row; the Conne
 
 ## 0.10 Verification
 
-After the deploy is up, **Admin → Integrations** is the one-page health check you can lean on. It lists every external dependency with one of three states:
+After the deploy is up, **Admin → Integrations** is the one-page health check you can lean on. It lists every external dependency with two columns:
+
+- **Configured** — fast, derived from env vars and DB rows. Tells you whether the keys / connections are present.
+- **Last live check** — populated by clicking **Re-check now** at the top of the page. Runs a real call against the service (Gmail token refresh, Gemini `models.list`, storage bucket reachability, Redis `PING`) and stores the result. The connectivity probe does **not** run on a schedule — refresh manually whenever you want a current answer.
+
+States in either column:
 
 - **OK** — fully configured / connected.
 - **Warning** — works but not optimal (e.g. Bugsnag is falling back to the bundled default key, or storage is partially configured).
-- **Missing** — not configured; the feature it gates won't work until you fix it.
+- **Missing** — not configured or unreachable; the feature it gates won't work until you fix it.
 
 Walk through this short checklist before letting tenant users in:
 
