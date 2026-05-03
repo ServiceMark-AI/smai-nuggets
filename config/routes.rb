@@ -1,4 +1,5 @@
 require "sidekiq/web"
+require "sidekiq/cron/web" # registers the Cron tab in the Sidekiq UI
 
 Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: "users/registrations" }
