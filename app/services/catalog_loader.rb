@@ -46,6 +46,50 @@ class CatalogLoader
 
   CAMPAIGNS_ROOT = Rails.root.join("docs", "campaigns", "v1-output")
 
+  # The Gemini model + extraction prompt JobProposalProcessor reads at
+  # upload time. PdfProcessingRevision rows are versioned by content —
+  # find_or_create_by(instructions:) means a prompt edit becomes a new
+  # revision automatically (the is_current scope picks the highest
+  # revision_number). Production needs at least one revision present
+  # before AI extraction will fire; without it the processor silently
+  # falls back to stub data.
+  PDF_EXTRACTION_MODEL = {
+    model_id: "gemini-2.5-flash",
+    name:     "Gemini 2.5 Flash",
+    provider: "gemini"
+  }.freeze
+
+  PDF_EXTRACTION_PROMPT = <<~PROMPT
+    You are an expert data extraction AI. Your task is to meticulously analyze the provided document and extract
+      key details into a structured JSON format.
+
+      **Instructions:**
+
+      1.  **Analyze the Document:** Carefully read the entire document.
+      2.  **Extract Key Information:** Identify and extract the following fields.
+      3.  **Format as JSON:** Return **ONLY** the raw JSON object. Absolutely DO NOT include markdown code blocks,
+      backticks (```), or explanatory text.
+      4.  **Handle Missing Data:** If a field cannot be found, is ambiguous, or is not applicable, the value in the
+      JSON output for that key **must be `null`**. Do not invent or guess data.
+      5.  **Dates:** Format all dates as `YYYY-MM-DD`.
+      6.  **Amounts:** Extract all monetary values as raw JSON numbers without currency symbols or commas (e.g.,
+      12345.67). Make sure they are JSON numbers, not strings.
+
+      **Extraction Fields:**
+
+      *   `title`: The customer's formal title (e.g., Mr., Mrs., Ms., Dr.).
+      *   `firstName`, `lastName`, `email`
+      *   `jobDescription`: Concise one-sentence summary
+      *   `internalRef`: Job number / estimate ID
+      *   `jobType`: Inferred from `{{jobTypes}}` (templated at runtime)
+      *   `estimateDate`, `expirationDate` (YYYY-MM-DD)
+      *   `subtotal`, `taxAmount`, `discountAmount`, `depositAmount`, `totalAmount`
+      *   `isEmergency`, `estimatedDuration`, `warrantyIncluded`, `optionsProvided`, `paymentTerms`
+      *   `houseNumber`, `street`, `city`, `state`, `zip`
+
+      **JSON Output Structure:** { ...all the above keys... }
+  PROMPT
+
   Result = Struct.new(
     :job_types_created, :job_types_existing,
     :scenarios_created, :scenarios_existing,
@@ -88,6 +132,9 @@ class CatalogLoader
 
     log "Loading default campaigns + steps from the same files..."
     load_campaigns
+
+    log "Ensuring PDF extraction model + prompt revision..."
+    load_pdf_extraction_setup
 
     log "Done. #{@result.summary}"
     @result
@@ -139,6 +186,16 @@ class CatalogLoader
           @result.scenarios_existing += 1
         end
       end
+    end
+  end
+
+  def load_pdf_extraction_setup
+    model = Model.find_or_create_by!(model_id: PDF_EXTRACTION_MODEL[:model_id]) do |m|
+      m.name     = PDF_EXTRACTION_MODEL[:name]
+      m.provider = PDF_EXTRACTION_MODEL[:provider]
+    end
+    PdfProcessingRevision.find_or_create_by!(instructions: PDF_EXTRACTION_PROMPT) do |r|
+      r.model = model
     end
   end
 

@@ -9,6 +9,8 @@ class CatalogLoaderTest < ActiveSupport::TestCase
     Campaign.destroy_all
     Scenario.destroy_all
     JobType.where(type_code: CatalogLoader::RESTORATION_JOB_TYPES.map { |attrs| attrs[:type_code] }).destroy_all
+    PdfProcessingRevision.where(instructions: CatalogLoader::PDF_EXTRACTION_PROMPT).destroy_all
+    Model.where(model_id: CatalogLoader::PDF_EXTRACTION_MODEL[:model_id]).destroy_all
     @io = StringIO.new
   end
 
@@ -69,6 +71,29 @@ class CatalogLoaderTest < ActiveSupport::TestCase
     assert_equal 17, second.campaigns_existing
     assert_equal 0, second.steps_created
     assert_equal first.steps_created, second.steps_existing
+  end
+
+  test "creates the PDF extraction Model + PdfProcessingRevision so AI extraction is configured" do
+    CatalogLoader.load!(io: @io)
+    model = Model.find_by(model_id: "gemini-2.5-flash")
+    assert model, "Gemini model row should exist after catalog:load"
+    assert_equal "gemini", model.provider
+
+    rev = PdfProcessingRevision.is_current
+    assert rev, "current PdfProcessingRevision should exist after catalog:load"
+    assert_equal model, rev.model
+    assert_match(/Extraction Fields/, rev.instructions)
+  end
+
+  test "PDF extraction setup is idempotent — second run reuses the same revision" do
+    CatalogLoader.load!(io: @io)
+    initial_rev = PdfProcessingRevision.is_current
+
+    CatalogLoader.load!(io: StringIO.new)
+
+    assert_equal 1, PdfProcessingRevision.where(instructions: CatalogLoader::PDF_EXTRACTION_PROMPT).count,
+      "same prompt content should not produce a duplicate revision"
+    assert_equal initial_rev.id, PdfProcessingRevision.is_current.id
   end
 
   test "auto-curates each scenario's campaign_id to the freshly-created campaign" do
