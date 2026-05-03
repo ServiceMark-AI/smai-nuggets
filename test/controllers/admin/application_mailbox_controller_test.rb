@@ -32,13 +32,17 @@ class Admin::ApplicationMailboxControllerTest < ActionDispatch::IntegrationTest
     assert_match "Disconnect", response.body
   end
 
-  test "show renders a form posting directly to /auth/google_oauth2 with the target hidden field when env is configured" do
+  test "show renders a form posting directly to /auth/google_oauth2 with target in the URL query string when env is configured" do
     sign_in @admin
     with_google_env do
       get admin_application_mailbox_url
-      assert_select "form[action='/auth/google_oauth2'][method=post]" do
-        assert_select "input[type=hidden][name=target][value=application_mailbox]"
-      end
+      # target is in the action URL, not a body field — OmniAuth's request
+      # phase captures URL query params reliably; body-only fields can be
+      # dropped depending on Rack/CSRF interactions, which previously routed
+      # the OAuth callback to the admin's per-user delegations table instead
+      # of the singleton ApplicationMailbox.
+      assert_select "form[action='/auth/google_oauth2?target=application_mailbox'][method=post]"
+      assert_select "input[type=hidden][name=target]", count: 0
     end
   end
 

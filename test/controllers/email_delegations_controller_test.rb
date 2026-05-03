@@ -103,4 +103,96 @@ class EmailDelegationsControllerTest < ActionDispatch::IntegrationTest
     end
     assert delegation.reload.persisted?
   end
+
+  # --- application mailbox round-trip ---
+  #
+  # The Connect / Reconnect form on admin/application_mailbox/show.html.erb
+  # tells OmniAuth where to write the resulting OAuth token via a
+  # `target=application_mailbox` URL-query-string param. OmniAuth's request
+  # phase captures URL params into the session under "omniauth.params"; the
+  # callback phase restores them into request.env. To exercise that round
+  # trip in tests we drive the request phase first (allowing GET so we
+  # bypass omniauth-rails_csrf_protection) and follow the mock redirect to
+  # the callback path.
+
+  def with_omniauth_get_allowed
+    prior = OmniAuth.config.allowed_request_methods.dup
+    OmniAuth.config.allowed_request_methods = [:get]
+    yield
+  ensure
+    OmniAuth.config.allowed_request_methods = prior
+  end
+
+  test "round-trip with target=application_mailbox writes the singleton ApplicationMailbox when the user is admin" do
+    admin = users(:admin)
+    sign_in admin
+
+    with_omniauth_get_allowed do
+      assert_no_difference -> { admin.email_delegations.count } do
+        assert_difference "ApplicationMailbox.count", 1 do
+          get "/auth/google_oauth2?target=application_mailbox"
+          follow_redirect! # mock_request_call → /auth/google_oauth2/callback
+        end
+      end
+    end
+
+    mailbox = ApplicationMailbox.first
+    assert_equal "owner@example.com", mailbox.email
+    assert_equal "access-token-abc", mailbox.access_token
+    assert_equal "refresh-token-xyz", mailbox.refresh_token
+    assert_includes mailbox.scopes, "gmail.send"
+    assert_redirected_to admin_application_mailbox_path
+    follow_redirect!
+    assert_match(/Application mailbox connected/i, response.body)
+  end
+
+  test "round-trip updates the existing ApplicationMailbox rather than duplicating" do
+    admin = users(:admin)
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "old@example.com", access_token: "old")
+    sign_in admin
+
+    with_omniauth_get_allowed do
+      assert_no_difference "ApplicationMailbox.count" do
+        get "/auth/google_oauth2?target=application_mailbox"
+        follow_redirect!
+      end
+    end
+
+    mailbox = ApplicationMailbox.first
+    assert_equal "owner@example.com", mailbox.email
+    assert_equal "access-token-abc", mailbox.access_token
+  end
+
+  test "round-trip with target=application_mailbox refuses non-admin users (no token written anywhere)" do
+    sign_in @user # tenant user, not admin
+
+    with_omniauth_get_allowed do
+      assert_no_difference -> { @user.email_delegations.count } do
+        assert_no_difference "ApplicationMailbox.count" do
+          get "/auth/google_oauth2?target=application_mailbox"
+          follow_redirect!
+        end
+      end
+    end
+
+    assert_redirected_to root_path
+    follow_redirect!
+    assert_match(/Only an admin/i, response.body)
+  end
+
+  test "round-trip without target falls back to the per-user delegation path even for an admin" do
+    admin = users(:admin)
+    sign_in admin
+
+    with_omniauth_get_allowed do
+      assert_no_difference "ApplicationMailbox.count" do
+        assert_difference -> { admin.email_delegations.count }, 1 do
+          get "/auth/google_oauth2"
+          follow_redirect!
+        end
+      end
+    end
+
+    assert_redirected_to profile_path
+  end
 end

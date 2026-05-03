@@ -38,8 +38,11 @@
 
       <div class="d-flex gap-2 align-items-center">
         <% if google_oauth_configured? %>
-          <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
-            <%= f.hidden_field :target, value: "application_mailbox" %>
+          <%# target=application_mailbox is in the URL query string (not a
+              hidden body field) so OmniAuth captures it into omniauth.params
+              reliably across the OAuth round-trip — body-only params can be
+              dropped depending on Rack/CSRF interactions. %>
+          <%= form_with url: "/auth/google_oauth2?target=application_mailbox", method: :post, local: true, class: "d-inline" do |f| %>
             <%= f.submit "Reconnect", class: "btn btn-outline-primary btn-sm" %>
           <% end %>
         <% else %>
@@ -58,8 +61,7 @@
         Outbound mail will be dropped until a mailbox is connected.
       </p>
       <% if google_oauth_configured? %>
-        <%= form_with url: "/auth/google_oauth2", method: :post, local: true, class: "d-inline" do |f| %>
-          <%= f.hidden_field :target, value: "application_mailbox" %>
+        <%= form_with url: "/auth/google_oauth2?target=application_mailbox", method: :post, local: true, class: "d-inline" do |f| %>
           <%= f.submit "Connect a Google account", class: "btn btn-primary" %>
         <% end %>
       <% else %>
