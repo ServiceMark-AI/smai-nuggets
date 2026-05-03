@@ -25,6 +25,11 @@ class Invitation < ApplicationRecord
     transaction do
       user.update!(tenant: tenant) if user.tenant_id.nil?
       OrganizationalMember.find_or_create_by!(organization: organization, user: user) { |m| m.role = :member }
+      # users.is_pending defaults to true at insert; clearing it here is
+      # the only place a real user transitions from "Pending" to "Active"
+      # in the Users tables. Without this, an invited user keeps showing
+      # the Pending badge after they sign up and join the tenant.
+      user.update!(is_pending: false) if user.is_pending
       update!(accepted_at: Time.current)
     end
   end
