@@ -126,9 +126,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_difference "JobProposal.count", 1 do
       post job_proposals_url, params: { file: file }
     end
-    assert_redirected_to job_proposals_path
-
     proposal = JobProposal.order(:created_at).last
+    assert_redirected_to edit_job_proposal_path(proposal)
+    assert_match(/Confirm the details/i, flash[:notice])
     assert_equal @user, proposal.owner
     assert_equal @user, proposal.created_by_user
     assert_equal @user.tenant, proposal.tenant
@@ -303,5 +303,135 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
     assert_select "input[type=hidden][name=sort][value=?]", "proposal_value"
     assert_select "input[type=hidden][name=dir][value=?]", "asc"
+  end
+
+  # --- edit / update ---
+
+  test "edit redirects to sign-in when not signed in" do
+    get edit_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "edit returns 404 for a proposal outside the user's scope" do
+    sign_in @user
+    get edit_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "edit renders the form with editable fields when no campaign is in flight" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?][method=post]", job_proposal_path(jp)
+    assert_select "input[name='job_proposal[customer_first_name]']:not([disabled])"
+    assert_select "select[name='job_proposal[scenario_id]']:not([disabled])"
+    assert_select "input[type=submit][value=Save]"
+    assert_no_match(/in process/i, response.body)
+  end
+
+  test "edit renders read-only with a warning when a campaign instance exists" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_match(/in process/i, response.body)
+    assert_select "input[name='job_proposal[customer_first_name]'][disabled]"
+    assert_select "input[type=submit][value=Save]", count: 0
+  end
+
+  test "update redirects to sign-in when not signed in" do
+    patch job_proposal_url(job_proposals(:in_users_org)), params: { job_proposal: { customer_first_name: "X" } }
+    assert_redirected_to new_user_session_path
+  end
+
+  test "update returns 404 for a proposal outside the user's scope" do
+    sign_in @user
+    patch job_proposal_url(job_proposals(:other_tenant)),
+          params: { job_proposal: { customer_first_name: "X" } }
+    assert_response :not_found
+  end
+
+  test "update saves editable fields and launches a campaign when scenario is set" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    other_owner = User.create!(email: "assistant@example.com", password: "Password1", tenant: jp.tenant)
+    OrganizationalMember.create!(user: other_owner, organization: jp.organization, role: "member")
+
+    assert_difference "CampaignInstance.count", 1 do
+      assert_difference "CampaignStepInstance.count", 2 do  # approved_campaign has 2 steps
+        patch job_proposal_url(jp), params: { job_proposal: {
+          customer_first_name: "Edited",
+          customer_email: "edited@example.com",
+          loss_reason: "Price",
+          loss_notes: "Customer chose competitor.",
+          internal_reference: "REF-123",
+          owner_id: other_owner.id,
+          job_type_id: job_types(:one).id,
+          scenario_id: scenarios(:sewage_backup).id,
+          proposal_value: 13_500.50
+        } }
+      end
+    end
+
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/Campaign launched/i, flash[:notice])
+
+    jp.reload
+    assert_equal "Edited", jp.customer_first_name
+    assert_equal "edited@example.com", jp.customer_email
+    assert_equal "Price", jp.loss_reason
+    assert_equal "Customer chose competitor.", jp.loss_notes
+    assert_equal "REF-123", jp.internal_reference
+    assert_equal other_owner, jp.owner
+    assert_equal scenarios(:sewage_backup), jp.scenario
+    assert_equal 13_500.50, jp.proposal_value.to_f
+
+    instance = jp.campaign_instances.first
+    assert_equal campaigns(:approved_campaign), instance.campaign
+    assert instance.status_active?
+    instance.step_instances.each do |si|
+      assert si.email_delivery_status_pending?
+      assert_nil si.final_subject
+      assert_nil si.final_body
+      assert_not_nil si.planned_delivery_at
+    end
+  end
+
+  test "update without a scenario saves but does not launch a campaign" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    assert_no_difference "CampaignInstance.count" do
+      patch job_proposal_url(jp), params: { job_proposal: { customer_first_name: "Edited" } }
+    end
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/Pick a scenario/i, flash[:notice])
+    assert_equal "Edited", jp.reload.customer_first_name
+  end
+
+  test "update is idempotent — does not create a second campaign instance" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(scenario: scenarios(:sewage_backup))
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
+    assert_no_difference "CampaignInstance.count" do
+      patch job_proposal_url(jp), params: { job_proposal: { customer_first_name: "Edited" } }
+    end
+    # Locked path: rejected with 422, original value unchanged.
+    assert_response :unprocessable_content
+    assert_equal "Alice", jp.reload.customer_first_name
+  end
+
+  test "update is rejected when a campaign is in flight" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
+    patch job_proposal_url(jp), params: { job_proposal: { customer_first_name: "ShouldNotSave" } }
+    assert_response :unprocessable_content
+    assert_match(/in flight/i, response.body)
+    assert_equal "Alice", jp.reload.customer_first_name
   end
 end

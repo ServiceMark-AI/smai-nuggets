@@ -13,7 +13,7 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
   get "/auth/failure", to: "email_delegations#failure", as: :email_delegation_failure
   resources :email_delegations, only: [:destroy]
-  resources :job_proposals, only: [:index, :show, :new, :create]
+  resources :job_proposals, only: [:index, :show, :new, :create, :edit, :update]
 
   namespace :admin do
     resources :chats, only: [:index, :show]

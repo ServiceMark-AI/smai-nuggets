@@ -17,7 +17,7 @@ class Ability
     can :read, Organization, tenant_id: tenant_id, id: org_ids
     can :read, OrganizationalMember, organization_id: org_ids
     can :read, User, tenant_id: tenant_id, organizational_members: { organization_id: org_ids }
-    can :read, JobProposal, tenant_id: tenant_id, organization_id: org_ids
+    can [:read, :update], JobProposal, tenant_id: tenant_id, organization_id: org_ids
     can :read, JobType, tenant_id: tenant_id
 
     can [:read, :update], User, id: user.id

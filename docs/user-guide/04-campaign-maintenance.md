@@ -13,12 +13,13 @@
 3. Drop your PDF estimate or proposal onto the zone, or click it to pick a file from your computer. The **Upload** button enables once a file is selected.
 4. Click **Upload**.
 
-You land back on the **Job Proposals** index with the new row at the top. The system reads the PDF, fills in the customer's name, address, job description, total amount, internal reference, and the inferred job type, and starts the campaign for the matching scenario. The first email goes out on the cadence the admin set up for that campaign.
+You land on a **Confirm** page that previews everything the system pulled out of the PDF — the customer's title, name, email, and address; the job type and scenario; the proposal value; and the internal reference. Read it over and fix anything that's wrong. When you're satisfied, click **Save**. The system files the proposal and starts the campaign for the chosen scenario. The first email goes out on the cadence the admin set up for that campaign.
 
 A few practical notes:
 
-- **Give it a moment.** Reading the PDF takes a few seconds. If the new row's customer name or amount looks blank right after upload, refresh the page.
-- **Check the inferred job type.** Open the new row and confirm the **Job Type** matches the work — if extraction misread the document, the wrong campaign would start. Tell an admin if it's consistently wrong on a particular form layout.
+- **Confirm before you save.** This is the only chance to correct the data before the first email goes out. Once you save with a scenario picked, the campaign is in flight and the proposal is locked for editing.
+- **Reassigning ownership.** If you're uploading on behalf of a teammate (e.g. an assistant uploading for a project manager), use the **Owner** field on the Confirm page to point the proposal at the right person before saving.
+- **No scenario yet?** You can save without one — the proposal is filed but no campaign starts. Pick a scenario later from the proposal's edit page when you're ready (note: once a campaign is running, you can't go back and change it).
 - **Job type or scenario not activated for your tenant?** No campaign starts. The proposal is still saved, but it sits idle until your admin activates the matching job type and scenario for your tenant ([§2.4](02-tenant-onboarding.md#24-activate-job-types-and-scenarios)).
 - **Upload error?** A red banner at the top of the page explains what went wrong (e.g. unreadable file, missing tenant assignment). Fix the listed issue and try again.
 

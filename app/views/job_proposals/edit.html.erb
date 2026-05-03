@@ -1,0 +1,144 @@
+<% content_for :title, "Confirm Job Proposal" %>
+
+<%= link_to "← Back to Job Proposals", job_proposals_path, class: "small text-muted" %>
+
+<h1 class="h3 mt-2 mb-4">
+  Confirm <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
+</h1>
+
+<% if @campaign_in_flight %>
+  <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="flex-shrink-0 mt-1" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+    </svg>
+    <div>
+      <strong>This campaign is in process.</strong>
+      You can't edit the proposal while the campaign is running. If a delivery problem requires fixing the customer's email and restarting the campaign, ask an admin — we don't yet have an in-product way to handle that case.
+    </div>
+  </div>
+<% end %>
+
+<%= form_with model: @job_proposal, url: job_proposal_path(@job_proposal), method: :patch, local: true do |f| %>
+  <% if @job_proposal.errors.any? %>
+    <div class="alert alert-danger">
+      <strong>Please fix the following:</strong>
+      <ul class="mb-0">
+        <% @job_proposal.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Customer</h2></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-2">
+          <%= f.label :customer_title, "Title", class: "form-label" %>
+          <%= f.text_field :customer_title, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-5">
+          <%= f.label :customer_first_name, "First name", class: "form-label" %>
+          <%= f.text_field :customer_first_name, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-5">
+          <%= f.label :customer_last_name, "Last name", class: "form-label" %>
+          <%= f.text_field :customer_last_name, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-12">
+          <%= f.label :customer_email, "Email", class: "form-label" %>
+          <%= f.email_field :customer_email, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-3">
+          <%= f.label :customer_house_number, "House #", class: "form-label" %>
+          <%= f.text_field :customer_house_number, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-9">
+          <%= f.label :customer_street, "Street", class: "form-label" %>
+          <%= f.text_field :customer_street, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :customer_city, "City", class: "form-label" %>
+          <%= f.text_field :customer_city, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-2">
+          <%= f.label :customer_state, "State", class: "form-label" %>
+          <%= f.text_field :customer_state, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-4">
+          <%= f.label :customer_zip, "Zip", class: "form-label" %>
+          <%= f.text_field :customer_zip, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Job</h2></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= f.label :job_type_id, "Job type", class: "form-label" %>
+          <%= f.collection_select :job_type_id, @job_type_options, :id, :name,
+                { include_blank: "— None —" },
+                class: "form-select", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :scenario_id, "Scenario", class: "form-label" %>
+          <%= f.collection_select :scenario_id, @scenario_options, :id, ->(s) { "#{s.job_type.name} — #{s.short_name}" },
+                { include_blank: "— None —" },
+                class: "form-select", disabled: @campaign_in_flight %>
+          <div class="form-text">A campaign launches when the proposal is saved with a scenario whose campaign is approved.</div>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :proposal_value, "Proposal value", class: "form-label" %>
+          <%= f.number_field :proposal_value, step: 0.01, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :internal_reference, "Internal reference", class: "form-label" %>
+          <%= f.text_field :internal_reference, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Loss notes</h2></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= f.label :loss_reason, "Loss reason", class: "form-label" %>
+          <%= f.text_field :loss_reason, class: "form-control", disabled: @campaign_in_flight,
+                placeholder: "e.g. Price, Timing, No response" %>
+        </div>
+        <div class="col-md-12">
+          <%= f.label :loss_notes, "Loss notes", class: "form-label" %>
+          <%= f.text_area :loss_notes, rows: 3, class: "form-control", disabled: @campaign_in_flight %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header"><h2 class="h5 mb-0">Ownership</h2></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= f.label :owner_id, "Owner", class: "form-label" %>
+          <%= f.collection_select :owner_id, @owner_options, :id, :email,
+                {},
+                class: "form-select", disabled: @campaign_in_flight %>
+          <div class="form-text">An assistant uploading on behalf of a teammate can reassign the proposal here.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-end gap-2">
+    <%= link_to "Cancel", job_proposal_path(@job_proposal), class: "btn btn-outline-secondary" %>
+    <% unless @campaign_in_flight %>
+      <%= f.submit "Save", class: "btn btn-primary" %>
+    <% end %>
+  </div>
+<% end %>
