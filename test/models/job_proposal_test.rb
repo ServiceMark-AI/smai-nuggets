@@ -103,6 +103,55 @@ class JobProposalTest < ActiveSupport::TestCase
     assert_nil @jp.gmail_thread_id
   end
 
+  # --- campaign_readiness_blockers ---
+
+  test "campaign_ready? is true when every required field has a value" do
+    @jp.update!(
+      scenario: scenarios(:sewage_backup),
+      customer_email: "x@example.com",
+      customer_first_name: "Alice",
+      customer_house_number: "1",
+      customer_street: "Oak"
+    )
+    assert @jp.campaign_ready?
+    assert_empty @jp.campaign_readiness_blockers
+  end
+
+  test "campaign_readiness_blockers reports each blank field with an operator-facing reason" do
+    @jp.update!(
+      scenario: nil,
+      customer_email: nil,
+      customer_first_name: nil,
+      customer_house_number: nil,
+      customer_street: nil
+    )
+    refute @jp.campaign_ready?
+    blockers = @jp.campaign_readiness_blockers
+    assert_equal 5, blockers.size
+    blockers.each do |b|
+      assert_kind_of Symbol, b[:field]
+      assert b[:reason].present?
+    end
+    fields = blockers.map { |b| b[:field] }
+    assert_includes fields, :scenario_id
+    assert_includes fields, :customer_email
+  end
+
+  test "campaign_readiness_blockers omits fields that have any non-blank value" do
+    @jp.update!(
+      scenario: scenarios(:sewage_backup),
+      customer_email: "x@example.com",
+      customer_first_name: "Alice",
+      customer_house_number: nil,
+      customer_street: nil
+    )
+    fields = @jp.campaign_readiness_blockers.map { |b| b[:field] }
+    refute_includes fields, :scenario_id
+    refute_includes fields, :customer_email
+    assert_includes fields, :customer_house_number
+    assert_includes fields, :customer_street
+  end
+
   test "gmail_thread_id returns the most recently updated step instance's thread id" do
     instance = CampaignInstance.create!(host: @jp, campaign: campaigns(:approved_campaign), status: :active)
     older = CampaignStepInstance.create!(

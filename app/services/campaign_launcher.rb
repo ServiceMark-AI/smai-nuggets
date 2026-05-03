@@ -1,16 +1,24 @@
 # Creates a CampaignInstance + per-step CampaignStepInstances for a JobProposal,
 # anchored to the moment of launch. Idempotent: if any CampaignInstance already
-# exists for the proposal it does nothing and returns nil.
+# exists for the proposal it does nothing.
 #
 # Step instances are created with email_delivery_status `pending` and with
 # final_subject / final_body left nil — at send time, CampaignSweepJob renders
 # the live campaign step templates through MailGenerator and writes the
 # rendered copy back to the step instance after a successful send.
 #
-# Returns the created CampaignInstance, or nil when no instance was created
-# (already running, no scenario set, or no campaign attached to the scenario).
+# Result#reason values:
+#   :launched         — instance + steps created
+#   :already_running  — proposal already has a CampaignInstance
+#   :not_ready        — required proposal fields are blank; result.blockers
+#                       lists which (see JobProposal#campaign_readiness_blockers)
+#   :no_campaign      — proposal's scenario has no campaign attached
 class CampaignLauncher
-  Result = Data.define(:instance, :reason)
+  Result = Struct.new(:instance, :reason, :blockers, keyword_init: true) do
+    def initialize(instance: nil, reason:, blockers: [])
+      super
+    end
+  end
 
   def self.launch(job_proposal)
     new(job_proposal).launch
@@ -21,13 +29,13 @@ class CampaignLauncher
   end
 
   def launch
-    return Result.new(instance: nil, reason: :already_running) if @job_proposal.campaign_instances.exists?
+    return Result.new(reason: :already_running) if @job_proposal.campaign_instances.exists?
 
-    scenario = @job_proposal.scenario
-    return Result.new(instance: nil, reason: :no_scenario) unless scenario
+    blockers = @job_proposal.campaign_readiness_blockers
+    return Result.new(reason: :not_ready, blockers: blockers) if blockers.any?
 
-    campaign = scenario.campaign
-    return Result.new(instance: nil, reason: :no_campaign) unless campaign
+    campaign = @job_proposal.scenario.campaign
+    return Result.new(reason: :no_campaign) unless campaign
 
     instance = nil
     CampaignInstance.transaction do

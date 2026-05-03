@@ -41,6 +41,7 @@
         <div class="col-md-5">
           <%= f.label :customer_first_name, "First name", class: "form-label" %>
           <%= f.text_field :customer_first_name, class: "form-control", disabled: @campaign_in_flight %>
+          <%= readiness_warning_for(@job_proposal, :customer_first_name) %>
         </div>
         <div class="col-md-5">
           <%= f.label :customer_last_name, "Last name", class: "form-label" %>
@@ -49,14 +50,17 @@
         <div class="col-md-12">
           <%= f.label :customer_email, "Email", class: "form-label" %>
           <%= f.email_field :customer_email, class: "form-control", disabled: @campaign_in_flight %>
+          <%= readiness_warning_for(@job_proposal, :customer_email) %>
         </div>
         <div class="col-md-3">
           <%= f.label :customer_house_number, "House #", class: "form-label" %>
           <%= f.text_field :customer_house_number, class: "form-control", disabled: @campaign_in_flight %>
+          <%= readiness_warning_for(@job_proposal, :customer_house_number) %>
         </div>
         <div class="col-md-9">
           <%= f.label :customer_street, "Street", class: "form-label" %>
           <%= f.text_field :customer_street, class: "form-control", disabled: @campaign_in_flight %>
+          <%= readiness_warning_for(@job_proposal, :customer_street) %>
         </div>
         <div class="col-md-6">
           <%= f.label :customer_city, "City", class: "form-label" %>
@@ -90,6 +94,7 @@
                 { include_blank: "— None —" },
                 class: "form-select", disabled: @campaign_in_flight %>
           <div class="form-text">A campaign launches when the proposal is saved with a scenario whose campaign is approved.</div>
+          <%= readiness_warning_for(@job_proposal, :scenario_id) %>
         </div>
         <div class="col-md-6">
           <%= f.label :proposal_value, "Proposal value", class: "form-label" %>

@@ -4,11 +4,18 @@ class CampaignLauncherTest < ActiveSupport::TestCase
   setup do
     @proposal = job_proposals(:in_users_org)
     @scenario = scenarios(:sewage_backup)  # campaign: approved_campaign (2 steps)
+    # Set readiness fields so launch passes by default; tests that
+    # exercise readiness blockers blank out specific fields.
+    @proposal.update!(
+      scenario:              @scenario,
+      customer_email:        "alice@example.com",
+      customer_first_name:   "Alice",
+      customer_house_number: "123",
+      customer_street:       "Oak Ridge"
+    )
   end
 
   test "launches an active CampaignInstance with one step instance per step" do
-    @proposal.update!(scenario: @scenario)
-
     result = nil
     assert_difference "CampaignInstance.count", 1 do
       assert_difference "CampaignStepInstance.count", 2 do
@@ -24,20 +31,19 @@ class CampaignLauncherTest < ActiveSupport::TestCase
   end
 
   test "launching marks the proposal as in_campaign" do
-    @proposal.update!(scenario: @scenario, pipeline_stage: nil)
+    @proposal.update!(pipeline_stage: nil)
     CampaignLauncher.launch(@proposal)
     assert_equal "in_campaign", @proposal.reload.pipeline_stage
   end
 
   test "no-op launch leaves the existing pipeline_stage alone" do
-    @proposal.update!(scenario: @scenario, pipeline_stage: "won")
+    @proposal.update!(pipeline_stage: "won")
     CampaignInstance.create!(host: @proposal, campaign: campaigns(:approved_campaign), status: :active)
     CampaignLauncher.launch(@proposal)
     assert_equal "won", @proposal.reload.pipeline_stage
   end
 
   test "step instances are pending with no rendered copy and offset planned_delivery_at" do
-    @proposal.update!(scenario: @scenario)
     freeze_time = Time.zone.parse("2026-05-03T12:00:00Z")
 
     travel_to freeze_time do
@@ -57,7 +63,6 @@ class CampaignLauncherTest < ActiveSupport::TestCase
   end
 
   test "no-ops when an instance already exists" do
-    @proposal.update!(scenario: @scenario)
     CampaignInstance.create!(host: @proposal, campaign: campaigns(:approved_campaign), status: :active)
 
     assert_no_difference "CampaignInstance.count" do
@@ -67,11 +72,17 @@ class CampaignLauncherTest < ActiveSupport::TestCase
     end
   end
 
-  test "no-ops when the proposal has no scenario" do
-    @proposal.update!(scenario: nil)
+  test "returns :not_ready with a blockers list when readiness fields are blank" do
+    @proposal.update!(scenario: nil, customer_email: nil)
     assert_no_difference "CampaignInstance.count" do
       result = CampaignLauncher.launch(@proposal)
-      assert_equal :no_scenario, result.reason
+      assert_equal :not_ready, result.reason
+      blocker_fields = result.blockers.map { |b| b[:field] }
+      assert_includes blocker_fields, :scenario_id
+      assert_includes blocker_fields, :customer_email
+      result.blockers.each do |b|
+        assert b[:reason].present?, "every blocker should carry an operator-facing reason"
+      end
     end
   end
 

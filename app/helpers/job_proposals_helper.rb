@@ -61,6 +61,24 @@ module JobProposalsHelper
     "https://mail.google.com/mail/u/0/#all/#{thread_id}"
   end
 
+  # Renders a small "Needed for the campaign to start: ..." caption under
+  # an edit-form input when the corresponding field is blank and the
+  # proposal isn't already in flight. Returns nil (renders nothing) when
+  # the field has a value, so the form stays clean once everything's
+  # filled in.
+  def readiness_warning_for(job_proposal, field)
+    return nil if job_proposal.campaign_instances.exists? # in flight, no need to nag
+    blocker = job_proposal.campaign_readiness_blockers.find { |b| b[:field] == field }
+    return nil unless blocker
+
+    content_tag(:div, class: "form-text text-warning") do
+      safe_join([
+        content_tag(:strong, "Needed for the campaign to start: "),
+        blocker[:reason]
+      ])
+    end
+  end
+
   # Operator-readable description of where a JobProposalAttachment's file
   # actually lives. Active Storage decouples blob from backend, but the
   # operator on the proposal show page needs a "I can find this file

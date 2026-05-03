@@ -160,8 +160,14 @@
     </div>
   <% else %>
     <div class="card-body">
-      <% if @job_proposal.scenario.nil? %>
-        <p class="mb-2">No campaign has launched for this proposal — it doesn't have a scenario set yet.</p>
+      <% blockers = @job_proposal.campaign_readiness_blockers %>
+      <% if blockers.any? %>
+        <p class="mb-2">No campaign has launched for this proposal — required fields are still blank:</p>
+        <ul class="mb-3">
+          <% blockers.each do |b| %>
+            <li><strong><%= b[:field].to_s.humanize %></strong> — <%= b[:reason] %></li>
+          <% end %>
+        </ul>
         <%= link_to "Edit proposal", edit_job_proposal_path(@job_proposal), class: "btn btn-sm btn-primary" %>
       <% elsif @job_proposal.scenario.campaign.nil? %>
         <p class="mb-0">

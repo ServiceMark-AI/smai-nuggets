@@ -15,6 +15,34 @@ class JobProposal < ApplicationRecord
        { in_campaign: "in_campaign", won: "won", lost: "lost" },
        prefix: true
 
+  # Fields whose presence is required before a campaign can launch. The
+  # operator-facing reason is shown both inline on the edit page (so the
+  # author knows why the field matters) and on the proposal show page's
+  # Campaign card when launch is blocked. Keep this in sync with the merge
+  # fields actually consumed by MailGenerator — anything used in a
+  # template's body or subject should appear here so a missing value can't
+  # silently render as "" at send time.
+  CAMPAIGN_READINESS_FIELDS = {
+    scenario_id:           "Picks which campaign runs for this proposal.",
+    customer_email:        "Recipient address for the campaign emails — without it there's nowhere to send.",
+    customer_first_name:   "Used to address the customer in email templates ({{customer_first_name}}).",
+    customer_house_number: "Combined with the street to form the property address shown in email subjects and bodies ({{property_address_short}}).",
+    customer_street:       "Combined with the house number to form the property address shown in email subjects and bodies ({{property_address_short}})."
+  }.freeze
+
+  # Returns an array of { field:, reason: } hashes for every required
+  # field currently blank on the proposal. Empty array means the proposal
+  # is ready for the campaign to start.
+  def campaign_readiness_blockers
+    CAMPAIGN_READINESS_FIELDS.filter_map do |field, reason|
+      { field: field, reason: reason } if self[field].blank?
+    end
+  end
+
+  def campaign_ready?
+    campaign_readiness_blockers.empty?
+  end
+
   # Single source of truth for the next call-to-action shown on a proposal.
   # See PRD-01:172 for the underlying mapping. Any combination not listed
   # falls back to :view_job so callers always have something useful to render.

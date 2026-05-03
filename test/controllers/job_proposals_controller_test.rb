@@ -364,6 +364,8 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
         patch job_proposal_url(jp), params: { job_proposal: {
           customer_first_name: "Edited",
           customer_email: "edited@example.com",
+          customer_house_number: "100",
+          customer_street: "Test Street",
           loss_reason: "Price",
           loss_notes: "Customer chose competitor.",
           internal_reference: "REF-123",
@@ -399,14 +401,15 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "update without a scenario saves but does not launch a campaign" do
+  test "update without a scenario saves but does not launch — flash lists the gaps" do
     sign_in @user
     jp = job_proposals(:in_users_org)
     assert_no_difference "CampaignInstance.count" do
       patch job_proposal_url(jp), params: { job_proposal: { customer_first_name: "Edited" } }
     end
     assert_redirected_to job_proposal_path(jp)
-    assert_match(/Pick a scenario/i, flash[:notice])
+    assert_match(/missing/i, flash[:notice])
+    assert_match(/scenario_id/, flash[:notice])
     assert_equal "Edited", jp.reload.customer_first_name
   end
 
@@ -479,10 +482,23 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
-  test "launch_campaign creates a CampaignInstance when scenario + campaign are in place" do
+  # Helper: bring a proposal up to the readiness bar so launch isn't blocked
+  # by missing customer fields. Tests that exercise the not_ready branch
+  # explicitly blank specific fields after calling this.
+  def make_ready(jp, scenario: scenarios(:sewage_backup))
+    jp.update!(
+      scenario:              scenario,
+      customer_email:        "alice@example.com",
+      customer_first_name:   "Alice",
+      customer_house_number: "123",
+      customer_street:       "Oak Ridge"
+    )
+    jp
+  end
+
+  test "launch_campaign creates a CampaignInstance when scenario + campaign are in place and proposal is ready" do
     sign_in @user
-    jp = job_proposals(:in_users_org)
-    jp.update!(scenario: scenarios(:sewage_backup))
+    jp = make_ready(job_proposals(:in_users_org))
 
     assert_difference "CampaignInstance.count", 1 do
       post launch_campaign_job_proposal_url(jp)
@@ -493,8 +509,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "launch_campaign reports already-running on a second click" do
     sign_in @user
-    jp = job_proposals(:in_users_org)
-    jp.update!(scenario: scenarios(:sewage_backup))
+    jp = make_ready(job_proposals(:in_users_org))
     CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
 
     assert_no_difference "CampaignInstance.count" do
@@ -503,21 +518,23 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/already running/i, flash[:notice].to_s)
   end
 
-  test "launch_campaign refuses with a clear message when no scenario is set" do
+  test "launch_campaign refuses and lists missing fields when proposal isn't ready" do
     sign_in @user
-    jp = job_proposals(:in_users_org)
-    jp.update!(scenario: nil)
+    jp = make_ready(job_proposals(:in_users_org))
+    jp.update!(customer_email: nil, customer_first_name: nil)
 
     assert_no_difference "CampaignInstance.count" do
       post launch_campaign_job_proposal_url(jp)
     end
-    assert_match(/Pick a scenario/i, flash[:alert].to_s)
+    assert_redirected_to edit_job_proposal_path(jp)
+    assert_match(/missing/i, flash[:alert].to_s)
+    assert_match(/customer_email/, flash[:alert].to_s)
+    assert_match(/customer_first_name/, flash[:alert].to_s)
   end
 
   test "launch_campaign refuses when scenario has no attached campaign" do
     sign_in @user
-    jp = job_proposals(:in_users_org)
-    jp.update!(scenario: scenarios(:clean_water)) # fixture: campaign: nil
+    jp = make_ready(job_proposals(:in_users_org), scenario: scenarios(:clean_water)) # fixture: campaign: nil
 
     assert_no_difference "CampaignInstance.count" do
       post launch_campaign_job_proposal_url(jp)

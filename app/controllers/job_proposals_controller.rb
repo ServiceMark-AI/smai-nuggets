@@ -113,9 +113,10 @@ class JobProposalsController < ApplicationController
       redirect_to job_proposal_path(@job_proposal), notice: "Campaign launched."
     when :already_running
       redirect_to job_proposal_path(@job_proposal), notice: "Campaign is already running."
-    when :no_scenario
-      redirect_to job_proposal_path(@job_proposal),
-        alert: "Pick a scenario for this proposal first, then launch."
+    when :not_ready
+      missing = result.blockers.map { |b| b[:field] }.join(", ")
+      redirect_to edit_job_proposal_path(@job_proposal),
+        alert: "Can't launch yet — fill in the missing fields first: #{missing}."
     when :no_campaign
       redirect_to job_proposal_path(@job_proposal),
         alert: "The selected scenario has no campaign attached yet — ask an admin to pick one on the scenario page."
@@ -162,10 +163,12 @@ class JobProposalsController < ApplicationController
 
   def launch_notice(result)
     case result.reason
-    when :launched      then "Proposal saved. Campaign launched."
+    when :launched        then "Proposal saved. Campaign launched."
     when :already_running then "Proposal saved."
-    when :no_scenario   then "Proposal saved. Pick a scenario to launch a campaign."
-    when :no_campaign   then "Proposal saved. The selected scenario has no campaign attached yet — ask an admin."
+    when :not_ready
+      missing = result.blockers.map { |b| b[:field] }.join(", ")
+      "Proposal saved, but the campaign hasn't started yet — still missing: #{missing}."
+    when :no_campaign     then "Proposal saved. The selected scenario has no campaign attached yet — ask an admin."
     else "Proposal saved."
     end
   end
