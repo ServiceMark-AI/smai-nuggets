@@ -100,6 +100,8 @@ heroku addons:create heroku-redis:mini -a <app-name>
 
 Sidekiq reads `REDIS_URL` directly from the environment; no extra wiring needed beyond the add-on. The Sidekiq cron schedule lives in `config/sidekiq_cron.yml` and is loaded by `config/initializers/sidekiq.rb` on worker boot — `CampaignSweepJob` runs every five minutes and is the heartbeat for outbound sends.
 
+> **Heroku Key-Value Store TLS.** The add-on sets `REDIS_URL=rediss://...` with a self-signed certificate. The Ruby Redis client rejects this by default with `RedisClient::CannotConnectError: certificate verify failed (self-signed certificate in certificate chain)`, which surfaces from `/sidekiq` and from any job enqueue. `config/initializers/sidekiq.rb` and `config/cable.yml` both apply `ssl_params: { verify_mode: OpenSSL::SSL::VERIFY_NONE }` when the URL is `rediss://` — this is the documented Heroku workaround. Local `redis://localhost` connections stay strict.
+
 ## 0.4 Set required config vars
 
 The app's `ApplicationHelper::REQUIRED_ENV_VARS` is the authoritative list — missing values are surfaced as a banner inside the app on every admin screen. Mirror it to Heroku:

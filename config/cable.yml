@@ -4,7 +4,15 @@ development:
 test:
   adapter: test
 
+<% prod_redis_url = ENV.fetch("REDIS_URL") { "redis://localhost:6379/1" } %>
 production:
   adapter: redis
-  url: <%= ENV.fetch("REDIS_URL") { "redis://localhost:6379/1" } %>
+  url: <%= prod_redis_url %>
   channel_prefix: app_production
+<% if prod_redis_url.start_with?("rediss://") %>
+  ssl_params:
+    # Heroku Key-Value Store presents a self-signed cert; the Ruby Redis
+    # client refuses it without VERIFY_NONE. See config/initializers/sidekiq.rb
+    # for the matching Sidekiq config.
+    verify_mode: <%= OpenSSL::SSL::VERIFY_NONE %>
+<% end %>
