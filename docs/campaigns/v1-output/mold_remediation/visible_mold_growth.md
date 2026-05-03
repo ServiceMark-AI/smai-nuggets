@@ -3,7 +3,7 @@
 **Sub-type:** Mold Remediation (`mold_remediation`)
 **Scenario:** Visible mold growth (`visible_mold_growth`)
 **Industry classification (author-facing only):** IICRC S520 Mold Remediation
-**Authoring hypothesis:** Variant assumes visible-mold-growth customers convert when the testing-and-protocol sequence is framed as normal regulated process (not runaround), with stay-hot presence at Day 7 protocol-writing handoff being the load-bearing conversion factor, and an explicit state-licensing reference (via `{state}` merge field) supplying credibility without regulatory acronym specifics.
+**Authoring hypothesis:** Variant assumes visible-mold-growth customers convert when the testing-and-protocol sequence is framed as normal regulated process (not runaround), with stay-hot presence at Day 7 protocol-writing handoff being the load-bearing conversion factor, and an explicit state-licensing reference (via `{{state}}` merge field) supplying credibility without regulatory acronym specifics.
 **Cadence:** 5 steps over 18 days
 **Authored:** 2026-04-28
 **Master prompt version:** v0.8
@@ -25,15 +25,15 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Mold work at {property_address_short}`
+`Mold work at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the mold work at {property_address_short} is attached, based on what we walked through at the property. It covers the scope we discussed and what the next step looks like.
+The proposal for the mold work at {{property_address_short}} is attached, based on what we walked through at the property. It covers the scope we discussed and what the next step looks like.
 
-One thing worth flagging up front, because most homeowners don't know it: in {state}, the testing piece and the remediation piece have to be done by separate companies. A licensed environmental consultant tests the area, identifies what's there, and writes a protocol that defines the scope of work. We then do the remediation to that protocol. We're licensed in {state} to do the remediation side, and we work with consultants on these jobs all the time, so we can get you connected with one if you don't already have someone.
+One thing worth flagging up front, because most homeowners don't know it: in {{state}}, the testing piece and the remediation piece have to be done by separate companies. A licensed environmental consultant tests the area, identifies what's there, and writes a protocol that defines the scope of work. We then do the remediation to that protocol. We're licensed in {{state}} to do the remediation side, and we work with consultants on these jobs all the time, so we can get you connected with one if you don't already have someone.
 
 Take your time reviewing the proposal. If you have questions about the scope, the sequence, or how the testing piece works, give me a call or reply here and we can walk through it. Happy to do it by phone or in person if that's easier. When you're ready to move forward, just let me know and we'll get the testing scheduled.
 
@@ -41,9 +41,9 @@ Take your time reviewing the proposal. If you have questions about the scope, th
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Testing and the mold work at {property_address_short}`
+`Testing and the mold work at {{property_address_short}}`
 
 **Body:**
 
@@ -51,15 +51,15 @@ The testing-and-protocol piece is the part that throws most homeowners. The shor
 
 That protocol is what defines a successful job. We execute to it, and the consultant comes back at the end to verify the area cleared. It's structured this way deliberately because the company doing the testing can't also do the remediation, which is what makes the result independent.
 
-If you'd like a referral to a consultant we've worked with on jobs at {property_address_short}'s area, I can send a couple of names. If you've already lined someone up, we can coordinate on timing once the protocol is in hand. Easiest to talk through this on the phone if you have questions.
+If you'd like a referral to a consultant we've worked with on jobs at {{property_address_short}}'s area, I can send a couple of names. If you've already lined someone up, we can coordinate on timing once the protocol is in hand. Easiest to talk through this on the phone if you have questions.
 
 ---
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Where things stand on the mold work at {property_address_short}`
+`Where things stand on the mold work at {{property_address_short}}`
 
 **Body:**
 
@@ -73,9 +73,9 @@ If something has come up on the testing side or the protocol is delayed, give me
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`The protocol step on the mold work at {property_address_short}`
+`The protocol step on the mold work at {{property_address_short}}`
 
 **Body:**
 
@@ -89,15 +89,15 @@ Either way, if there's anything I can do to help move this forward, give me a ca
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the mold work at {property_address_short}`
+`Following up on the mold work at {{property_address_short}}`
 
 **Body:**
 
 Several weeks on from when we first walked through this, so things have likely either gotten handled or moved in another direction. Either of those is a fine outcome.
 
-The reason I'm reaching back out: mold situations sometimes settle for a while and then come back, especially when the underlying moisture source wasn't fully addressed or when the scope of removal turned out to be smaller than what was actually needed. If anything at {property_address_short} has come back, or if the situation never got fully resolved, that conversation is still worth having.
+The reason I'm reaching back out: mold situations sometimes settle for a while and then come back, especially when the underlying moisture source wasn't fully addressed or when the scope of removal turned out to be smaller than what was actually needed. If anything at {{property_address_short}} has come back, or if the situation never got fully resolved, that conversation is still worth having.
 
 If something comes up, I'm here.
 
@@ -110,7 +110,7 @@ If something comes up, I'm here.
 | R1 — Sounds like someone who knows the work | true | Specifics on testing turnaround, protocol mechanics, remediation/assessment separation, scheduling reality after protocol arrives, and the late-stage failure mode where moisture source was not addressed. Reads as someone who has been on multiple mold jobs in regulated states. |
 | R2 — Avoids marketing automation language | true | No banned phrases anywhere in body or subject prose. Mid-cadence steps open with substance (the testing piece, the week-mark observation, the time gap, the situational acknowledgment in Step 5). No "Wanted to circle back," "Checking back in," "Following up on" as openings, "Just checking in," or similar transitional patterns. Step 5's subject uses "Following up on" as the soft-return baseline framing per the master prompt's documented Step 6 water-mitigation example pattern. |
 | R3 — Scenario-specific | true | Visible-mold-growth scenario is load-bearing throughout: customer has seen something specific, the testing-and-protocol sequence is the dominant operational reality, the voice is calm-and-knowledgeable per the anchor. Could not swap with structural_mold (different scope framing) or post_water_mold_discovered (different opening posture) without rewriting. |
-| R4 — No industry jargon | true | No IICRC, S520, TDLR, EPA, OSHA, PPE, HEPA, CIH, "Category" / "Class" / "Condition" references. State-licensing reference in Step 1 ("we're licensed in {state}") uses the SPEC-11 v2.0.2 `{state}` merge field, resolves at render time to the location's state name (Texas, Idaho, Nevada, etc.), and matches the calibrated R4 mold-remediation rule's first permitted form. Portable across all USDS locations and any future tenant. "Remediation" used sparingly and paired with "removal" / "the work." |
+| R4 — No industry jargon | true | No IICRC, S520, TDLR, EPA, OSHA, PPE, HEPA, CIH, "Category" / "Class" / "Condition" references. State-licensing reference in Step 1 ("we're licensed in {{state}}") uses the SPEC-11 v2.0.2 `{{state}}` merge field, resolves at render time to the location's state name (Texas, Idaho, Nevada, etc.), and matches the calibrated R4 mold-remediation rule's first permitted form. Portable across all USDS locations and any future tenant. "Remediation" used sparingly and paired with "removal" / "the work." |
 | R5 — Trust contract preserved | true | No health claims, no biological growth language, no air quality framing, no pipeline-management language, no false urgency, no insurance procedural advice, no guarantees of outcome. Late-cadence steps (4 and 5) center on customer situation (protocol delays, moisture source, scope coming back) not on operator pipeline. |
 | R6 — Pulls toward onsite | true | Step 1 CTA is decision-oriented (proposal already exists). Mid- and late-cadence steps offer phone or in-person walkthroughs without trying to fully resolve protocol questions, scope questions, or coverage in writing. Step 4 explicitly defers protocol interpretation to a phone call. |
 
@@ -123,7 +123,7 @@ If something comes up, I'm here.
 
 **Per-step purposes:**
 
-- Step 1: Deliver the proposal from the prior walkthrough; orient the customer to the testing-and-protocol sequence as normal regulated process; explicit state-licensing reference via {state} merge field; decision-oriented CTA.
+- Step 1: Deliver the proposal from the prior walkthrough; orient the customer to the testing-and-protocol sequence as normal regulated process; explicit state-licensing reference via {{state}} merge field; decision-oriented CTA.
 - Step 2: Help the customer navigate the testing-vs-remediation distinction; explain what the consultant does and what we do; offer referral support.
 - Step 3: Stay-hot through the protocol-writing handoff; signal we are ready to act the moment the protocol is in hand; explicitly address the gap where deals die.
 - Step 4: Begin tone shift; offer help interpreting the protocol regardless of who they use for remediation; back off the push.

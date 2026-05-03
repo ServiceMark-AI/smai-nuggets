@@ -24,13 +24,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Odor work at {property_address_short}`
+`Odor work at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the odor work at {property_address_short} is attached, based on what we walked through at the property. It covers what we'd do to track down the source and what the air treatment looks like once that part is handled.
+The proposal for the odor work at {{property_address_short}} is attached, based on what we walked through at the property. It covers what we'd do to track down the source and what the air treatment looks like once that part is handled.
 
 The reason we work in that order matters for what you're paying for. Most odor problems don't get solved by treating the air alone. If the source is still in the space, even a well-deodorized room is going to start smelling again within a few days. So the proposal reflects both halves: find and remove what's causing it, then treat what's left in the air.
 
@@ -40,9 +40,9 @@ Take your time reviewing it. If you have questions or want to talk through any p
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Source-then-air at {property_address_short}`
+`Source-then-air at {{property_address_short}}`
 
 **Body:**
 
@@ -56,9 +56,9 @@ If you want to walk through any of the scoping questions before you decide, easi
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Scheduling the odor work at {property_address_short}`
+`Scheduling the odor work at {{property_address_short}}`
 
 **Body:**
 
@@ -72,9 +72,9 @@ If you want to move forward, reply here or give me a call and we'll get a crew o
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the odor work at {property_address_short}`
+`Following up on the odor work at {{property_address_short}}`
 
 **Body:**
 

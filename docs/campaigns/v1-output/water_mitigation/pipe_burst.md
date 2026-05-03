@@ -26,19 +26,19 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Water cleanup at {property_address_short}`
+`Water cleanup at {{property_address_short}}`
 
-**Body:**The proposal for the water cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, and the timeline we discussed.For most pipe burst jobs at this scope, the equipment runs 3 to 5 days, sometimes longer when there's hardwood, dense materials with heavy absorption, or building systems where the water migrated further than it looked at first. The proposal reflects what we expect to see based on the walkthrough; once equipment is reading actual moisture levels, we'll keep you in the loop on anything that shifts.Take your time reviewing it. If you have questions or want to walk through any part of the proposal, give me a call or reply here. Happy to do it by phone or in person if it helps. When you're ready to move forward, let me know and we'll get a crew on the schedule.
+**Body:**The proposal for the water cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, and the timeline we discussed.For most pipe burst jobs at this scope, the equipment runs 3 to 5 days, sometimes longer when there's hardwood, dense materials with heavy absorption, or building systems where the water migrated further than it looked at first. The proposal reflects what we expect to see based on the walkthrough; once equipment is reading actual moisture levels, we'll keep you in the loop on anything that shifts.Take your time reviewing it. If you have questions or want to walk through any part of the proposal, give me a call or reply here. Happy to do it by phone or in person if it helps. When you're ready to move forward, let me know and we'll get a crew on the schedule.
 
 ---
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Drying timeline at {property_address_short}`
+`Drying timeline at {{property_address_short}}`
 
 **Body:**Most of the actual drying work happens passively once the equipment is in place. Air movers and dehumidifiers run continuously for several days, pulling moisture out of materials and dropping humidity in the affected spaces. The crew comes back to take readings, adjust placement, and pull equipment as rooms dry down. You don't need to be home for any of that beyond the initial setup.The first 24 hours are the most active on our side: setup, demo of any unsalvageable materials, getting baseline moisture readings written down. After that the work is mostly equipment running and us checking in.If you want to walk through what the first day actually looks like, give me a call. Often easier to talk through than to read.
 
@@ -46,9 +46,9 @@
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Insurance and the water cleanup at {property_address_short}`
+`Insurance and the water cleanup at {{property_address_short}}`
 
 **Body:**Pipe burst is the cleanest claim type in water damage. Sudden and accidental discharge from internal plumbing is the scenario most homeowner policies are written to cover, and adjusters generally work mitigation invoices through without much friction.The piece worth knowing is that most policies have language requiring the policyholder to mitigate the damage in a timely way once a loss happens. Waiting several days to start drying gives the carrier room to argue the loss got bigger than it had to, which can create real coverage problems on the claim side. Showing that mitigation started promptly is the cleanest way to keep the claim straightforward.If you're paying out of pocket or trying to size the decision before committing, the same logic applies in a different way. Materials that are wet now are still in the range where drying with equipment is the answer; materials that have been sitting since last night will continue shifting toward needing replacement, which is a different scope. Happy to talk through any of this on the phone if it would help.
 
@@ -56,9 +56,9 @@
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`A day in on the water at {property_address_short}`
+`A day in on the water at {{property_address_short}}`
 
 **Body:**About a day past the loss now, the drying picture changes. Materials that were within range of drying with equipment yesterday are right at the edge of that range today. Subfloors and the lower few inches of drywall are the usual tells; once those have been wet for a full day, the call between dry-in-place and remove-and-replace gets harder to make from the surface.What the proposal covered was the scope we expected based on what we saw at the walkthrough. If we get equipment running today, that scope holds for most of the affected materials. If we're still here tomorrow having this conversation, the proposal likely shifts toward more replacement and less drying, and the cleanup runs longer.If anything has come up on your side that's slowing the decision, walk me through it. Easier to address questions live than over email. Reply here or give me a call when it's convenient.
 
@@ -66,9 +66,9 @@
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`The window on water cleanup at {property_address_short}`
+`The window on water cleanup at {{property_address_short}}`
 
 **Body:**About two days past the loss now, we're at the edge of the window where moving fast still meaningfully changes the outcome on this job. Materials that have been sitting wet for two days are mostly past the point where drying with equipment alone can save them. The work shifts toward removing and replacing what didn't dry, your floors and walls take more damage that's harder to undo, and on the insurance side, carriers have more room to question whether the additional damage had to happen.If you want to move forward, reply here or give me a call and we'll get a crew on the schedule. If you have questions you'd rather talk through live, give me a call when it's convenient and we'll work through them together.
 
@@ -76,11 +76,11 @@
 
 ## Step 6
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the water cleanup at {property_address_short}`
+`Following up on the water cleanup at {{property_address_short}}`
 
-**Body:**Several days on from the original loss, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.The reason I'm reaching back out: pipe burst losses sometimes look settled at the surface and then surface problems later. A soft spot in the floor, a board that started cupping, a stain on a ceiling below, a smell that wasn't there before. Those are the kinds of things that show up when materials weren't fully dried out, and they often turn into a larger conversation with the carrier than the original loss would have been. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having.If something comes up, I'm here.
+**Body:**Several days on from the original loss, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.The reason I'm reaching back out: pipe burst losses sometimes look settled at the surface and then surface problems later. A soft spot in the floor, a board that started cupping, a stain on a ceiling below, a smell that wasn't there before. Those are the kinds of things that show up when materials weren't fully dried out, and they often turn into a larger conversation with the carrier than the original loss would have been. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having.If something comes up, I'm here.
 
 ---
 

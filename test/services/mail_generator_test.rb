@@ -55,7 +55,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "substitutes customer name fields" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "{customer_first_name}", body: "Hi {customer_name}, ..."),
+      campaign_step: step(subject: "{{customer_first_name}}", body: "Hi {{customer_name}}, ..."),
       job_proposal: @job
     )
     assert_equal "Sarah", out.subject
@@ -64,7 +64,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "substitutes property address fields" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "About {property_address_short}", body: "At {property_address}."),
+      campaign_step: step(subject: "About {{property_address_short}}", body: "At {{property_address}}."),
       job_proposal: @job
     )
     assert_equal "About 1247 Oak Ridge Drive", out.subject
@@ -73,7 +73,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "substitutes proposal_value as currency" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "Estimate: {proposal_value}"),
+      campaign_step: step(subject: "X", body: "Estimate: {{proposal_value}}"),
       job_proposal: @job
     )
     assert_equal "Estimate: $12,400.00", out.body
@@ -81,7 +81,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "substitutes originator fields from job owner" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "From {originator_first_name}", body: "—{originator_name}\n{originator_phone}"),
+      campaign_step: step(subject: "From {{originator_first_name}}", body: "—{{originator_name}}\n{{originator_phone}}"),
       job_proposal: @job
     )
     assert_equal "From Jeff", out.subject
@@ -90,7 +90,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "substitutes location fields when the organization has a location" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "From {location_name}", body: "{location_address}\n{state}\n{company_phone}"),
+      campaign_step: step(subject: "From {{location_name}}", body: "{{location_address}}\n{{state}}\n{{company_phone}}"),
       job_proposal: @job
     )
     assert_equal "From NE Dallas", out.subject
@@ -99,7 +99,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "company_name renders the organization name" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "From {company_name}"),
+      campaign_step: step(subject: "X", body: "From {{company_name}}"),
       job_proposal: @job
     )
     assert_equal "From #{@org_with_location.name}", out.body
@@ -108,7 +108,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
   test "missing optional values substitute empty string without raising" do
     @originator.update!(phone_number: nil)
     out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "Cell: {originator_phone}"),
+      campaign_step: step(subject: "X", body: "Cell: {{originator_phone}}"),
       job_proposal: @job
     )
     assert_equal "Cell: ", out.body
@@ -125,7 +125,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       proposal_value: 5000
     )
     out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "Loc: {location_name}|{state}|{company_phone}"),
+      campaign_step: step(subject: "X", body: "Loc: {{location_name}}|{{state}}|{{company_phone}}"),
       job_proposal: job_no_loc
     )
     assert_equal "Loc: ||", out.body
@@ -134,7 +134,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
   test "unknown placeholder raises UnresolvedMergeFieldError" do
     err = assert_raises(MailGenerator::UnresolvedMergeFieldError) do
       MailGenerator.render(
-        campaign_step: step(subject: "X", body: "{not_a_real_field}"),
+        campaign_step: step(subject: "X", body: "{{not_a_real_field}}"),
         job_proposal: @job
       )
     end
@@ -144,7 +144,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
   test "error message lists every unresolved field, sorted, deduped" do
     err = assert_raises(MailGenerator::UnresolvedMergeFieldError) do
       MailGenerator.render(
-        campaign_step: step(subject: "{zzz_unknown}", body: "{aaa_unknown} and {zzz_unknown} again"),
+        campaign_step: step(subject: "{{zzz_unknown}}", body: "{{aaa_unknown}} and {{zzz_unknown}} again"),
         job_proposal: @job
       )
     end
@@ -162,7 +162,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "repeated placeholders in a single field are all substituted" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "{customer_first_name}, {customer_first_name}, {customer_first_name}"),
+      campaign_step: step(subject: "X", body: "{{customer_first_name}}, {{customer_first_name}}, {{customer_first_name}}"),
       job_proposal: @job
     )
     assert_equal "Sarah, Sarah, Sarah", out.body
@@ -170,7 +170,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "subject and body are substituted independently" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "Re: {customer_name}", body: "{originator_name}"),
+      campaign_step: step(subject: "Re: {{customer_name}}", body: "{{originator_name}}"),
       job_proposal: @job
     )
     assert_equal "Re: Sarah Mitchell", out.subject
@@ -179,7 +179,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "state full-name lookup expands two-letter codes" do
     out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "{state}"),
+      campaign_step: step(subject: "X", body: "{{state}}"),
       job_proposal: @job
     )
     assert_equal "Texas", out.body
@@ -190,8 +190,8 @@ class MailGeneratorTest < ActiveSupport::TestCase
   test "preview substitutes SAMPLE_VALUES into both subject and body" do
     out = MailGenerator.preview(
       campaign_step: step(
-        subject: "Hi {customer_first_name} about {property_address_short}",
-        body:    "From {originator_name} at {company_name}. Total: {proposal_value}."
+        subject: "Hi {{customer_first_name}} about {{property_address_short}}",
+        body:    "From {{originator_name}} at {{company_name}}. Total: {{proposal_value}}."
       )
     )
     assert_equal "Hi Jane about 123 Main Street", out.subject
@@ -200,9 +200,9 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "preview leaves unknown placeholders in place rather than raising" do
     out = MailGenerator.preview(
-      campaign_step: step(subject: "X", body: "Hi {bogus_field}!")
+      campaign_step: step(subject: "X", body: "Hi {{bogus_field}}!")
     )
-    assert_equal "Hi {bogus_field}!", out.body
+    assert_equal "Hi {{bogus_field}}!", out.body
   end
 
   test "preview tolerates blank subject or body" do

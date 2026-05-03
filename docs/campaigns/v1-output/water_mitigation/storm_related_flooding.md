@@ -26,13 +26,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Storm water cleanup at {property_address_short}`
+`Storm water cleanup at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the storm water cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the extraction, the drying scope, the equipment plan, and the timeline we discussed.
+The proposal for the storm water cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the extraction, the drying scope, the equipment plan, and the timeline we discussed.
 
 A note on context: storm events bring a lot of out-of-area companies into the neighborhood for a few weeks, then they're gone. We're local, we work this area year-round, and the proposal reflects what we'd quote on any similar job whether or not a storm had come through. If anything in the scope is unclear or you want to walk through any part of it, give me a call or reply here. Happy to talk through it by phone, or if you'd rather sit with the proposal in front of us together at the property, that works too.
 
@@ -42,9 +42,9 @@ When you're ready to move forward, just let me know and we'll get a crew on the 
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Drying scope for the storm water at {property_address_short}`
+`Drying scope for the storm water at {{property_address_short}}`
 
 **Body:**
 
@@ -58,9 +58,9 @@ If you want to talk through any of the scope or the timeline, easiest by phone.
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Comparing the storm water proposals at {property_address_short}`
+`Comparing the storm water proposals at {{property_address_short}}`
 
 **Body:**
 
@@ -74,9 +74,9 @@ If you have questions about how this proposal compares to others you're looking 
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`A day past the storm water at {property_address_short}`
+`A day past the storm water at {{property_address_short}}`
 
 **Body:**
 
@@ -90,15 +90,15 @@ If you'd like to move forward, reply here or give me a call and we'll get a crew
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`The window on the storm water at {property_address_short}`
+`The window on the storm water at {{property_address_short}}`
 
 **Body:**
 
 About two days past the loss now, we're at the edge of the window where moving fast still meaningfully changes the outcome on this job. Materials that have been sitting wet for two days are mostly past the point where drying with equipment alone can save them. The job becomes a larger one; floors and walls take damage that's harder to reverse, and on the claim side, there's more room for the carrier to question whether the additional damage had to happen.
 
-If you've already moved forward with another company, that's fine. If you're still working through the decision, the proposal at {property_address_short} reflects the scope we walked through and we can have a crew onsite within 24 hours of approval.
+If you've already moved forward with another company, that's fine. If you're still working through the decision, the proposal at {{property_address_short}} reflects the scope we walked through and we can have a crew onsite within 24 hours of approval.
 
 If you want to move forward, reply here or call and we'll get on the schedule. If you'd rather talk through any of it live, easier by phone.
 
@@ -106,15 +106,15 @@ If you want to move forward, reply here or call and we'll get on the schedule. I
 
 ## Step 6
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the storm water at {property_address_short}`
+`Following up on the storm water at {{property_address_short}}`
 
 **Body:**
 
 Several days on from the storm now, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.
 
-The reason I'm reaching back out: storm-source water sometimes looks settled at the surface and then shows up later. A soft spot in the floor, a cupping board, a stain on a ceiling below, a smell that wasn't there before, those are the kinds of things that surface when materials weren't fully dried out. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having.
+The reason I'm reaching back out: storm-source water sometimes looks settled at the surface and then shows up later. A soft spot in the floor, a cupping board, a stain on a ceiling below, a smell that wasn't there before, those are the kinds of things that surface when materials weren't fully dried out. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having.
 
 We're local and we work this area whether or not a storm has come through, so if something turns up weeks or months from now, we're still around. If anything comes up, I'm here.
 

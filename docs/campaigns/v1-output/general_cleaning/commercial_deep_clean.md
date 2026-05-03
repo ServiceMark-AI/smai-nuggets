@@ -24,13 +24,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Deep clean proposal for {property_address_short}`
+`Deep clean proposal for {{property_address_short}}`
 
 **Body:**
 
-The proposal for the deep clean at {property_address_short} is attached, based on the scope we walked through onsite. It covers the surfaces, areas, and finish standard we discussed, with the schedule built around your operating hours so the work happens with minimal disruption to the business.
+The proposal for the deep clean at {{property_address_short}} is attached, based on the scope we walked through onsite. It covers the surfaces, areas, and finish standard we discussed, with the schedule built around your operating hours so the work happens with minimal disruption to the business.
 
 Most jobs at this scope run a single window with a full crew, sometimes split across an evening and the following morning when the space needs to be back in operation early. If anything in the schedule needs to flex around tenants, staff, or a specific reopen time, that is normal and we can adjust.
 
@@ -40,9 +40,9 @@ Take whatever time you need to review. If you want to walk through any part of t
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Scope on the deep clean at {property_address_short}`
+`Scope on the deep clean at {{property_address_short}}`
 
 **Body:**
 
@@ -56,9 +56,9 @@ Happy to walk through any of it on the phone if it would help.
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Scheduling the deep clean at {property_address_short}`
+`Scheduling the deep clean at {{property_address_short}}`
 
 **Body:**
 
@@ -72,13 +72,13 @@ If you want to set a date, reply here or give me a call and we will get it on th
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the deep clean at {property_address_short}`
+`Following up on the deep clean at {{property_address_short}}`
 
 **Body:**
 
-Wanted to follow up on the deep clean at {property_address_short} before this slips off the radar in either direction. Six days in, things have either gotten handled, the timing has changed on your end, or the work is still on the list and just has not been scheduled yet. Any of those is a fine outcome.
+Wanted to follow up on the deep clean at {{property_address_short}} before this slips off the radar in either direction. Six days in, things have either gotten handled, the timing has changed on your end, or the work is still on the list and just has not been scheduled yet. Any of those is a fine outcome.
 
 If the work is still on the list, the proposal as scoped is still good and we can pick the schedule up wherever your calendar makes sense. If your situation has shifted, no follow-up needed from your side.
 

@@ -26,12 +26,12 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Water cleanup at {property_address_short}`
+`Water cleanup at {{property_address_short}}`
 
 **Body:**
-The proposal for the water cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, and the timeline we discussed.
+The proposal for the water cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, and the timeline we discussed.
 For most clean-water jobs at this scope, equipment runs 3 to 5 days, sometimes longer when there is hardwood, other dense materials with heavy absorption, or building systems where moisture has migrated further than it looks. The proposal reflects what we expect based on the walkthrough. If anything shifts once equipment is in and reading actual moisture levels, we will keep you in the loop.
 Take the time you need to review it. If you have questions or want to walk through any part of the proposal, give me a call or reply here. Happy to do it by phone or in person if it helps. When you are ready to move forward, just let me know and we will get a crew on the schedule.
 
@@ -39,22 +39,22 @@ Take the time you need to review it. If you have questions or want to walk throu
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Drying timeline at {property_address_short}`
+`Drying timeline at {{property_address_short}}`
 
 **Body:**
 Most of the work on a water job happens passively once equipment is in and running. Air movers and dehumidifiers do the heavy lifting; the technician visits are mostly to read moisture levels, confirm materials are tracking toward dry, and adjust placement when readings show pockets that are not moving.
 What that means in practice: the disruption is real for the first day or so when equipment goes in, and then it settles. Furniture is moved, some baseboards or drywall sections may need to come out so air can reach what is wet behind them, and the equipment runs continuously. Daily visits to check readings are short. The total active disruption is much less than the calendar duration of the drying period.
-If you want to walk through what the work would actually look like at {property_address_short}, easiest by phone. I can also answer anything by reply email if that works better.
+If you want to walk through what the work would actually look like at {{property_address_short}}, easiest by phone. I can also answer anything by reply email if that works better.
 
 ---
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Insurance and the water cleanup at {property_address_short}`
+`Insurance and the water cleanup at {{property_address_short}}`
 
 **Body:**
 The reason timing matters on water jobs is not sales pressure. Most homeowner policies have language requiring the policyholder to mitigate damage in a timely way once a loss happens. Waiting several days to start drying gives the carrier room to argue the loss got bigger than it had to, which can create real coverage problems on the claim side.
@@ -65,9 +65,9 @@ Happy to talk through any of this on the phone if it would help. Insurance speci
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`A day in on the water at {property_address_short}`
+`A day in on the water at {{property_address_short}}`
 
 **Body:**
 About a day past the loss now, the drying picture changes. Water that has been sitting for 24 hours behaves differently than water that has been sitting for 4 hours. Wicking has had time to move moisture into materials it was not in initially, which is why subfloors, lower wall cavities, and the underside of cabinets get checked even when the surface looks dry.
@@ -78,26 +78,26 @@ If you want to move forward or have questions about anything in the proposal, re
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`The window on water cleanup at {property_address_short}`
+`The window on water cleanup at {{property_address_short}}`
 
 **Body:**
 About two days past the loss now, we are at the edge of the window where moving fast still meaningfully changes the outcome on this job. Materials that have been sitting wet for two days are mostly past the point where drying with equipment alone can save them. The work shifts from drying intact materials to opening up walls, pulling flooring, and replacing what is no longer salvageable.
-Two pieces of that matter for you. The job becomes a larger one, which means more disruption at {property_address_short} and more time before things are back to normal. On the insurance side, carriers have more room to question whether the additional damage had to happen, which can affect what gets covered on the claim.
+Two pieces of that matter for you. The job becomes a larger one, which means more disruption at {{property_address_short}} and more time before things are back to normal. On the insurance side, carriers have more room to question whether the additional damage had to happen, which can affect what gets covered on the claim.
 If you want to move forward, reply here or give me a call and we will get a crew on the schedule. If you have questions you would rather talk through live, that works too. Easier by phone if that helps.
 
 ---
 
 ## Step 6
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the water cleanup at {property_address_short}`
+`Following up on the water cleanup at {{property_address_short}}`
 
 **Body:**
 Several days on from the original loss, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.
-The reason I am reaching back out: clean-water losses sometimes look settled at the surface and then show up later. A soft spot in the floor, a cupping board, a stain on a ceiling below, a smell that was not there before, those are the kinds of things that surface when materials were not fully dried out. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having.
+The reason I am reaching back out: clean-water losses sometimes look settled at the surface and then show up later. A soft spot in the floor, a cupping board, a stain on a ceiling below, a smell that was not there before, those are the kinds of things that surface when materials were not fully dried out. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having.
 If something comes up, I am here. Reply or call whenever it works.
 
 ---

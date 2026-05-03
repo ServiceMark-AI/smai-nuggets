@@ -26,13 +26,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Proposal for water cleanup at {property_address_short}`
+`Proposal for water cleanup at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the water cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, removal of any materials that aren't salvageable, and the timeline we discussed.
+The proposal for the water cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, removal of any materials that aren't salvageable, and the timeline we discussed.
 
 Because the water source on this one isn't clean supply water, the scope reflects that. Gray water (washing machines, dishwashers, that category of source) needs a different approach than a clean-water break, and a few materials that would normally dry in place won't on this kind of job. The proposal accounts for that. For most jobs at this scope, the equipment runs 3-5 days, sometimes longer when there's hardwood, dense materials with heavier absorption, or building systems where moisture migrates further than it looks.
 
@@ -42,9 +42,9 @@ Take your time reviewing it. If you have questions or want to walk through any p
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`What the first day of cleanup looks like at {property_address_short}`
+`What the first day of cleanup looks like at {{property_address_short}}`
 
 **Body:**
 
@@ -58,9 +58,9 @@ If you want to talk through any of this, easiest by phone. When you're ready to 
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Why timing matters on the {property_address_short} cleanup`
+`Why timing matters on the {{property_address_short}} cleanup`
 
 **Body:**
 
@@ -74,9 +74,9 @@ Happy to walk through any of the insurance side on the phone if that's where the
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Day after the loss at {property_address_short}, where things stand`
+`Day after the loss at {{property_address_short}}, where things stand`
 
 **Body:**
 
@@ -90,9 +90,9 @@ If you want to move forward or talk through what's still salvageable, give me a 
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Edge of the window on the {property_address_short} cleanup`
+`Edge of the window on the {{property_address_short}} cleanup`
 
 **Body:**
 
@@ -106,15 +106,15 @@ If you want to move forward, reply here or give me a call and we'll get a crew o
 
 ## Step 6
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Checking in on the {property_address_short} situation`
+`Checking in on the {{property_address_short}} situation`
 
 **Body:**
 
 Several days on from the original loss, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.
 
-The reason I'm reaching back out: gray-water losses sometimes look settled at the surface and then show up later in ways that are harder to spot. A soft area in the floor, a baseboard that's started to swell, a smell that wasn't there before, a stain working through paint, those are the kinds of things that surface when the source category and the time-since-loss caught up with materials that didn't get fully addressed. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having.
+The reason I'm reaching back out: gray-water losses sometimes look settled at the surface and then show up later in ways that are harder to spot. A soft area in the floor, a baseboard that's started to swell, a smell that wasn't there before, a stain working through paint, those are the kinds of things that surface when the source category and the time-since-loss caught up with materials that didn't get fully addressed. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having.
 
 If something comes up, I'm here. Reply or call whenever it works.
 

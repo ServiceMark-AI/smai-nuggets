@@ -24,13 +24,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Post-construction cleanup at {property_address_short}`
+`Post-construction cleanup at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the post-construction cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the cleaning scope, the crew plan, and the timeline we discussed.
+The proposal for the post-construction cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the cleaning scope, the crew plan, and the timeline we discussed.
 
 Most jobs at this scope take 1-2 days with a full crew, depending on square footage and how much of the fine work (adhesive residue on glass, paint mist on hardware, fine dust in HVAC returns and on top of cabinetry) needs attention. The proposal reflects what we expect to see based on the walkthrough; if anything looks different once we're back onsite running the work, we'll keep you in the loop.
 
@@ -40,9 +40,9 @@ Take your time reviewing it. If you have questions or want to walk through any p
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Scope and timing on the cleanup at {property_address_short}`
+`Scope and timing on the cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -56,9 +56,9 @@ When you're ready to move forward, reply here or give me a call and we'll get a 
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Schedule for the cleanup at {property_address_short}`
+`Schedule for the cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -72,13 +72,13 @@ Reply here or give me a call and we'll get this booked. Happy to talk it through
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the cleanup at {property_address_short}`
+`Following up on the cleanup at {{property_address_short}}`
 
 **Body:**
 
-Wanted to follow up before this slips. The cleanup at {property_address_short} has been sitting open for about a week now, and depending on where your move-in or listing date has landed, the window for getting a crew in ahead of it is either close or already past.
+Wanted to follow up before this slips. The cleanup at {{property_address_short}} has been sitting open for about a week now, and depending on where your move-in or listing date has landed, the window for getting a crew in ahead of it is either close or already past.
 
 If the timing is still workable on your end, we can still make it happen; reply or call and we'll find a slot. If you've already handled it another way or the situation has changed, that's fine too.
 

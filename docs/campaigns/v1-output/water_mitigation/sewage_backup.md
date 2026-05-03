@@ -26,13 +26,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Sewage cleanup at {property_address_short}`
+`Sewage cleanup at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the sewage cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the cleanup scope, the materials we expect to remove, the drying and sanitization plan, and the timeline we discussed.
+The proposal for the sewage cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the cleanup scope, the materials we expect to remove, the drying and sanitization plan, and the timeline we discussed.
 
 Sewage backups have a different cleanup approach from a clean-water loss from the start. Porous materials that absorbed contaminated water, drywall, baseboards, carpet, padding, and similar, come out rather than dry in place. The proposal reflects what we expect to remove based on the walkthrough; if anything shifts once we're in there with the right tools, we'll keep you in the loop.
 
@@ -42,9 +42,9 @@ Take your time reviewing it. If you want to walk through any part of the proposa
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Sewage cleanup approach at {property_address_short}`
+`Sewage cleanup approach at {{property_address_short}}`
 
 **Body:**
 
@@ -58,9 +58,9 @@ If you want to walk through what's in or out of scope before deciding, easiest b
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Insurance and the sewage cleanup at {property_address_short}`
+`Insurance and the sewage cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -74,9 +74,9 @@ Happy to talk through any of this on the phone if it would help.
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`A day in on the sewage cleanup at {property_address_short}`
+`A day in on the sewage cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -90,9 +90,9 @@ If you want to move forward, reply here or give me a call and we'll get a crew o
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`The window on the sewage cleanup at {property_address_short}`
+`The window on the sewage cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -106,15 +106,15 @@ If you want to move forward, reply here or give me a call and we'll get a crew o
 
 ## Step 6
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the sewage cleanup at {property_address_short}`
+`Following up on the sewage cleanup at {{property_address_short}}`
 
 **Body:**
 
 Several days on from the original backup, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.
 
-The reason I'm reaching back out: sewage cleanups sometimes look settled at the surface and then show up later. A soft spot in the floor, a baseboard that's started to swell, a smell that wasn't there before, a stain bleeding through fresh paint, those are the kinds of things that surface when the contamination reached materials that weren't visibly affected at the time. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is still worth having.
+The reason I'm reaching back out: sewage cleanups sometimes look settled at the surface and then show up later. A soft spot in the floor, a baseboard that's started to swell, a smell that wasn't there before, a stain bleeding through fresh paint, those are the kinds of things that surface when the contamination reached materials that weren't visibly affected at the time. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is still worth having.
 
 If something comes up, I'm here.
 

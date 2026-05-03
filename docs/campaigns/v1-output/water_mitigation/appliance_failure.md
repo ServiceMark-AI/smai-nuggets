@@ -26,13 +26,13 @@
 
 ## Step 1
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Water cleanup at {property_address_short}`
+`Water cleanup at {{property_address_short}}`
 
 **Body:**
 
-The proposal for the water cleanup at {property_address_short} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, and the timeline we discussed.
+The proposal for the water cleanup at {{property_address_short}} is attached, based on what we walked through at the property. It covers the drying scope, the equipment plan, and the timeline we discussed.
 
 Appliance failures usually push more water into more places than people expect; supply lines run continuously until the valve gets shut, and the water tends to travel under cabinets and into adjacent rooms before it shows on the surface. The proposal reflects what we saw and what we expect once equipment is reading actual moisture levels. For most jobs at this scope, the equipment runs 3-5 days, sometimes longer when there's hardwood, dense materials with heavy absorption, or building systems where moisture has migrated further than it looks.
 
@@ -42,9 +42,9 @@ Take your time reviewing it. If you want to walk through any part of the proposa
 
 ## Step 2
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Drying timeline at {property_address_short}`
+`Drying timeline at {{property_address_short}}`
 
 **Body:**
 
@@ -58,9 +58,9 @@ If you have questions about how the equipment works or what to expect day-to-day
 
 ## Step 3
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Insurance and the water cleanup at {property_address_short}`
+`Insurance and the water cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -74,9 +74,9 @@ If you're paying out of pocket, the same timing logic applies differently: mater
 
 ## Step 4
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`A day in on the water at {property_address_short}`
+`A day in on the water at {{property_address_short}}`
 
 **Body:**
 
@@ -90,9 +90,9 @@ If anything about the proposal needs a second look, or you want to talk through 
 
 ## Step 5
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`The window on water cleanup at {property_address_short}`
+`The window on water cleanup at {{property_address_short}}`
 
 **Body:**
 
@@ -104,15 +104,15 @@ If you want to move forward, reply here or give me a call and we'll get a crew o
 
 ## Step 6
 
-**Subject (post-prefix; engine prepends `[{job_number}]` at send time):**
+**Subject (post-prefix; engine prepends `[{{job_number}}]` at send time):**
 
-`Following up on the water cleanup at {property_address_short}`
+`Following up on the water cleanup at {{property_address_short}}`
 
 **Body:**
 
 Several days on from the original loss now, so things have likely either gotten handled or moved in a different direction. Either of those is a fine outcome.
 
-The reason I'm reaching back out: appliance-failure water sometimes looks settled at the surface and then shows up later. A soft spot in the floor, a cabinet door that won't close right anymore, a stain on a ceiling below, a smell that wasn't there before, those are the kinds of things that surface when materials weren't fully dried out. If anything like that has come up at {property_address_short}, even if the original work was done by someone else, that conversation is worth having.
+The reason I'm reaching back out: appliance-failure water sometimes looks settled at the surface and then shows up later. A soft spot in the floor, a cabinet door that won't close right anymore, a stain on a ceiling below, a smell that wasn't there before, those are the kinds of things that surface when materials weren't fully dried out. If anything like that has come up at {{property_address_short}}, even if the original work was done by someone else, that conversation is worth having.
 
 If something comes up, I'm here.
 
