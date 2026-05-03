@@ -373,45 +373,21 @@ DEMO_LOCATIONS.each do |tenant_name, attrs|
   )
 end
 
-# --- Demo campaign templates per scenario ---------------------------------
-# One Campaign per Scenario, attributed via the polymorphic attributed_to.
-# Each template has a fixed 4-step cadence: 0h, 24h, 72h, 7d. The body is
-# stub copy meant to look plausible in demo screenshots — the real authored
-# content lives in docs/campaigns/v1-output/<job_type>/<scenario>.md.
+# --- Approve catalog-loaded campaigns for the demo ------------------------
+# CatalogLoader (called above at the top of this seed file) created one
+# Campaign per Scenario with status :new and steps populated from the
+# authored markdown under docs/campaigns/v1-output/. A real production
+# install leaves them :new so an admin reviews + approves via the UI
+# before any sends. The demo bumps them to :approved outright so the
+# in-flight CampaignInstance fixtures below have something runnable to
+# attach to. Idempotent: campaigns already :approved are left alone.
 
-CAMPAIGN_TEMPLATE_STEPS = [
-  { offset_min: 0,
-    subject: "Following up on the estimate for {{property_address_short}}",
-    body: "Hi {{first_name}},\n\nQuick note that the estimate we walked through is attached. Let me know if anything looks off or if you have questions on the scope or timeline.\n\n— {{originator_first_name}}" },
-  { offset_min: 24 * 60,
-    subject: "Quick check on yesterday's estimate",
-    body: "Hi {{first_name}},\n\nMaking sure the proposal made it through. Happy to set up 10 minutes to walk through anything that's unclear.\n\n— {{originator_first_name}}" },
-  { offset_min: 3 * 24 * 60,
-    subject: "Thinking about next steps?",
-    body: "Hi {{first_name}},\n\nIf timing is the question, the next available crew slot is {{soonest_slot}}. Otherwise, totally fine to take a few more days — just want to keep the option open on our end.\n\n— {{originator_first_name}}" },
-  { offset_min: 7 * 24 * 60,
-    subject: "Closing the loop",
-    body: "Hi {{first_name}},\n\nLast note from me on this one. If you've decided to go a different direction, no problem — just close the loop so we can free the estimate slot. If anything changed and you want to revisit, reply here.\n\n— {{originator_first_name}}" }
-].freeze
-
-Scenario.includes(:job_type).find_each do |scenario|
-  campaign = Campaign.find_or_initialize_by(
-    attributed_to_type: "Scenario",
-    attributed_to_id: scenario.id
+Campaign.where(status: :new, attributed_to_type: "Scenario").find_each do |campaign|
+  campaign.update!(
+    status: :approved,
+    approved_by_user: admin,
+    approved_at: 30.days.ago
   )
-  campaign.name = "#{scenario.job_type.name} — #{scenario.short_name}"
-  campaign.status = :approved
-  campaign.approved_by_user ||= admin
-  campaign.approved_at ||= 30.days.ago
-  campaign.save!
-
-  CAMPAIGN_TEMPLATE_STEPS.each_with_index do |attrs, i|
-    step = campaign.steps.find_or_initialize_by(sequence_number: i + 1)
-    step.offset_min = attrs[:offset_min]
-    step.template_subject = attrs[:subject]
-    step.template_body = attrs[:body]
-    step.save!
-  end
 end
 
 # --- In-flight CampaignInstances against in_campaign proposals ------------
