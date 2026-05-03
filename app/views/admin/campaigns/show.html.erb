@@ -17,4 +17,26 @@
   </div>
 </div>
 
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Status</dt>
+      <dd class="col-sm-9">
+        <span class="badge <%= klass %>"><%= @campaign.status %></span>
+      </dd>
+
+      <dt class="col-sm-3">Scenario</dt>
+      <dd class="col-sm-9">
+        <% if @campaign.attributed_to.is_a?(Scenario) %>
+          <% scenario = @campaign.attributed_to %>
+          <%= link_to scenario.short_name, admin_scenario_path(scenario) %>
+          <span class="text-muted small">in <%= link_to scenario.job_type.name, admin_job_type_path(scenario.job_type) %></span>
+        <% else %>
+          <span class="text-muted">— not attributed to a scenario</span>
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
 <%= render "steps", campaign: @campaign %>
