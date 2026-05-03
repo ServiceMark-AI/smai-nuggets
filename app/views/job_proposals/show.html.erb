@@ -83,6 +83,75 @@
   </div>
 </div>
 
+<% campaign_instance = @job_proposal.campaign_instances.order(created_at: :desc).first %>
+<% if campaign_instance %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0">Campaign</h2>
+      <% inst_status_class = case campaign_instance.status
+         when "active"    then "text-bg-success"
+         when "paused"    then "text-bg-warning"
+         when "completed" then "text-bg-secondary"
+         else "text-bg-danger" # stopped_on_*
+         end %>
+      <span class="badge <%= inst_status_class %>"><%= campaign_instance.status.humanize %></span>
+    </div>
+    <div class="card-body p-0">
+      <dl class="row mb-0 px-3 pt-3">
+        <dt class="col-sm-3">Campaign</dt>
+        <dd class="col-sm-9"><%= link_to campaign_instance.campaign.name, admin_campaign_path(campaign_instance.campaign) if current_user.is_admin %><%= campaign_instance.campaign.name unless current_user.is_admin %></dd>
+      </dl>
+
+      <% step_instances = campaign_instance.step_instances
+                          .includes(:campaign_step)
+                          .joins(:campaign_step)
+                          .order("campaign_steps.sequence_number") %>
+      <table class="table mb-0 align-middle small mt-2">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 48px;">#</th>
+            <th>Step</th>
+            <th style="width: 130px;">Status</th>
+            <th style="width: 240px;">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% step_instances.each do |si| %>
+            <% step_status = si.email_delivery_status
+               status_class = case step_status
+                 when "sent"    then "text-bg-success"
+                 when "sending" then "text-bg-info"
+                 when "pending" then "text-bg-secondary"
+                 when "failed", "bounced" then "text-bg-danger"
+                 else "text-bg-secondary"
+                 end %>
+            <tr>
+              <td><%= si.campaign_step.sequence_number %></td>
+              <td><%= si.campaign_step.template_subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></td>
+              <td><span class="badge <%= status_class %>"><%= step_status.humanize %></span></td>
+              <td>
+                <% if step_status == "sent" %>
+                  Sent <%= time_ago_in_words(si.updated_at) %> ago
+                <% elsif step_status == "pending" && si.planned_delivery_at %>
+                  <% if si.planned_delivery_at > Time.current %>
+                    Scheduled in <%= time_ago_in_words(si.planned_delivery_at) %>
+                  <% else %>
+                    <span class="text-warning">Due now (next sweep)</span>
+                  <% end %>
+                <% elsif %w[failed bounced].include?(step_status) %>
+                  Failed <%= time_ago_in_words(si.updated_at) %> ago
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% end %>
+
 <div class="card shadow-sm">
   <div class="card-header">
     <h2 class="h5 mb-0">Ownership</h2>
