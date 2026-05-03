@@ -90,4 +90,9 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+
+  # BDD/acceptance tests mirroring the operator user-guide activities
+  gem "cucumber-rails", require: false
+  gem "database_cleaner-active_record"
+  gem "rspec-expectations"  # the `expect` matchers used in feature step defs
 end

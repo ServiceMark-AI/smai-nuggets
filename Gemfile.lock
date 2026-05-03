@@ -130,6 +130,39 @@ GEM
     cronex (0.15.0)
       tzinfo
       unicode (>= 0.4.4.5)
+    cucumber (10.2.0)
+      base64 (~> 0.2)
+      builder (~> 3.2)
+      cucumber-ci-environment (> 9, < 12)
+      cucumber-core (> 15, < 17)
+      cucumber-cucumber-expressions (> 17, < 20)
+      cucumber-html-formatter (> 21, < 23)
+      diff-lcs (~> 1.5)
+      logger (~> 1.6)
+      mini_mime (~> 1.1)
+      multi_test (~> 1.1)
+      sys-uname (~> 1.3)
+    cucumber-ci-environment (11.0.0)
+    cucumber-core (16.2.0)
+      cucumber-gherkin (> 36, < 40)
+      cucumber-messages (> 31, < 33)
+      cucumber-tag-expressions (> 6, < 9)
+    cucumber-cucumber-expressions (19.0.0)
+      bigdecimal
+    cucumber-gherkin (39.0.0)
+      cucumber-messages (>= 31, < 33)
+    cucumber-html-formatter (22.3.0)
+      cucumber-messages (> 23, < 33)
+    cucumber-messages (32.3.1)
+    cucumber-rails (4.0.1)
+      capybara (>= 3.25, < 4)
+      cucumber (>= 7, < 11)
+      railties (>= 6.1, < 9)
+    cucumber-tag-expressions (8.1.0)
+    database_cleaner-active_record (2.2.2)
+      activerecord (>= 5.a)
+      database_cleaner-core (~> 2.0)
+    database_cleaner-core (2.0.1)
     date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
@@ -141,6 +174,7 @@ GEM
       railties (>= 7.0)
       responders
       warden (~> 1.2.3)
+    diff-lcs (1.6.2)
     digest-crc (0.7.0)
       rake (>= 12.0.0, < 14.0.0)
     dotenv (3.2.0)
@@ -262,6 +296,7 @@ GEM
       net-smtp
     marcel (1.1.0)
     matrix (0.4.3)
+    memoist3 (1.0.0)
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
@@ -270,6 +305,7 @@ GEM
       prism (~> 1.5)
     msgpack (1.8.0)
     multi_json (1.21.0)
+    multi_test (1.1.0)
     multi_xml (0.8.1)
       bigdecimal (>= 3.1, < 5)
     multipart-post (2.4.1)
@@ -422,6 +458,10 @@ GEM
       railties (>= 7.0)
     retriable (3.4.1)
     rexml (3.4.4)
+    rspec-expectations (3.13.5)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.7)
     rubocop (1.86.1)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -511,6 +551,9 @@ GEM
     stimulus-rails (1.3.4)
       railties (>= 6.0.0)
     stringio (3.2.0)
+    sys-uname (1.5.1)
+      ffi (~> 1.1)
+      memoist3 (~> 1.0.0)
     thor (1.5.0)
     thruster (0.1.20)
     thruster (0.1.20-aarch64-linux)
@@ -567,6 +610,8 @@ DEPENDENCIES
   bundler-audit
   cancancan
   capybara
+  cucumber-rails
+  database_cleaner-active_record
   debug
   devise
   google-cloud-storage (~> 1.11)
@@ -580,6 +625,7 @@ DEPENDENCIES
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.3)
+  rspec-expectations
   rubocop-rails-omakase
   ruby_llm
   selenium-webdriver
