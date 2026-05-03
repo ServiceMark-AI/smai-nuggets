@@ -54,7 +54,7 @@ Click any row's address to drill into the proposal show page, where the customer
 
 ## 4c. Pausing & unpausing a campaign
 
-> Pause a single proposal's campaign run when the customer goes silent for a known good reason (vacation, traveling, in escrow). Pause the *campaign template* (admin-only, §1.5) when content needs a fix.
+> Pause a single proposal's campaign run when the customer goes silent for a known good reason (vacation, traveling, in escrow). Pause the *campaign template* (admin-only, [§1.5](01-job-types-and-campaigns.md#15-approve-pause-and-edit-the-campaign)) when content needs a fix.
 
 Today, campaign-instance-level pause / resume is exposed at the data layer — a `CampaignInstance` has `status: active | paused | completed | stopped_on_reply | stopped_on_delivery_issue | stopped_on_closure`. The operator-facing UI to flip an instance between `active` and `paused` from the proposal show page is not yet wired up; the planned interaction:
 
@@ -86,7 +86,7 @@ What you do next:
 
 1. Open the proposal from the index. The **Last reply** card shows the snippet, who it came from, and when.
 2. Click into Gmail (the show page exposes a deep link to the thread when one is available) to read the full reply and respond from your operator inbox.
-3. Once the conversation is converging on an outcome, mark the proposal won or lost (§4e).
+3. Once the conversation is converging on an outcome, mark the proposal won or lost ([§4e](#4e-marking-a-proposal-as-won--lost)).
 
 > Delivery failures (bounces, hard rejections) follow a parallel path: the `CampaignStepInstance.email_delivery_status` flips to `failed` or `bounced`, the `CampaignInstance` transitions to `stopped_on_delivery_issue`, and the proposal's `status_overlay` is set to `delivery_issue`. The right move is usually to fix the email address on the proposal and start a fresh instance.
 

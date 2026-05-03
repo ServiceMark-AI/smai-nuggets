@@ -36,7 +36,7 @@ The five seeded restoration job types are present out of the box; you only need 
    - **Description** — used as the scenario's authoring hypothesis / one-sentence summary.
 4. **Save changes**.
 
-> The campaign picker on this form is hidden until the scenario is saved — a campaign cannot be attributed to a scenario that does not yet exist. You will return to this picker after building the campaign in step 1.3.
+> The campaign picker on this form is hidden until the scenario is saved — a campaign cannot be attributed to a scenario that does not yet exist. You will return to this picker after building the campaign in [§1.3](#13-create-a-campaign).
 
 ## 1.3 Create a campaign
 
@@ -44,7 +44,7 @@ The five seeded restoration job types are present out of the box; you only need 
 2. Click **+ New campaign**.
 3. Fill in:
    - **Name** — operator-facing label (e.g. *Pipe Burst — v1*).
-   - **Status** — leave as **New** while you author the steps. The status drives the lifecycle described in §1.5.
+   - **Status** — leave as **New** while you author the steps. The status drives the lifecycle described in [§1.5](#15-approve-pause-and-edit-the-campaign).
    - **Attributed to scenario** — pick the scenario this campaign will run for. This drives the filter on the scenario edit form: only campaigns attributed to a scenario appear in that scenario's campaign picker. Other attribution targets (tenant, job type) will be added later as the polymorphic relationship grows.
 4. **Save**.
 
@@ -69,7 +69,7 @@ Repeat for each step. You can drag-reorder rows on the campaign edit page; the *
 The campaign show page exposes lifecycle buttons based on status:
 
 - **New → Approved** — click **Approve**. Required before any campaign instance can run; this is the sign-off that the cadence is ready for production use.
-- **Approved → Paused** — click **Pause**. Pauses every running instance of the campaign system-wide. Use this when a template defect is discovered after launch; otherwise, prefer pausing individual instances (§4c).
+- **Approved → Paused** — click **Pause**. Pauses every running instance of the campaign system-wide. Use this when a template defect is discovered after launch; otherwise, prefer pausing individual instances ([§4c](04-campaign-maintenance.md#4c-pausing--unpausing-a-campaign)).
 - **Paused → Approved** — re-open with the **Approve** button.
 
 You can edit the campaign and steps at any status, but content changes do not retroactively rewrite any campaign instance whose content was already snapshotted at instance creation.
@@ -83,4 +83,4 @@ Once the campaign is approved, return to the scenario:
 3. The **Campaign** picker now lists the campaign you attributed to this scenario. Pick it.
 4. **Save changes**.
 
-The scenario's `campaign_id` is what `JobProposalProcessor` uses to start a campaign instance against a new proposal (§4a).
+The scenario's `campaign_id` is what `JobProposalProcessor` uses to start a campaign instance against a new proposal ([§4a](04-campaign-maintenance.md#4a-upload-a-job-to-start-a-campaign)).

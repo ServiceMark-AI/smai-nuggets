@@ -24,7 +24,7 @@ Office address and phone number flow into outbound campaign emails (per SPEC-07)
 2. Fill in display name, street address, city/state/postal code, phone, and active flag.
 3. **Save**.
 
-The location is also editable later via the tenant user's **My Organization** page (see §3.4).
+The location is also editable later via the tenant user's **My Organization** page (see [§3.4](03-user-onboarding-and-account.md#34-editing-your-profile-and-organization)).
 
 ## 2.3 Invite the first user
 
@@ -40,7 +40,7 @@ Two outcomes are possible:
 
 Pending invitations are listed on the tenant show page with their sent-at and expiry timestamps.
 
-> Tenant users with an existing account can also send invites from the tenant-side **Users** page once they are members; see §3.5.
+> Tenant users with an existing account can also send invites from the tenant-side **Users** page once they are members; see [§3.5](03-user-onboarding-and-account.md#35-inviting-teammates).
 
 ## 2.4 Activate job types and scenarios
 
@@ -61,7 +61,7 @@ On the tenant show page you should now see:
 
 - The root organization (and any others you added) with a **Location** card filled in.
 - One or more pending invitations under **Pending invitations**.
-- A populated **Users** list once invitations are accepted (§3.1).
-- An activation count at **Manage activations** matching what you turned on in §2.4.
+- A populated **Users** list once invitations are accepted ([§3.1](03-user-onboarding-and-account.md#31-accepting-an-invitation)).
+- An activation count at **Manage activations** matching what you turned on in [§2.4](#24-activate-job-types-and-scenarios).
 
 The tenant is now ready to use the system end-to-end.
