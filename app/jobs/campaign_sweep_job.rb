@@ -19,11 +19,17 @@ require "net/http"
 class CampaignSweepJob < ApplicationJob
   queue_as :default
 
-  # Outbound campaign mail goes through two gates:
+  # Outbound mail flow goes through several gates:
   #
-  #   1. production AND no TEST_TO_EMAIL  -> mail goes to host.customer_email (real send)
-  #   2. TEST_TO_EMAIL set (any env)      -> all mail is redirected to TEST_TO_EMAIL
-  #   3. otherwise (e.g. dev with no override) -> sweep is a no-op; nothing sends
+  #   1. production AND no TEST_TO_EMAIL              -> real send to host.customer_email
+  #   2. TEST_TO_EMAIL set (any env, mailbox present) -> mail redirected to TEST_TO_EMAIL
+  #   3. development AND no mailbox                   -> FAKE-SEND mode: render the email,
+  #                                                      log it, mark the step :sent.
+  #                                                      Lets dev exercise the campaign
+  #                                                      lifecycle without real Gmail.
+  #   4. non-dev AND no mailbox                       -> skip; log warning
+  #   5. non-prod AND mailbox AND no TEST_TO_EMAIL    -> skip; we won't email customers
+  #                                                      from staging/dev by accident
   #
   # Devise mailers (password reset, registration) are unaffected — they go
   # through Action Mailer, not this job.
@@ -38,13 +44,20 @@ class CampaignSweepJob < ApplicationJob
 
   def perform
     mailbox = ApplicationMailbox.current
-    unless mailbox
-      Rails.logger.warn "[CampaignSweepJob] no application mailbox connected; skipping sweep"
-      return
-    end
 
-    unless self.class.production_environment? || self.class.test_to_email_override
-      Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
+    if mailbox
+      # Real-send path: still gate non-prod behind TEST_TO_EMAIL so we
+      # don't accidentally email customers from a dev/staging box.
+      unless self.class.production_environment? || self.class.test_to_email_override
+        Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
+        return
+      end
+    elsif !self.class.production_environment?
+      # No mailbox + non-prod env (dev/test/staging) — fake-send so the
+      # campaign lifecycle logic is still exercised end to end.
+      Rails.logger.info "[CampaignSweepJob] no application mailbox connected; running in FAKE-SEND mode (no real email leaves the host)"
+    else
+      Rails.logger.warn "[CampaignSweepJob] no application mailbox connected; skipping sweep"
       return
     end
 
@@ -104,7 +117,14 @@ class CampaignSweepJob < ApplicationJob
     end
 
     rendered = MailGenerator.render(campaign_step: step_instance.campaign_step, job_proposal: host)
-    sent = GmailSender.new(mailbox).send_email(to: recipient, subject: rendered.subject, body: rendered.body)
+    sent = if mailbox
+             GmailSender.new(mailbox).send_email(to: recipient, subject: rendered.subject, body: rendered.body)
+           else
+             # Dev fake-send: log what would have gone out and report success
+             # so the campaign progresses through its step lifecycle.
+             Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient}: #{rendered.subject.inspect}"
+             true
+           end
 
     if sent
       step_instance.update!(

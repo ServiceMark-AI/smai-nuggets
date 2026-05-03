@@ -167,13 +167,30 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal "stopped_on_delivery_issue", @instance.reload.status
   end
 
-  test "skips the sweep entirely when no application mailbox is connected" do
+  test "skips the sweep entirely outside development when no mailbox is connected" do
     @mailbox.destroy!
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
-    CampaignSweepJob.new.perform
+    with_production_environment(true) { CampaignSweepJob.new.perform }
 
     assert_equal "pending", step_instance.reload.email_delivery_status
+    assert_empty GmailSender.deliveries
+  end
+
+  test "in development with no mailbox, runs in FAKE-SEND mode and progresses the step" do
+    @mailbox.destroy!
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+    # No TEST_TO_EMAIL set in this test path so we use the real customer
+    # email as the fake recipient — exercises the resolution logic.
+    ENV.delete("TEST_TO_EMAIL")
+
+    with_production_environment(false) { CampaignSweepJob.new.perform }
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    assert_equal @step_one.template_subject, step_instance.final_subject
+    assert_equal @step_one.template_body, step_instance.final_body
+    # Crucially: no real GmailSender call happened. The dev fake-send
+    # path bypasses the sender entirely.
     assert_empty GmailSender.deliveries
   end
 
