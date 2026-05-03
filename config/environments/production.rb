@@ -21,9 +21,18 @@ Rails.application.configure do
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 
-  # Store uploaded files on Amazon S3 when configured, otherwise fall back to
-  # the local disk (ephemeral on Heroku, but lets the app boot without AWS env).
-  config.active_storage.service = ENV["AWS_BUCKET"].present? ? :amazon : :local
+  # Storage backend selection: prefer Google Cloud Storage when GCS_BUCKET is
+  # set, fall back to Amazon S3 when AWS_BUCKET is set, otherwise use the
+  # local disk service (ephemeral on Heroku — only useful for boot without
+  # any cloud storage configured).
+  config.active_storage.service =
+    if ENV["GCS_BUCKET"].present?
+      :google
+    elsif ENV["AWS_BUCKET"].present?
+      :amazon
+    else
+      :local
+    end
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # config.assume_ssl = true

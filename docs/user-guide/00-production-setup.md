@@ -14,7 +14,7 @@ Before touching Heroku, get accounts and credentials for the four external servi
 
 | Service | Why we need it | What you'll grab |
 |---|---|---|
-| **AWS S3** | Active Storage for uploaded job-proposal files in production. | Access key id, secret access key, region, bucket name. |
+| **Google Cloud Storage** *(preferred)* or **AWS S3** | Active Storage for uploaded job-proposal files in production. | GCS: project id, bucket name, service-account JSON keyfile. S3: access key id, secret access key, region, bucket name. See §0.1a for GCS setup. |
 | **Google Cloud OAuth client** | Application mailbox uses Gmail send-on-behalf-of. Required for outbound invitation emails and campaign sends. | Client id, client secret, plus an OAuth callback URL registered for your Heroku domain. |
 | **Google AI Studio (Gemini)** | PDF extraction for uploaded estimates by `JobProposalProcessor`. | API key. |
 | **Bugsnag** | Error monitoring in production / staging. | API key. (A default key is hard-coded as a fallback; override in production.) |
@@ -25,6 +25,55 @@ Notes on Google OAuth:
 2. Add the scope `https://www.googleapis.com/auth/gmail.send` (the app uses `email profile gmail.send` per `config/initializers/omniauth.rb`).
 3. Add the authorized redirect URI: `https://<your-heroku-domain>/auth/google_oauth2/callback`. Register a custom domain redirect too if you set one up in §0.6.
 4. Add at least one test user (the email of the operator account that will own the application mailbox) until the OAuth consent screen is moved to production.
+
+## 0.1a Provision Google Cloud Storage (preferred)
+
+GCS is the recommended Active Storage backend. The app supports S3 too — leave this section and skip ahead to §0.4 if you'd rather use AWS — but GCS keeps everything inside the same vendor as the OAuth client and Gemini API key, which simplifies billing and IAM.
+
+You'll need a Google Cloud project with billing attached. If you don't have one yet, create it at the [Google Cloud Console](https://console.cloud.google.com/) (top-left project picker → **New Project**).
+
+**Step 1 — Create the bucket.** Walkthrough: [Cloud Storage: Create buckets](https://cloud.google.com/storage/docs/creating-buckets).
+
+```bash
+# From your machine, with the gcloud CLI signed in:
+gcloud storage buckets create gs://<your-bucket-name> \
+  --project=<your-project-id> \
+  --location=us-central1 \
+  --uniform-bucket-level-access
+```
+
+Notes:
+
+- Pick the location closest to your Heroku region (Heroku Common Runtime is `us` by default → use `us-central1` or `us-east1`).
+- `--uniform-bucket-level-access` simplifies IAM: permissions are managed at the bucket level, not per-object.
+- Do **not** make the bucket public. Active Storage signs short-lived URLs for any browser-facing reads.
+
+**Step 2 — Create a service account.** Walkthrough: [IAM: Create service accounts](https://cloud.google.com/iam/docs/service-accounts-create).
+
+```bash
+gcloud iam service-accounts create smai-storage \
+  --project=<your-project-id> \
+  --display-name="SMAI Active Storage"
+```
+
+**Step 3 — Grant the service account access to the bucket.** Use `roles/storage.objectAdmin` (read + write objects within the bucket) — narrower than the project-wide `roles/storage.admin`.
+
+```bash
+gcloud storage buckets add-iam-policy-binding gs://<your-bucket-name> \
+  --member="serviceAccount:smai-storage@<your-project-id>.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+```
+
+**Step 4 — Create and download a JSON keyfile.** Walkthrough: [IAM: Create and delete service-account keys](https://cloud.google.com/iam/docs/keys-create-delete).
+
+```bash
+gcloud iam service-accounts keys create ./gcs-keyfile.json \
+  --iam-account=smai-storage@<your-project-id>.iam.gserviceaccount.com
+```
+
+This keyfile is the credential. Treat it like a password — do not commit it. You will paste its contents into the `GCS_CREDENTIALS` Heroku config var in §0.4 and then delete the local copy.
+
+**Local development (optional).** If you'd rather not keep `GCS_CREDENTIALS` in your local `.env`, run `gcloud auth application-default login` once. The app's GCS initializer leaves Application Default Credentials alone when `GCS_CREDENTIALS` is unset, so the gcloud CLI's stored credential takes over for development.
 
 ## 0.2 Create the Heroku app and pick a stack
 
@@ -56,18 +105,30 @@ Sidekiq reads `REDIS_URL` directly from the environment; no extra wiring needed 
 The app's `ApplicationHelper::REQUIRED_ENV_VARS` is the authoritative list — missing values are surfaced as a banner inside the app on every admin screen. Mirror it to Heroku:
 
 ```bash
+# GCS variant (preferred). GCS_CREDENTIALS is the entire JSON keyfile content
+# from §0.1a Step 4 — paste the file's contents inline.
 heroku config:set \
   RAILS_MASTER_KEY="$(cat config/master.key)" \
   GEMINI_API_KEY=… \
-  AWS_ACCESS_KEY_ID=… \
-  AWS_SECRET_ACCESS_KEY=… \
-  AWS_REGION=us-east-1 \
-  AWS_BUCKET=… \
+  GCS_PROJECT=<your-project-id> \
+  GCS_BUCKET=<your-bucket-name> \
+  GCS_CREDENTIALS="$(cat ./gcs-keyfile.json)" \
   GOOGLE_CLIENT_ID=… \
   GOOGLE_CLIENT_SECRET=… \
   BUGSNAG_API_KEY=… \
   -a <app-name>
+
+# AWS variant (alternative). Use this block instead of the GCS lines if you
+# went with S3. Do not set both; GCS_BUCKET takes precedence.
+# heroku config:set \
+#   AWS_ACCESS_KEY_ID=… \
+#   AWS_SECRET_ACCESS_KEY=… \
+#   AWS_REGION=us-east-1 \
+#   AWS_BUCKET=… \
+#   -a <app-name>
 ```
+
+After setting `GCS_CREDENTIALS`, **delete the local `./gcs-keyfile.json`**. Heroku has the only copy now.
 
 Notes:
 
@@ -75,6 +136,7 @@ Notes:
 - `DATABASE_URL` and `REDIS_URL` are set by their add-ons — do not set them manually.
 - `RAILS_ENV=production`, `RACK_ENV=production`, `SECRET_KEY_BASE` are managed by the buildpack — do not override.
 - `WEB_CONCURRENCY` defaults to a sensible value based on dyno size; tune later if needed.
+- The storage backend is selected at boot from these env vars: GCS when `GCS_BUCKET` is set, S3 when `AWS_BUCKET` is set, local disk otherwise. Setting both makes GCS win — easier to migrate later by removing the AWS values once the GCS bucket is verified.
 - **Optional: `TEST_TO_EMAIL`.** Outbound mail safety gate read by `app/jobs/campaign_sweep_job.rb`. When set, every campaign email is redirected to that address instead of the customer's. Leave it unset in real production. Set it temporarily (e.g. `TEST_TO_EMAIL=qa@yourcompany.com`) for staging, smoke-testing a deploy, or training. Devise mailers (password reset, account confirmations) are not affected by this gate.
 
 ## 0.5 Production URL host
