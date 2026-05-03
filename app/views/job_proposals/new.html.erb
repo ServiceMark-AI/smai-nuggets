@@ -17,9 +17,13 @@
         <%= file_field_tag :file, id: "job-file-input", class: "d-none" %>
       </label>
 
-      <div class="d-flex justify-content-end gap-2 mt-3">
-        <%= link_to "Cancel", job_proposals_path, class: "btn btn-outline-secondary" %>
-        <%= f.submit "Upload", class: "btn btn-primary", id: "job-upload-submit", disabled: true %>
+      <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+        <span id="job-upload-status" class="small text-muted me-auto" aria-live="polite"></span>
+        <%= link_to "Cancel", job_proposals_path, class: "btn btn-outline-secondary", id: "job-upload-cancel" %>
+        <button type="submit" class="btn btn-primary" id="job-upload-submit" disabled>
+          <span id="job-upload-spinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+          <span id="job-upload-label">Upload</span>
+        </button>
       </div>
     <% end %>
   </div>
@@ -28,10 +32,15 @@
 <script>
   (function() {
     function init() {
+      var form = document.getElementById("job-upload-form");
       var zone = document.getElementById("job-drop-zone");
       var input = document.getElementById("job-file-input");
       var headline = document.getElementById("job-drop-zone-headline");
       var submit = document.getElementById("job-upload-submit");
+      var label = document.getElementById("job-upload-label");
+      var spinner = document.getElementById("job-upload-spinner");
+      var status = document.getElementById("job-upload-status");
+      var cancel = document.getElementById("job-upload-cancel");
       if (!zone || !input) return;
 
       function setFile(files) {
@@ -42,6 +51,25 @@
       }
 
       input.addEventListener("change", function() { setFile(input.files); });
+
+      // On submit: lock the controls and surface progress feedback so the
+      // operator doesn't think the click missed (large PDFs + AI extraction
+      // can take several seconds before the redirect to the Confirm page).
+      form.addEventListener("submit", function() {
+        submit.disabled = true;
+        input.disabled = true;
+        zone.style.pointerEvents = "none";
+        zone.style.opacity = "0.6";
+        spinner.classList.remove("d-none");
+        label.textContent = "Uploading...";
+        if (cancel) {
+          cancel.classList.add("disabled");
+          cancel.setAttribute("aria-disabled", "true");
+        }
+        if (status) {
+          status.textContent = "Reading the document and extracting fields — this can take a few seconds.";
+        }
+      });
 
       ["dragenter", "dragover"].forEach(function(evt) {
         zone.addEventListener(evt, function(e) {
