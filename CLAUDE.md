@@ -32,3 +32,12 @@ docker-compose exec web bundle exec rails console
 ## Commit policy
 
 - After completing a significant task, stage all changed files, craft a commit message describing the change, and commit to git.
+
+## User guide maintenance
+
+The operator-facing user guide lives in [docs/user-guide/](docs/user-guide/) and is hosted on GitHub. Treat it as a deliverable, not a side artifact:
+
+- **When a feature ships, changes, or is removed, review the user guide for any section it touches and update it in the same change.** Sections in scope: §0 production setup, §1 job types & campaigns, §2 tenant onboarding, §3 user onboarding & account, §4 campaign maintenance.
+- **Audience is operators, not developers.** Use domain language (job types, scenarios, campaigns, proposals, application mailbox) and concrete UI paths (sidebar items, button labels). Do not name model classes, controllers, columns, env vars, or service objects in user-facing prose unless an admin would actually type them — keep that level of detail out of §1–§4 and confine it to §0 (which is infra-facing) or footnoted asides.
+- **Keep cross-references live.** Section anchors follow GitHub's slug rules (period stripped from `1.5` → `15`, ` & ` and ` / ` collapse to `--`). When a section is renumbered or renamed, update every link that pointed at it. A quick sweep: `grep -nE '§[0-9]' docs/user-guide/`.
+- **If a feature is genuinely "doesn't exist yet," leave the placeholder visible** (see §4e). Do not invent UX that isn't built.
