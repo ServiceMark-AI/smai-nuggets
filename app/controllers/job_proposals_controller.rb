@@ -9,7 +9,7 @@ class JobProposalsController < ApplicationController
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
-  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage]
+  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage, :approve]
 
   def index
     scope = JobProposal
@@ -94,9 +94,9 @@ class JobProposalsController < ApplicationController
         instance.update!(status: :active)
         @job_proposal.update!(status_overlay: nil)
       end
-      redirect_to job_proposals_path, notice: "Campaign resumed."
+      redirect_to job_proposal_path(@job_proposal), notice: "Campaign resumed."
     else
-      redirect_to job_proposals_path, alert: "This campaign isn't paused."
+      redirect_to job_proposal_path(@job_proposal), alert: "This campaign isn't paused."
     end
   end
 
@@ -124,9 +124,13 @@ class JobProposalsController < ApplicationController
     result = CampaignLauncher.launch(@job_proposal)
     case result.reason
     when :launched
-      redirect_to job_proposal_path(@job_proposal), notice: "Campaign launched."
+      @job_proposal.update!(status: :approving)
+      redirect_to job_proposal_campaign_instance_path(@job_proposal, result.instance),
+        notice: "Campaign created — review the emails below and click Approve to start sending."
     when :already_running
-      redirect_to job_proposal_path(@job_proposal), notice: "Campaign is already running."
+      instance = @job_proposal.campaign_instances.order(created_at: :desc).first
+      redirect_to job_proposal_campaign_instance_path(@job_proposal, instance),
+        notice: "Campaign is already running."
     when :not_ready
       missing = result.blockers.map { |b| b[:field] }.join(", ")
       redirect_to edit_job_proposal_path(@job_proposal),
@@ -157,6 +161,22 @@ class JobProposalsController < ApplicationController
     redirect_to job_proposal_path(@job_proposal), notice: "Reverted to in campaign."
   end
 
+  # Approve from the campaign instance show page. Flips JobProposal.status
+  # to approved, which is the gate the CampaignSweepJob checks before
+  # sending step instances. Redirects back to the instance the operator
+  # was reviewing.
+  def approve
+    @job_proposal.update!(status: :approved)
+    instance = @job_proposal.campaign_instances.order(created_at: :desc).first
+    if instance
+      redirect_to job_proposal_campaign_instance_path(@job_proposal, instance),
+        notice: "Approved — the next sweep will start sending."
+    else
+      redirect_to job_proposal_path(@job_proposal),
+        notice: "Approved."
+    end
+  end
+
   def update
     if @campaign_in_flight
       set_form_options
@@ -166,7 +186,13 @@ class JobProposalsController < ApplicationController
 
     if @job_proposal.update(proposal_params)
       result = CampaignLauncher.launch(@job_proposal)
-      redirect_to job_proposal_path(@job_proposal), notice: launch_notice(result)
+      if result.reason == :launched
+        @job_proposal.update!(status: :approving)
+        redirect_to job_proposal_campaign_instance_path(@job_proposal, result.instance),
+          notice: "Proposal saved. Campaign created — review the emails below and click Approve to start sending."
+      else
+        redirect_to job_proposal_path(@job_proposal), notice: launch_notice(result)
+      end
     else
       set_form_options
       flash.now[:alert] = @job_proposal.errors.full_messages.to_sentence

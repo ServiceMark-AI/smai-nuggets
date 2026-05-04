@@ -481,7 +481,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :paused)
 
     patch resume_job_proposal_url(jp)
-    assert_redirected_to job_proposals_path
+    assert_redirected_to job_proposal_path(jp)
     assert_match(/Campaign resumed/i, flash[:notice])
 
     assert instance.reload.status_active?
@@ -494,7 +494,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
 
     patch resume_job_proposal_url(jp)
-    assert_redirected_to job_proposals_path
+    assert_redirected_to job_proposal_path(jp)
     assert_match(/isn't paused/i, flash[:alert])
   end
 
