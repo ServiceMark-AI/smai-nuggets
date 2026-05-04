@@ -316,7 +316,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "search preserves filters across submits via query params" do
     sign_in @admin
-    get job_proposals_url, params: { q: "alice", status: "new" }
+    get job_proposals_url, params: { q: "alice", status: "drafting" }
     assert_response :success
     assert_match "Alice", response.body
   end
@@ -349,7 +349,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?][method=post]", job_proposal_path(jp)
     assert_select "input[name='job_proposal[customer_first_name]']:not([disabled])"
     assert_select "select[name='job_proposal[scenario_id]']:not([disabled])"
-    assert_select "input[type=submit][value=Save]"
+    # Drafting fixture → submit reads "Approve content" (the act of approving
+    # the proposal content kicks off the campaign instance).
+    assert_select "input[type=submit][value='Approve content']"
     assert_no_match(/in process/i, response.body)
   end
 
@@ -361,6 +363,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/in process/i, response.body)
     assert_select "input[name='job_proposal[customer_first_name]'][disabled]"
+    assert_select "input[type=submit][value='Approve content']", count: 0
     assert_select "input[type=submit][value=Save]", count: 0
   end
 
@@ -400,10 +403,11 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to job_proposal_path(jp)
-    assert_match(/Campaign launched/i, flash[:notice])
+    instance = jp.reload.campaign_instances.first
+    assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
+    assert_match(/Campaign created/i, flash[:notice])
+    assert_equal "approving", jp.status
 
-    jp.reload
     assert_equal "Edited", jp.customer_first_name
     assert_equal "edited@example.com", jp.customer_email
     assert_equal "Price", jp.loss_reason
@@ -526,18 +530,21 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_difference "CampaignInstance.count", 1 do
       post launch_campaign_job_proposal_url(jp)
     end
-    assert_redirected_to job_proposal_path(jp)
-    assert_match(/Campaign launched/i, flash[:notice].to_s)
+    instance = jp.reload.campaign_instances.first
+    assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
+    assert_match(/Campaign created/i, flash[:notice].to_s)
+    assert_equal "approving", jp.status
   end
 
   test "launch_campaign reports already-running on a second click" do
     sign_in @user
     jp = make_ready(job_proposals(:in_users_org))
-    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
 
     assert_no_difference "CampaignInstance.count" do
       post launch_campaign_job_proposal_url(jp)
     end
+    assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
     assert_match(/already running/i, flash[:notice].to_s)
   end
 
@@ -567,29 +574,37 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
   # --- CTA column on the index ---
 
-  test "index renders View job CTA for proposals not in a campaign" do
+  test "index renders Review proposal CTA for drafting proposals" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    jp.update!(pipeline_stage: nil, status_overlay: nil)
+    jp.update!(status: :drafting, pipeline_stage: nil, status_overlay: nil)
+    get job_proposals_url
+    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Review proposal/
+  end
+
+  test "index renders View job CTA for approved proposals not in a campaign" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approved, pipeline_stage: nil, status_overlay: nil)
     get job_proposals_url
     assert_select "a[href=?]", job_proposal_path(jp), text: /View job/
   end
 
-  test "index renders Resume campaign CTA for paused in-flight proposals" do
+  test "index renders Resume CTA for paused in-flight proposals" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    jp.update!(pipeline_stage: "in_campaign", status_overlay: "paused")
+    jp.update!(status: :approved, pipeline_stage: "in_campaign", status_overlay: "paused")
     get job_proposals_url
     assert_select "form[action=?]", resume_job_proposal_path(jp) do
       assert_select "input[name=_method][value=patch]", true
-      assert_select "button", text: /Resume campaign/
+      assert_select "button", text: /Resume/
     end
   end
 
   test "index renders Fix delivery issue CTA pointing at the edit page" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    jp.update!(pipeline_stage: "in_campaign", status_overlay: "delivery_issue")
+    jp.update!(status: :approved, pipeline_stage: "in_campaign", status_overlay: "delivery_issue")
     get job_proposals_url
     assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Fix delivery issue/
   end
@@ -597,7 +612,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
   test "index renders Open in Gmail CTA targeting a new tab" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    jp.update!(pipeline_stage: "in_campaign", status_overlay: "customer_waiting")
+    jp.update!(status: :approved, pipeline_stage: "in_campaign", status_overlay: "customer_waiting")
     instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
     CampaignStepInstance.create!(
       campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
@@ -808,5 +823,46 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get job_proposal_url(jp)
     assert_response :success
     assert_select "form[action=?]", pause_job_proposal_path(jp), count: 0
+  end
+
+  # --- approve ------------------------------------------------------------
+
+  test "approve redirects to sign-in when not signed in" do
+    patch approve_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "approve 404s for a proposal outside the user's scope" do
+    sign_in @user
+    patch approve_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "approve flips status to approved and redirects to the campaign instance show page" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    jp.update!(status: :approving)
+
+    patch approve_job_proposal_url(jp)
+    assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
+    assert_match(/Approved/i, flash[:notice])
+    assert_equal "approved", jp.reload.status
+  end
+
+  test "campaign instance show renders Approve button only when host status is approving" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
+    jp.update!(status: :approving)
+    get job_proposal_campaign_instance_url(jp, instance)
+    assert_response :success
+    assert_select "form[action=?] button", approve_job_proposal_path(jp), text: /Approve/
+
+    jp.update!(status: :approved)
+    get job_proposal_campaign_instance_url(jp, instance)
+    assert_select "form[action=?]", approve_job_proposal_path(jp), count: 0
+    assert_match "Approved", response.body
   end
 end
