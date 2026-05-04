@@ -108,7 +108,7 @@ class MailGenerator
     values   = KNOWN_KEYS.to_h { |k| [k, instance.send(:resolve, k)] }
     Output.new(
       subject: substitute(campaign_step.template_subject, values),
-      body:    substitute(campaign_step.template_body,    values)
+      body:    append_signature(substitute(campaign_step.template_body, values), values)
     )
   end
 
@@ -120,7 +120,7 @@ class MailGenerator
   def self.preview(campaign_step:)
     Output.new(
       subject: substitute(campaign_step.template_subject, SAMPLE_VALUES),
-      body:    substitute(campaign_step.template_body,    SAMPLE_VALUES)
+      body:    append_signature(substitute(campaign_step.template_body, SAMPLE_VALUES), SAMPLE_VALUES)
     )
   end
 
@@ -131,6 +131,28 @@ class MailGenerator
     text.to_s.gsub(PLACEHOLDER_RE) do |match|
       values.key?($1) ? values[$1].to_s : match
     end
+  end
+
+  # Appends a standard sign-off block to every email body so individual
+  # campaign templates don't have to repeat (and drift on) the
+  # "name / phone / email / org" pattern. Built from already-resolved
+  # values so a missing phone or unset originator name simply omits that
+  # piece — the signature never produces ragged empty lines.
+  #
+  # Output is preceded by the RFC 3676 signature delimiter ("\n-- \n")
+  # which most mail clients use to fold the signature on reply.
+  #
+  # Used by .render (via #call), .render_safely, and .preview — touch
+  # this one method to change the sign-off everywhere.
+  def self.append_signature(body, values)
+    pieces = []
+    pieces << values["originator_name"]   if values["originator_name"].present?
+    pieces << values["company_name"]      if values["company_name"].present?
+    contact = [values["originator_phone"], values["originator_email"]].compact_blank.join(" · ")
+    pieces << contact                     if contact.present?
+    return body.to_s if pieces.empty?
+
+    "#{body.to_s.rstrip}\n\n-- \n#{pieces.join("\n")}"
   end
 
   def initialize(campaign_step, job_proposal)
@@ -148,6 +170,7 @@ class MailGenerator
       raise UnresolvedMergeFieldError, "Unresolved merge fields: #{unresolved.join(", ")}"
     end
 
+    body = self.class.append_signature(body, values)
     Output.new(subject:, body:)
   end
 
