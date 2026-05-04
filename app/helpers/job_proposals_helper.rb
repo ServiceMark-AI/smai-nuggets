@@ -40,7 +40,7 @@ module JobProposalsHelper
   def job_proposal_cta_link(jp)
     case jp.cta
     when :review_proposal
-      link_to "Review proposal", edit_job_proposal_path(jp), class: "btn btn-primary btn-sm"
+      link_to "Review", edit_job_proposal_path(jp), class: "btn btn-primary btn-sm"
     when :view_job
       link_to "View job", job_proposal_path(jp), class: "btn btn-primary btn-sm"
     when :open_in_gmail
@@ -53,7 +53,7 @@ module JobProposalsHelper
     when :resume_campaign
       button_to "Resume", resume_job_proposal_path(jp),
                 method: :patch,
-                class: "btn btn-primary btn-sm",
+                class: "btn btn-success btn-sm",
                 form: { class: "d-inline" }
     end
   end

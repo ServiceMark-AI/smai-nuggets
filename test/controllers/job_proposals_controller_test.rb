@@ -574,12 +574,12 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
   # --- CTA column on the index ---
 
-  test "index renders Review proposal CTA for drafting proposals" do
+  test "index renders Review CTA for drafting proposals" do
     sign_in @user
     jp = job_proposals(:in_users_org)
     jp.update!(status: :drafting, pipeline_stage: nil, status_overlay: nil)
     get job_proposals_url
-    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Review proposal/
+    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /\AReview\z/
   end
 
   test "index renders View job CTA for approved proposals not in a campaign" do
