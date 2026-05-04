@@ -162,6 +162,35 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", pause_admin_campaign_path(paused), false
   end
 
+  test "show page surfaces who approved an approved campaign" do
+    sign_in @admin
+    # @campaign is :approved with approved_by_user = users(:one) per fixture
+    get admin_campaign_url(@campaign)
+    assert_response :success
+    assert_match "Approved by", response.body
+    assert_match users(:one).display_name, response.body
+  end
+
+  test "show page surfaces who paused and who originally approved a paused campaign" do
+    sign_in @admin
+    paused = campaigns(:paused_campaign)
+    # paused_campaign fixture: approved_by_user = one, paused_by_user = admin
+    get admin_campaign_url(paused)
+    assert_response :success
+    assert_match "Paused by", response.body
+    assert_match "Originally approved by", response.body
+    assert_match users(:admin).display_name, response.body
+    assert_match users(:one).display_name, response.body
+  end
+
+  test "show page omits the approver row on a draft campaign" do
+    sign_in @admin
+    get admin_campaign_url(campaigns(:draft_campaign))
+    assert_response :success
+    assert_no_match(/Approved by/, response.body)
+    assert_no_match(/Paused by/, response.body)
+  end
+
   test "approve sets status, approved_by_user, and approved_at" do
     sign_in @admin
     draft_campaign = campaigns(:draft_campaign)

@@ -24,6 +24,35 @@
         <span class="badge <%= status_class %>"><%= @campaign.status %></span>
       </dd>
 
+      <% if @campaign.status_approved? && @campaign.approved_by_user %>
+        <dt class="col-sm-3">Approved by</dt>
+        <dd class="col-sm-9">
+          <%= @campaign.approved_by_user.display_name %>
+          <% if @campaign.approved_at %>
+            <span class="text-muted small">on <%= @campaign.approved_at.to_fs(:long) %></span>
+          <% end %>
+        </dd>
+      <% elsif @campaign.status_paused? %>
+        <% if @campaign.paused_by_user %>
+          <dt class="col-sm-3">Paused by</dt>
+          <dd class="col-sm-9">
+            <%= @campaign.paused_by_user.display_name %>
+            <% if @campaign.paused_at %>
+              <span class="text-muted small">on <%= @campaign.paused_at.to_fs(:long) %></span>
+            <% end %>
+          </dd>
+        <% end %>
+        <% if @campaign.approved_by_user %>
+          <dt class="col-sm-3">Originally approved by</dt>
+          <dd class="col-sm-9">
+            <%= @campaign.approved_by_user.display_name %>
+            <% if @campaign.approved_at %>
+              <span class="text-muted small">on <%= @campaign.approved_at.to_fs(:long) %></span>
+            <% end %>
+          </dd>
+        <% end %>
+      <% end %>
+
       <dt class="col-sm-3">Scenario</dt>
       <dd class="col-sm-9">
         <% if @campaign.attributed_to.is_a?(Scenario) %>
