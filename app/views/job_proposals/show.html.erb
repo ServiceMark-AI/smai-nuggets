@@ -16,30 +16,6 @@
 </div>
 
 <% attachments = @job_proposal.attachments.select { |a| a.file.attached? } %>
-<% if attachments.any? %>
-  <div class="card shadow-sm mb-4">
-    <div class="card-header">
-      <h2 class="h5 mb-0">Uploaded file<%= "s" if attachments.size > 1 %></h2>
-    </div>
-    <div class="card-body">
-      <ul class="list-unstyled mb-0">
-        <% attachments.each do |att| %>
-          <% source = attachment_storage_source(att.file) %>
-          <li class="<%= 'mt-2' unless att == attachments.first %>">
-            <%= link_to att.file.filename.to_s, rails_blob_path(att.file, disposition: "inline"), target: "_blank", rel: "noopener" %>
-            <span class="text-muted small ms-2">
-              uploaded <%= time_ago_in_words(att.created_at) %> ago<% if att.uploaded_by_user %> by <%= att.uploaded_by_user.display_name %><% end %>
-            </span>
-            <div class="text-muted small">
-              Stored in <strong><%= source[:service] %></strong><% if source[:location] %> · <%= source[:location] %><% end %>
-              <span class="ms-2">key <code><%= source[:key] %></code></span>
-            </div>
-          </li>
-        <% end %>
-      </ul>
-    </div>
-  </div>
-<% end %>
 
 <div class="card shadow-sm mb-4">
   <div class="card-header">
@@ -233,3 +209,28 @@
     </dl>
   </div>
 </div>
+
+<% if attachments.any? %>
+  <div class="card shadow-sm mt-4">
+    <div class="card-header">
+      <h2 class="h5 mb-0">Uploaded file<%= "s" if attachments.size > 1 %></h2>
+    </div>
+    <div class="card-body">
+      <ul class="list-unstyled mb-0">
+        <% attachments.each do |att| %>
+          <% source = attachment_storage_source(att.file) %>
+          <li class="<%= 'mt-2' unless att == attachments.first %>">
+            <%= link_to att.file.filename.to_s, rails_blob_path(att.file, disposition: "inline"), target: "_blank", rel: "noopener" %>
+            <span class="text-muted small ms-2">
+              uploaded <%= time_ago_in_words(att.created_at) %> ago<% if att.uploaded_by_user %> by <%= att.uploaded_by_user.display_name %><% end %>
+            </span>
+            <div class="text-muted small">
+              Stored in <strong><%= source[:service] %></strong><% if source[:location] %> · <%= source[:location] %><% end %>
+              <span class="ms-2">key <code><%= source[:key] %></code></span>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+<% end %>
