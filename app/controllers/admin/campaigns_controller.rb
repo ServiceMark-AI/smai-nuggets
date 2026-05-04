@@ -54,6 +54,11 @@ class Admin::CampaignsController < Admin::BaseController
   end
 
   def campaign_params
-    params.require(:campaign).permit(:name, :status, :attributed_scenario_id)
+    # Status is intentionally NOT permitted here — it's controlled by the
+    # Approve / Pause buttons on the show page (which call dedicated
+    # actions that also set approved_by_user / paused_by_user / timestamps).
+    # Letting an admin set it from the edit form would skip those audit
+    # writes and bypass the intended workflow.
+    params.require(:campaign).permit(:name, :attributed_scenario_id)
   end
 end

@@ -31,6 +31,24 @@ class MailGenerator
     location_name location_address state
   ].freeze
 
+  # Grouping used by the campaign-step edit form's "available merge
+  # fields" reference list. Order mirrors a top-down read of an email:
+  # who you're writing to, what their job is, what you're proposing,
+  # who's signing it, and where it's coming from. Keep aligned with
+  # KNOWN_KEYS — every key listed there should appear in exactly one
+  # group so authors don't get a partial list.
+  MERGE_FIELD_GROUPS = {
+    "Customer" => %w[customer_name customer_first_name customer_last_name],
+    "Property" => %w[property_address property_address_short],
+    "Proposal" => %w[proposal_value damage_description],
+    "Originator (proposal owner)" => %w[
+      originator_name originator_first_name originator_last_name
+      originator_phone originator_email
+    ],
+    "Company" => %w[company_name company_phone],
+    "Location" => %w[location_name location_address state]
+  }.freeze
+
   # Pre-populated fake values used by .preview to render an email
   # exactly as it would look at send time, without needing a real
   # JobProposal. Powers the campaign show page's "what does this look

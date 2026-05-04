@@ -57,7 +57,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
   test "admin create with valid params persists and redirects" do
     sign_in @admin
     assert_difference "Campaign.count", 1 do
-      post admin_campaigns_url, params: { campaign: { name: "Fall Drive", status: "draft" } }
+      post admin_campaigns_url, params: { campaign: { name: "Fall Drive" } }
     end
     assert_redirected_to admin_campaigns_path
     follow_redirect!
@@ -70,7 +70,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     scenario = scenarios(:sewage_backup)
     assert_difference "Campaign.count", 1 do
       post admin_campaigns_url, params: {
-        campaign: { name: "Sewage Outreach", status: "draft", attributed_scenario_id: scenario.id }
+        campaign: { name: "Sewage Outreach", attributed_scenario_id: scenario.id }
       }
     end
     created = Campaign.find_by(name: "Sewage Outreach")
@@ -91,7 +91,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
   test "admin create with invalid params re-renders the form" do
     sign_in @admin
     assert_no_difference "Campaign.count" do
-      post admin_campaigns_url, params: { campaign: { name: "", status: "draft" } }
+      post admin_campaigns_url, params: { campaign: { name: "" } }
     end
     assert_response :unprocessable_content
     assert_match(/can&#39;t be blank/, response.body)
@@ -115,11 +115,19 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin update with valid params changes the record and redirects" do
     sign_in @admin
-    patch admin_campaign_url(@campaign), params: { campaign: { name: "Renamed", status: "paused" } }
+    original_status = @campaign.status
+    patch admin_campaign_url(@campaign), params: { campaign: { name: "Renamed" } }
     assert_redirected_to admin_campaigns_path
     @campaign.reload
     assert_equal "Renamed", @campaign.name
-    assert_equal "paused", @campaign.status
+  end
+
+  test "admin update ignores any status param sent (status is locked behind Approve/Pause)" do
+    sign_in @admin
+    patch admin_campaign_url(@campaign), params: { campaign: { name: "Renamed", status: "paused" } }
+    @campaign.reload
+    assert_equal "Renamed", @campaign.name
+    assert_equal "approved", @campaign.status, "status must not be writable from the edit form"
   end
 
   test "admin update with invalid params re-renders the form" do
@@ -200,7 +208,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
   test "non-admin cannot create a campaign" do
     sign_in @non_admin
     assert_no_difference "Campaign.count" do
-      post admin_campaigns_url, params: { campaign: { name: "Sneaky", status: "draft" } }
+      post admin_campaigns_url, params: { campaign: { name: "Sneaky" } }
     end
     assert_redirected_to root_path
   end

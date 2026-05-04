@@ -212,4 +212,25 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "", out.subject
     assert_equal "", out.body
   end
+
+  test "MERGE_FIELD_GROUPS covers exactly the keys listed in KNOWN_KEYS" do
+    grouped = MailGenerator::MERGE_FIELD_GROUPS.values.flatten
+
+    missing_from_groups = MailGenerator::KNOWN_KEYS - grouped
+    extra_in_groups     = grouped - MailGenerator::KNOWN_KEYS
+    duplicate_groupings = grouped.tally.select { |_, n| n > 1 }.keys
+
+    assert_empty missing_from_groups,
+      "every KNOWN_KEY must appear in some MERGE_FIELD_GROUPS entry — the form list is built from these"
+    assert_empty extra_in_groups,
+      "MERGE_FIELD_GROUPS lists keys that don't exist on the renderer"
+    assert_empty duplicate_groupings,
+      "a merge field appears in more than one group: #{duplicate_groupings.inspect}"
+  end
+
+  test "every key in MERGE_FIELD_GROUPS has a SAMPLE_VALUES entry so the form preview column renders" do
+    grouped = MailGenerator::MERGE_FIELD_GROUPS.values.flatten
+    missing_samples = grouped - MailGenerator::SAMPLE_VALUES.keys
+    assert_empty missing_samples, "every grouped merge field must have a sample value for the form's reference list"
+  end
 end

@@ -1,21 +1,24 @@
 <% content_for :title, "New Step" %>
 
-<div class="row">
-  <div class="col-md-8 col-lg-6">
-    <nav aria-label="breadcrumb" class="mb-3">
-      <ol class="breadcrumb mb-0">
-        <li class="breadcrumb-item"><%= link_to "Campaigns", admin_campaigns_path %></li>
-        <li class="breadcrumb-item"><%= link_to @campaign.name, admin_campaign_path(@campaign) %></li>
-        <li class="breadcrumb-item"><%= link_to "Edit", edit_admin_campaign_path(@campaign) %></li>
-        <li class="breadcrumb-item active" aria-current="page">Add Step</li>
-      </ol>
-    </nav>
-    <h1 class="h3 mb-4">Add Step</h1>
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><%= link_to "Campaigns", admin_campaigns_path %></li>
+    <li class="breadcrumb-item"><%= link_to @campaign.name, admin_campaign_path(@campaign) %></li>
+    <li class="breadcrumb-item"><%= link_to "Edit", edit_admin_campaign_path(@campaign) %></li>
+    <li class="breadcrumb-item active" aria-current="page">Add Step</li>
+  </ol>
+</nav>
+<h1 class="h3 mb-4">Add Step</h1>
 
+<div class="row g-4">
+  <div class="col-12 col-lg-7">
     <div class="card shadow-sm">
       <div class="card-body p-4">
         <%= render "form", campaign: @campaign, campaign_step: @campaign_step, form_url: admin_campaign_steps_path(@campaign), form_method: :post %>
       </div>
     </div>
+  </div>
+  <div class="col-12 col-lg-5">
+    <%= render "merge_fields_reference" %>
   </div>
 </div>
