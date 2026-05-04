@@ -66,9 +66,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "status filter narrows the list to that status" do
     sign_in @admin
-    get job_proposals_url, params: { status: "open" }
+    get job_proposals_url, params: { status: "approving" }
     assert_response :success
-    # Fixtures: in_users_org=new(0), same_tenant_other_org=open(1), other_tenant=new(0)
+    # Fixtures: in_users_org=drafting(0), same_tenant_other_org=approving(1), other_tenant=drafting(0)
     assert_match "Bob", response.body
     assert_no_match "Alice", response.body
     assert_no_match "Carol", response.body
@@ -94,10 +94,10 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
   test "filters compose with each other" do
     sign_in @admin
-    get job_proposals_url, params: { status: "new", owner_id: users(:one).id }
+    get job_proposals_url, params: { status: "drafting", owner_id: users(:one).id }
     assert_response :success
-    assert_match "Alice", response.body                # status=new + owner=one
-    assert_no_match "Bob", response.body               # status=open
+    assert_match "Alice", response.body                # status=drafting + owner=one
+    assert_no_match "Bob", response.body               # status=approving
     assert_no_match "Carol", response.body             # owner=two
   end
 
@@ -760,13 +760,36 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert instance.reload.status_paused?
   end
 
-  test "show page renders Pause button when not complete and not already paused" do
+  test "show page renders Pause button only when an active CampaignInstance exists" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    jp.update!(pipeline_stage: nil, status_overlay: nil)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: nil)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
     get job_proposal_url(jp)
     assert_response :success
     assert_select "form[action=?] button", pause_job_proposal_path(jp), text: /Pause/
+  end
+
+  test "show page hides Pause button when the latest CampaignInstance has completed" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: nil)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :completed)
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?]", pause_job_proposal_path(jp), count: 0
+  end
+
+  test "show page hides Pause button when no CampaignInstance exists at all" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil, status_overlay: nil)
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?]", pause_job_proposal_path(jp), count: 0
   end
 
   test "show page hides Pause button when pipeline_stage is won" do

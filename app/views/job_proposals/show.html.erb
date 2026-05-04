@@ -28,7 +28,11 @@
           method: :patch,
           class: "btn btn-outline-danger btn-sm",
           form: { class: "d-inline" } %>
-    <% if @job_proposal.status_overlay != "paused" %>
+    <%# Pause only makes sense while a CampaignInstance is actively
+        running. A completed run (all steps shipped) or a terminal-stopped
+        run (delivery_issue, customer_reply, etc.) has nothing to pause. %>
+    <% latest_instance = @job_proposal.campaign_instances.order(created_at: :desc).first %>
+    <% if latest_instance&.status_active? %>
       <%= button_to "Pause", pause_job_proposal_path(@job_proposal),
             method: :patch,
             class: "btn btn-outline-warning btn-sm",
