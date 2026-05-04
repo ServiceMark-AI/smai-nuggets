@@ -149,6 +149,7 @@
             <th>Step</th>
             <th style="width: 130px;">Status</th>
             <th style="width: 240px;">When</th>
+            <th style="width: 110px;">Thread</th>
           </tr>
         </thead>
         <tbody>
@@ -188,6 +189,14 @@
                   <% end %>
                 <% elsif %w[failed bounced].include?(step_status) %>
                   Failed <%= time_ago_in_words(si.updated_at) %> ago
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td>
+                <% if si.gmail_thread_id.present? %>
+                  <%= link_to "Open ↗", gmail_thread_url(si.gmail_thread_id),
+                        target: "_blank", rel: "noopener", class: "small" %>
                 <% else %>
                   <span class="text-muted">—</span>
                 <% end %>

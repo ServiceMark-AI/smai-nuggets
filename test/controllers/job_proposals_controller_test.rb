@@ -199,6 +199,29 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Job Proposal ##{jp.id}", response.body
   end
 
+  test "show step table includes a Thread column linking to the Gmail conversation when present" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    si_with_thread = CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
+      planned_delivery_at: 1.hour.ago, email_delivery_status: :sent,
+      gmail_thread_id: "THREAD-ABC", final_subject: "x", final_body: "y"
+    )
+    si_no_thread = CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_two),
+      planned_delivery_at: 1.hour.from_now, email_delivery_status: :pending
+    )
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "thead th", text: "Thread"
+    # Sent step has a link to the Gmail thread URL, opens in a new tab.
+    assert_select "a[href*=?][target=_blank]", "THREAD-ABC", text: /Open/
+    # Pending step has no thread id → em-dash placeholder, no Gmail link.
+    refute_match si_no_thread.id.to_s + "[^\"]*Open", response.body
+  end
+
   # --- sort ---
 
   test "default sort is created_at desc" do
@@ -704,5 +727,63 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get job_proposal_url(jp)
     assert_response :success
     assert_select "form[action=?]", revert_pipeline_stage_job_proposal_path(jp), count: 0
+  end
+
+  # --- pause --------------------------------------------------------------
+
+  test "pause redirects to sign-in when not signed in" do
+    patch pause_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "pause 404s for a proposal outside the user's scope" do
+    sign_in @user
+    patch pause_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "pause sets status_overlay to paused even when no campaign instance exists" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    patch pause_job_proposal_url(jp)
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/paused/i, flash[:notice])
+    assert_equal "paused", jp.reload.status_overlay
+  end
+
+  test "pause flips an active campaign instance to paused and sets overlay" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    patch pause_job_proposal_url(jp)
+    assert_equal "paused", jp.reload.status_overlay
+    assert instance.reload.status_paused?
+  end
+
+  test "show page renders Pause button when not complete and not already paused" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil, status_overlay: nil)
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?] button", pause_job_proposal_path(jp), text: /Pause/
+  end
+
+  test "show page hides Pause button when pipeline_stage is won" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "won")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?]", pause_job_proposal_path(jp), count: 0
+  end
+
+  test "show page hides Pause button when status_overlay is already paused" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "in_campaign", status_overlay: "paused")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?]", pause_job_proposal_path(jp), count: 0
   end
 end
