@@ -396,8 +396,15 @@ JobProposal.where(pipeline_stage: "in_campaign").includes(:scenario).find_each d
       campaign_instance_id: instance.id, campaign_step_id: step.id
     )
     si.planned_delivery_at = started_at + step.offset_min.minutes
-    si.final_subject = step.template_subject
-    si.final_body = step.template_body
+    # Mirror what CampaignSweepJob does at real send time: render the
+    # template through MailGenerator and store the substituted strings,
+    # so demo "sent" rows look like they would on a live send (and the
+    # proposal show page doesn't display literal {placeholder} text).
+    # render_safely keeps unresolved placeholders in place rather than
+    # crashing the seed if a demo proposal lacks a field.
+    rendered = MailGenerator.render_safely(campaign_step: step, job_proposal: proposal)
+    si.final_subject = rendered.subject
+    si.final_body    = rendered.body
     si.gmail_thread_id ||= "DEMO-thread-#{instance.id}"
 
     past_due = si.planned_delivery_at <= Time.current
