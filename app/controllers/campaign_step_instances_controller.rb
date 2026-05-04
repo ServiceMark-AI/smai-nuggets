@@ -16,18 +16,35 @@ class CampaignStepInstancesController < ApplicationController
     # For a step that already shipped, final_subject/final_body capture
     # exactly what the customer received — show that. Otherwise (pending,
     # sending, failed before ever queueing copy) render the live template
-    # against the proposal's current data so the operator sees what would
-    # ship if the step fired right now.
+    # through the same MailGenerator.render the live send uses, so what
+    # the preview shows is byte-for-byte what would ship if the step
+    # fired right now.
+    #
+    # render raises UnresolvedMergeFieldError when the template references
+    # a merge field this proposal can't provide — a real campaign-config
+    # bug (e.g. typo'd token, KNOWN_KEYS missing a binding). We surface
+    # the message in a banner and fall back to render_safely so the rest
+    # of the page still renders.
     if @sent && @step_instance.final_subject.present?
       @rendered = MailGenerator::Output.new(
         subject: @step_instance.final_subject,
         body:    @step_instance.final_body.to_s
       )
+      @rendering_error = nil
     else
-      @rendered = MailGenerator.render_safely(
-        campaign_step: @campaign_step,
-        job_proposal:  @job_proposal
-      )
+      begin
+        @rendered = MailGenerator.render(
+          campaign_step: @campaign_step,
+          job_proposal:  @job_proposal
+        )
+        @rendering_error = nil
+      rescue MailGenerator::UnresolvedMergeFieldError => e
+        @rendered = MailGenerator.render_safely(
+          campaign_step: @campaign_step,
+          job_proposal:  @job_proposal
+        )
+        @rendering_error = e.message
+      end
     end
 
     @from_address = ApplicationMailbox.current&.email

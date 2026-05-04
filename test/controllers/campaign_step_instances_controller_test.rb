@@ -98,6 +98,29 @@ class CampaignStepInstancesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "draft preview goes through MailGenerator.render — substitutes proposal data byte-for-byte" do
+    sign_in @user
+    get job_proposal_step_instance_url(@proposal, @step_instance)
+
+    # Subject + body are rendered with the live proposal's data, NOT
+    # the template placeholders, NOT sample values. This is the same
+    # output MailGenerator.render produces for the actual send.
+    refute_match "{customer_first_name}", response.body, "preview should not show raw merge fields"
+    assert_match "Hi Alice about 100 Oak Ridge", response.body
+  end
+
+  test "preview surfaces a warning banner when the template has unresolved merge fields" do
+    @step.update!(template_body: "Hi {customer_first_name}, your contact for {totally_unknown_token} is here.")
+    sign_in @user
+    get job_proposal_step_instance_url(@proposal, @step_instance)
+
+    assert_response :success
+    assert_match(/Template has unresolved merge fields/i, response.body)
+    assert_match "totally_unknown_token", response.body
+    # Page still renders the partial preview — no 500.
+    assert_match "Hi Alice", response.body
+  end
+
   test "Gmail thread link appears when the step instance has a thread id" do
     @step_instance.update!(email_delivery_status: :sent, gmail_thread_id: "THREAD-XYZ", final_subject: "x", final_body: "y")
     sign_in @user

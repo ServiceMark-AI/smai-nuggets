@@ -22,6 +22,15 @@
     <h2 class="h6 mb-0"><%= @sent ? "What was sent" : "Draft preview (live data)" %></h2>
   </div>
   <div class="card-body">
+    <% if @rendering_error %>
+      <div class="alert alert-warning mb-3">
+        <strong>Template has unresolved merge fields.</strong>
+        <%= @rendering_error %>
+        — the live send would fail with the same error and route to the
+        delivery-issue path. Fix the template (admin → campaigns) or
+        the proposal data before this step fires.
+      </div>
+    <% end %>
     <dl class="row mb-3">
       <dt class="col-sm-2 text-muted">From</dt>
       <dd class="col-sm-10">
