@@ -2,7 +2,7 @@
 
 <%= link_to "← Back to Job Proposals", job_proposals_path, class: "small text-muted" %>
 
-<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+<div class="d-flex align-items-center gap-3 mt-2 mb-4">
   <h1 class="h3 mb-0">
     <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
   </h1>
@@ -12,6 +12,28 @@
       actionable. %>
   <% if @job_proposal.cta != :view_job %>
     <%= job_proposal_cta_link(@job_proposal) %>
+  <% end %>
+  <% if %w[won lost].include?(@job_proposal.pipeline_stage) %>
+    <%= button_to "Revert to in campaign", revert_pipeline_stage_job_proposal_path(@job_proposal),
+          method: :patch,
+          class: "btn btn-outline-secondary btn-sm",
+          form: { class: "d-inline" },
+          title: "Undo an accidental Mark Won / Mark Lost." %>
+  <% else %>
+    <%= button_to "Mark Won", mark_won_job_proposal_path(@job_proposal),
+          method: :patch,
+          class: "btn btn-outline-success btn-sm",
+          form: { class: "d-inline" } %>
+    <%= button_to "Mark Lost", mark_lost_job_proposal_path(@job_proposal),
+          method: :patch,
+          class: "btn btn-outline-danger btn-sm",
+          form: { class: "d-inline" } %>
+    <% if @job_proposal.status_overlay != "paused" %>
+      <%= button_to "Pause", pause_job_proposal_path(@job_proposal),
+            method: :patch,
+            class: "btn btn-outline-warning btn-sm",
+            form: { class: "d-inline" } %>
+    <% end %>
   <% end %>
 </div>
 
@@ -56,6 +78,26 @@
       <dt class="col-sm-3">Status</dt>
       <dd class="col-sm-9"><span class="badge text-bg-secondary"><%= @job_proposal.status %></span></dd>
 
+      <dt class="col-sm-3">Status overlay</dt>
+      <dd class="col-sm-9">
+        <% if @job_proposal.status_overlay %>
+          <% ov_class = case @job_proposal.status_overlay when "delivery_issue", "customer_waiting" then "text-bg-danger" when "paused" then "text-bg-warning" else "text-bg-info" end %>
+          <span class="badge <%= ov_class %>"><%= @job_proposal.status_overlay.humanize %></span>
+        <% else %>
+          <span class="text-muted small fst-italic">No overlay</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-3">Pipeline stage</dt>
+      <dd class="col-sm-9">
+        <% if @job_proposal.pipeline_stage %>
+          <% pipe_class = case @job_proposal.pipeline_stage when "won" then "badge text-bg-success" when "lost" then "badge border border-danger text-danger" else "badge text-bg-info" end %>
+          <span class="<%= pipe_class %>"><%= @job_proposal.pipeline_stage.humanize %></span>
+        <% else %>
+          <span class="text-muted small fst-italic">No pipeline stage</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3">Proposal value</dt>
       <dd class="col-sm-9">
         <% if @job_proposal.proposal_value %>
@@ -93,7 +135,7 @@
     <div class="card-body p-0">
       <dl class="row mb-0 px-3 pt-3">
         <dt class="col-sm-3">Campaign</dt>
-        <dd class="col-sm-9"><%= link_to campaign_instance.campaign.name, admin_campaign_path(campaign_instance.campaign) if current_user.is_admin %><%= campaign_instance.campaign.name unless current_user.is_admin %></dd>
+        <dd class="col-sm-9"><%= link_to campaign_instance.campaign.name, job_proposal_campaign_instance_path(@job_proposal, campaign_instance) %></dd>
       </dl>
 
       <% step_instances = campaign_instance.step_instances

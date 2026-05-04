@@ -584,4 +584,125 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get job_proposals_url
     assert_select "a[target=_blank][href*=?]", "THREAD-XYZ", text: /Open in Gmail/
   end
+
+  # --- mark_won / mark_lost -----------------------------------------------
+
+  test "mark_won redirects to sign-in when not signed in" do
+    patch mark_won_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "mark_won 404s for a proposal outside the user's scope" do
+    sign_in @user
+    patch mark_won_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "mark_won flips pipeline_stage to won and redirects with notice" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    patch mark_won_job_proposal_url(jp)
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/won/i, flash[:notice])
+    assert_equal "won", jp.reload.pipeline_stage
+  end
+
+  test "mark_lost redirects to sign-in when not signed in" do
+    patch mark_lost_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "mark_lost 404s for a proposal outside the user's scope" do
+    sign_in @user
+    patch mark_lost_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "mark_lost flips pipeline_stage to lost and redirects with notice" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    patch mark_lost_job_proposal_url(jp)
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/lost/i, flash[:notice])
+    assert_equal "lost", jp.reload.pipeline_stage
+  end
+
+  test "show page renders Mark Won and Mark Lost buttons when pipeline_stage is not won/lost" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil)
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?] button", mark_won_job_proposal_path(jp), text: /Mark Won/
+    assert_select "form[action=?] button", mark_lost_job_proposal_path(jp), text: /Mark Lost/
+  end
+
+  test "show page hides Mark Won/Lost when pipeline_stage is already won" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "won")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?]", mark_won_job_proposal_path(jp), count: 0
+    assert_select "form[action=?]", mark_lost_job_proposal_path(jp), count: 0
+  end
+
+  # --- revert_pipeline_stage ----------------------------------------------
+
+  test "revert_pipeline_stage redirects to sign-in when not signed in" do
+    patch revert_pipeline_stage_job_proposal_url(job_proposals(:in_users_org))
+    assert_redirected_to new_user_session_path
+  end
+
+  test "revert_pipeline_stage 404s for a proposal outside the user's scope" do
+    sign_in @user
+    patch revert_pipeline_stage_job_proposal_url(job_proposals(:other_tenant))
+    assert_response :not_found
+  end
+
+  test "revert_pipeline_stage flips won back to in_campaign" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "won")
+    patch revert_pipeline_stage_job_proposal_url(jp)
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/in campaign/i, flash[:notice])
+    assert_equal "in_campaign", jp.reload.pipeline_stage
+  end
+
+  test "revert_pipeline_stage flips lost back to in_campaign" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "lost")
+    patch revert_pipeline_stage_job_proposal_url(jp)
+    assert_equal "in_campaign", jp.reload.pipeline_stage
+  end
+
+  test "show page renders Revert button when pipeline_stage is won" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "won")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?] button", revert_pipeline_stage_job_proposal_path(jp), text: /Revert/
+    assert_select "form[action=?]", mark_won_job_proposal_path(jp), count: 0
+  end
+
+  test "show page renders Revert button when pipeline_stage is lost" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "lost")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?] button", revert_pipeline_stage_job_proposal_path(jp), text: /Revert/
+  end
+
+  test "show page hides Revert button when pipeline_stage is not won/lost" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil)
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "form[action=?]", revert_pipeline_stage_job_proposal_path(jp), count: 0
+  end
 end

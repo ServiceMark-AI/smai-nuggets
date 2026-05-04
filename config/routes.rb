@@ -26,9 +26,14 @@ Rails.application.routes.draw do
   resources :job_proposals, only: [:index, :show, :new, :create, :edit, :update] do
     member do
       patch :resume
+      patch :pause
       post  :launch_campaign
+      patch :mark_won
+      patch :mark_lost
+      patch :revert_pipeline_stage
     end
     resources :step_instances, only: [:show], controller: "campaign_step_instances"
+    resources :campaign_instances, only: [:show]
   end
 
   namespace :admin do
@@ -56,6 +61,7 @@ Rails.application.routes.draw do
       resources :scenarios, only: [:new, :create]
     end
     resources :scenarios, only: [:show, :edit, :update, :destroy]
+    resources :job_proposals, only: [:new, :create]
     resources :campaigns do
       member do
         patch :approve

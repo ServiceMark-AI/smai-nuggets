@@ -1,8 +1,11 @@
 <% content_for :title, "Job Proposals" %>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex align-items-center gap-3 mb-3">
   <h1 class="h3 mb-0">Job Proposals</h1>
-  <%= link_to "New job", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
+  <%= link_to "New Job Proposal", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
+  <% if current_user.is_admin %>
+    <%= link_to "New Manual Job Proposal", new_admin_job_proposal_path, class: "btn btn-outline-primary btn-sm" %>
+  <% end %>
 </div>
 
 <%= form_with url: job_proposals_path, method: :get, local: true, class: "card shadow-sm mb-3" do |f| %>
@@ -55,15 +58,14 @@
         <thead class="table-light">
           <tr>
             <th>Address</th>
+            <th>CTA</th>
             <th>Customer</th>
-            <th>Organization</th>
+            <th>Status overlay<br>Pipeline stage</th>
             <th>Job Type</th>
             <th>Status</th>
             <%= sortable_header "proposal_value", "Proposal value", th_class: "text-end" %>
             <th>Owner</th>
-            <th>Created by</th>
             <%= sortable_header "created_at", "Created" %>
-            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -76,15 +78,34 @@
                   <%= link_to "—", job_proposal_path(jp), class: "text-muted" %>
                 <% end %>
               </td>
+              <td><%= job_proposal_cta_link(jp) %></td>
               <td><%= [jp.customer_first_name, jp.customer_last_name].compact_blank.join(" ").presence || "—" %></td>
-              <td><%= jp.organization.name %></td>
+              <td>
+                <% if jp.status_overlay %>
+                  <% ov_class = case jp.status_overlay when "delivery_issue", "customer_waiting" then "text-bg-danger" when "paused" then "text-bg-warning" else "text-bg-info" end %>
+                  <span class="badge <%= ov_class %>"><%= jp.status_overlay.humanize %></span>
+                <% else %>
+                  <span class="text-muted small fst-italic">No overlay</span>
+                <% end %>
+                <div class="mt-1">
+                  <% if jp.pipeline_stage %>
+                    <% pipe_class = case jp.pipeline_stage when "won" then "badge text-bg-success" when "lost" then "badge border border-danger text-danger" else "badge text-bg-info" end %>
+                    <span class="<%= pipe_class %>"><%= jp.pipeline_stage.humanize %></span>
+                  <% else %>
+                    <span class="text-muted small fst-italic">No pipeline stage</span>
+                  <% end %>
+                </div>
+              </td>
               <td><%= jp.job_type&.name || "—" %></td>
               <td><span class="badge text-bg-secondary"><%= jp.status %></span></td>
               <td class="text-end"><%= number_to_currency(jp.proposal_value) if jp.proposal_value %></td>
               <td><%= jp.owner.display_name %></td>
-              <td><%= jp.created_by_user.display_name %></td>
-              <td><%= jp.created_at.to_date.to_fs(:long) %></td>
-              <td><%= job_proposal_cta_link(jp) %></td>
+              <td>
+                <%= jp.created_at.to_date.to_fs(:long) %>
+                <% if jp.created_by_user %>
+                  <div class="small text-muted">by <%= jp.created_by_user.display_name %></div>
+                <% end %>
+              </td>
             </tr>
           <% end %>
         </tbody>

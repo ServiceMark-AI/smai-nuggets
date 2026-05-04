@@ -40,18 +40,18 @@ module JobProposalsHelper
   def job_proposal_cta_link(jp)
     case jp.cta
     when :view_job
-      link_to "View job", job_proposal_path(jp), class: "btn btn-outline-primary btn-sm"
+      link_to "View job", job_proposal_path(jp), class: "btn btn-primary btn-sm"
     when :open_in_gmail
       link_to "Open in Gmail", gmail_thread_url(jp.gmail_thread_id),
-              class: "btn btn-outline-success btn-sm",
+              class: "btn btn-success btn-sm",
               target: "_blank", rel: "noopener"
     when :fix_delivery_issue
       link_to "Fix delivery issue", edit_job_proposal_path(jp),
-              class: "btn btn-outline-warning btn-sm"
+              class: "btn btn-warning btn-sm"
     when :resume_campaign
       button_to "Resume campaign", resume_job_proposal_path(jp),
                 method: :patch,
-                class: "btn btn-outline-primary btn-sm",
+                class: "btn btn-primary btn-sm",
                 form: { class: "d-inline" }
     end
   end

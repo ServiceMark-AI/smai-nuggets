@@ -1,0 +1,128 @@
+<% content_for :title, "Campaign — #{@job_proposal.short_address || "Proposal ##{@job_proposal.id}"}" %>
+
+<%= link_to "← Back to proposal", job_proposal_path(@job_proposal), class: "small text-muted" %>
+
+<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+  <h1 class="h3 mb-0">
+    <%= @campaign_instance.campaign.name %>
+    <% if current_user.is_admin %>
+      <%= link_to "view template", admin_campaign_path(@campaign_instance.campaign),
+            class: "small text-muted ms-2" %>
+    <% end %>
+  </h1>
+  <% inst_status_class = case @campaign_instance.status
+     when "active"    then "text-bg-success"
+     when "paused"    then "text-bg-warning"
+     when "completed" then "text-bg-secondary"
+     else "text-bg-danger"
+     end %>
+  <span class="badge <%= inst_status_class %> fs-6"><%= @campaign_instance.status.humanize %></span>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h6 mb-0">Recipient</h2></div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-2 text-muted">From</dt>
+      <dd class="col-sm-10">
+        <% if @from_address %>
+          <code><%= @from_address %></code>
+          <span class="text-muted small ms-2">(connected application mailbox)</span>
+        <% else %>
+          <span class="text-warning">No application mailbox connected — in development the sweep job runs in FAKE-SEND mode and skips the real Gmail call.</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-2 text-muted">To</dt>
+      <dd class="col-sm-10">
+        <% if @to_address %>
+          <code><%= @to_address %></code>
+          <% if (override = ENV["TEST_TO_EMAIL"]).present? && !Rails.env.production? %>
+            <span class="text-muted small ms-2">— redirected to <code><%= override %></code> while TEST_TO_EMAIL is set</span>
+          <% end %>
+        <% else %>
+          <span class="text-warning">Customer email is blank on this proposal — sends would fail with a delivery issue. Edit the proposal to fix.</span>
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<% if @rendered_steps.empty? %>
+  <div class="card shadow-sm">
+    <div class="card-body text-muted">This campaign has no steps.</div>
+  </div>
+<% end %>
+
+<% @rendered_steps.each do |rs| %>
+  <% si = rs.step_instance %>
+  <% step_status = si.email_delivery_status %>
+  <% status_class = case step_status
+     when "sent"    then "text-bg-success"
+     when "sending" then "text-bg-info"
+     when "pending" then "text-bg-secondary"
+     when "failed", "bounced" then "text-bg-danger"
+     else "text-bg-secondary"
+     end %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="h6 mb-0">
+        Step <%= rs.campaign_step.sequence_number %>
+        <span class="text-muted ms-2"><%= humanize_offset_minutes(rs.campaign_step.offset_min) %> after launch</span>
+      </h2>
+      <div class="d-flex align-items-center gap-2">
+        <%= link_to "Open step ↗", job_proposal_step_instance_path(@job_proposal, si),
+              class: "small text-decoration-none" %>
+        <span class="badge <%= status_class %>"><%= step_status.humanize %></span>
+      </div>
+    </div>
+    <div class="card-body">
+      <% if rs.rendering_error %>
+        <div class="alert alert-warning mb-3">
+          <strong>Template has unresolved merge fields.</strong>
+          <%= rs.rendering_error %>
+          — the live send would fail with the same error and route to the
+          delivery-issue path. Fix the template (admin → campaigns) or
+          the proposal data before this step fires.
+        </div>
+      <% end %>
+
+      <dl class="row mb-3">
+        <dt class="col-sm-2 text-muted">Subject</dt>
+        <dd class="col-sm-10">
+          <%= rs.rendered.subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %>
+        </dd>
+
+        <dt class="col-sm-2 text-muted">When</dt>
+        <dd class="col-sm-10">
+          <% if rs.sent %>
+            Sent <%= si.updated_at.to_fs(:long) %>
+            <span class="text-muted small ms-2">(<%= time_ago_in_words(si.updated_at) %> ago)</span>
+          <% elsif si.planned_delivery_at %>
+            Planned <%= si.planned_delivery_at.to_fs(:long) %>
+            <span class="text-muted small ms-2">
+              (<%= time_ago_in_words(si.planned_delivery_at) %><%= si.planned_delivery_at <= Time.current ? " ago" : " from now" %>)
+            </span>
+          <% else %>
+            <span class="text-muted">—</span>
+          <% end %>
+        </dd>
+      </dl>
+
+      <div class="border-top pt-3">
+        <div class="text-muted small mb-1">Body</div>
+        <% if rs.rendered.body.present? %>
+          <div style="white-space: pre-wrap;"><%= rs.rendered.body %></div>
+        <% else %>
+          <span class="text-muted fst-italic">(no body)</span>
+        <% end %>
+      </div>
+
+      <% unless rs.sent %>
+        <div class="form-text mt-3">
+          Merge fields are filled with this proposal's current data. Unresolved placeholders show as <code>{token}</code> here but would fail the real send.
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

@@ -9,7 +9,7 @@ class JobProposalsController < ApplicationController
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
-  before_action :load_proposal, only: [:edit, :update, :resume, :launch_campaign]
+  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage]
 
   def index
     scope = JobProposal
@@ -100,6 +100,20 @@ class JobProposalsController < ApplicationController
     end
   end
 
+  # Operator-driven pause from the proposal show page. Sets the overlay
+  # to paused and, if a campaign instance is currently active, flips
+  # that instance to paused too so the sweep job stops sending. The
+  # inverse flow is `resume`.
+  def pause
+    instance = @job_proposal.campaign_instances.order(created_at: :desc).first
+
+    JobProposal.transaction do
+      instance.update!(status: :paused) if instance&.status_active?
+      @job_proposal.update!(status_overlay: "paused")
+    end
+    redirect_to job_proposal_path(@job_proposal), notice: "Campaign paused."
+  end
+
   # Manual relaunch from the proposal show page's Campaign card. Used when
   # the automatic launch on update was skipped — usually because the
   # scenario wasn't picked yet at save time, or a downstream automation
@@ -124,6 +138,23 @@ class JobProposalsController < ApplicationController
       redirect_to job_proposal_path(@job_proposal),
         alert: "Couldn't launch campaign (#{result.reason})."
     end
+  end
+
+  def mark_won
+    @job_proposal.update!(pipeline_stage: :won)
+    redirect_to job_proposal_path(@job_proposal), notice: "Marked as won."
+  end
+
+  def mark_lost
+    @job_proposal.update!(pipeline_stage: :lost)
+    redirect_to job_proposal_path(@job_proposal), notice: "Marked as lost."
+  end
+
+  # Undo path for an accidental Mark Won / Mark Lost click. Sets the
+  # pipeline back to in_campaign so the operator can re-decide.
+  def revert_pipeline_stage
+    @job_proposal.update!(pipeline_stage: :in_campaign)
+    redirect_to job_proposal_path(@job_proposal), notice: "Reverted to in campaign."
   end
 
   def update

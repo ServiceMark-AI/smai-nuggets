@@ -17,7 +17,10 @@
       "Bash(locations)",
       "Bash(grep -nE \"\\(locations[ _]table|locations \\\\\\(|`locations`|Location-Level|Location Schema|## .*Location\\)\" docs/prd/PRD-*.md)",
       "Bash(xargs cat *)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "Bash(docker-compose run *)",
+      "Bash(docker-compose start *)",
+      "Bash(docker-compose stop *)"
     ]
   }
 }
