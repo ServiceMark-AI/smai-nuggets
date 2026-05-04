@@ -102,6 +102,11 @@ class JobProposalTest < ActiveSupport::TestCase
     assert_equal :review_proposal, @jp.cta
   end
 
+  test "cta returns review_campaign for proposals in approving" do
+    @jp.update!(status: :approving)
+    assert_equal :review_campaign, @jp.cta
+  end
+
   # --- gmail_thread_id ---
 
   test "gmail_thread_id is nil when no step instances exist" do

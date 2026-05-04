@@ -60,6 +60,7 @@ class JobProposal < ApplicationRecord
 
   def cta
     return :review_proposal if status_drafting?
+    return :review_campaign if status_approving?
     self.class.cta_for(pipeline_stage: pipeline_stage, status_overlay: status_overlay)
   end
 

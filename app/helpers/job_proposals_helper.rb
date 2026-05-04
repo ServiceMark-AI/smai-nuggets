@@ -41,6 +41,12 @@ module JobProposalsHelper
     case jp.cta
     when :review_proposal
       link_to "Review", edit_job_proposal_path(jp), class: "btn btn-warning btn-sm"
+    when :review_campaign
+      instance = jp.campaign_instances.order(created_at: :desc).first
+      if instance
+        link_to "Review Campaign", job_proposal_campaign_instance_path(jp, instance),
+                class: "btn btn-warning btn-sm"
+      end
     when :view_job
       link_to "View job", job_proposal_path(jp), class: "btn btn-primary btn-sm"
     when :open_in_gmail
