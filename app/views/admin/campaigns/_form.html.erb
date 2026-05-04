@@ -24,8 +24,9 @@
     <div class="form-text">Optional. Only scenarios are supported today; other attribution targets (tenant, job type) will be added later.</div>
   </div>
 
+  <% cancel_path = campaign.persisted? ? admin_campaign_path(campaign) : admin_campaigns_path %>
   <div class="d-flex gap-2">
     <%= f.submit class: "btn btn-primary" %>
-    <%= link_to "Cancel", admin_campaigns_path, class: "btn btn-outline-secondary" %>
+    <%= link_to "Cancel", cancel_path, class: "btn btn-outline-secondary" %>
   </div>
 <% end %>
