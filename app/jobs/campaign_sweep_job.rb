@@ -133,27 +133,68 @@ class CampaignSweepJob < ApplicationJob
       return
     end
 
-    sent = if mailbox
-             GmailSender.new(mailbox).send_email(to: recipient, subject: subject, body: body.to_s)
-           else
-             Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient}: #{subject.inspect}"
-             true
-           end
+    # Display name on the From header is the proposal owner's full
+    # name (Mike Frizzell), so the recipient sees
+    #   "Mike Frizzell" <mike@servicemark.ai>
+    # instead of just the bare connected-mailbox address. Falls back
+    # to nil (no display name, just the email) if the owner has no
+    # name set on their profile.
+    from_name = host.owner&.full_name
 
-    if sent
-      step_instance.update!(email_delivery_status: :sent)
-      complete_instance_if_done(instance)
-    else
+    sender = mailbox ? GmailSender.new(mailbox) : nil
+    send_response = if sender
+                      sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name)
+                    else
+                      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}): #{subject.inspect}"
+                      nil # fake-send path: no Gmail response to record
+                    end
+
+    if mailbox && send_response.nil?
       mark_failed(step_instance, instance)
+      return
     end
+
+    persist_send_metadata(step_instance, sender, send_response)
+    step_instance.update!(email_delivery_status: :sent)
+    complete_instance_if_done(instance)
   rescue StandardError => e
     Rails.logger.error "[CampaignSweepJob] unexpected error sending step instance #{step_instance.id}: #{e.class}: #{e.message}"
     mark_failed(step_instance, instance)
   end
 
+  # Stores the Gmail send response and (best-effort) the thread snapshot
+  # captured immediately after send. The snapshot is the baseline the
+  # GmailReplyPollJob compares against to detect customer replies. A
+  # snapshot fetch failure (auth blip, missing scope) is non-fatal: we
+  # log and leave gmail_thread_snapshot nil so the poller can fill it in
+  # on its first pass.
+  def persist_send_metadata(step_instance, sender, send_response)
+    return if send_response.nil? # fake-send path
+
+    thread_id = send_response["threadId"]
+    thread_snapshot = nil
+    if sender && thread_id.present?
+      begin
+        thread_snapshot = sender.fetch_thread(thread_id)
+        if thread_snapshot.nil?
+          Rails.logger.warn "[CampaignSweepJob] thread snapshot fetch returned nil for step #{step_instance.id} thread #{thread_id} — poller will populate later"
+        end
+      rescue StandardError => e
+        Rails.logger.warn "[CampaignSweepJob] thread snapshot fetch raised for step #{step_instance.id} thread #{thread_id}: #{e.class}: #{e.message}"
+      end
+    end
+
+    step_instance.update!(
+      gmail_send_response: send_response,
+      gmail_thread_id: thread_id,
+      gmail_thread_snapshot: thread_snapshot
+    )
+  end
+
   def mark_failed(step_instance, instance)
     step_instance.update!(email_delivery_status: :failed)
-    instance.update!(status: :stopped_on_delivery_issue) if instance.reload.status_active?
+    instance.reload
+    instance.update!(status: :stopped_on_delivery_issue, ended_at: Time.current) if instance.status_active?
   end
 
   def complete_instance_if_done(instance)
@@ -163,6 +204,8 @@ class CampaignSweepJob < ApplicationJob
         CampaignStepInstance.email_delivery_statuses[:sending]
       ])
       .exists?
-    instance.update!(status: :completed) if !has_open && instance.reload.status_active?
+    return if has_open
+    instance.reload
+    instance.update!(status: :completed, ended_at: Time.current) if instance.status_active?
   end
 end

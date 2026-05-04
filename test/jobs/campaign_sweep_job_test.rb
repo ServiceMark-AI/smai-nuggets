@@ -66,8 +66,22 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
     assert_equal "redirect@test.example.com", delivery[:to]
-    assert_equal "ops@example.com", delivery[:from]
+    # From header carries the proposal owner's display name when set,
+    # otherwise just the bare connected-mailbox email.
+    expected_from = @proposal.owner.full_name.present? ? %("#{@proposal.owner.full_name}" <ops@example.com>) : "ops@example.com"
+    assert_equal expected_from, delivery[:from]
     assert_equal @step_one.template_subject, delivery[:subject]
+  end
+
+  test "From header carries the proposal owner's display name when set" do
+    @proposal.owner.update!(first_name: "Mike", last_name: "Frizzell")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    assert_equal 1, GmailSender.deliveries.size
+    assert_equal %("Mike Frizzell" <ops@example.com>), GmailSender.deliveries.first[:from]
   end
 
   test "in production with no TEST_TO_EMAIL, mail goes to the customer's address" do

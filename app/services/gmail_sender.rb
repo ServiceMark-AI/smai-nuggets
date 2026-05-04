@@ -12,6 +12,7 @@ require "base64"
 # can assert what was sent without any network access.
 class GmailSender
   GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+  GMAIL_THREAD_URL = "https://gmail.googleapis.com/gmail/v1/users/me/threads"
   TOKEN_REFRESH_URL = "https://oauth2.googleapis.com/token"
 
   class << self
@@ -28,15 +29,22 @@ class GmailSender
     @credentials = credentials
   end
 
-  # Build a simple plain-text email and send it.
-  def send_email(to:, subject:, body:)
+  # Build a simple plain-text email and send it. Returns the parsed Gmail
+  # API response hash on success ({"id" => ..., "threadId" => ...,
+  # "labelIds" => [...]}) and nil on failure. In test, returns a synthetic
+  # hash with the same shape so callers (CampaignSweepJob) can persist it
+  # without branching on env.
+  def send_email(to:, subject:, body:, from_name: nil)
+    from_address = from_name.present? ? %("#{from_name}" <#{@credentials.email}>) : @credentials.email
+
     if Rails.env.test?
-      self.class.deliveries << { from: @credentials.email, to: to, subject: subject, body: body }
-      return true
+      stub = synthetic_send_response
+      self.class.deliveries << { from: from_address, to: to, subject: subject, body: body, response: stub }
+      return stub
     end
 
     refresh_if_needed
-    raw = build_message(to: to, subject: subject, body: body)
+    raw = build_message(to: to, subject: subject, body: body, from_name: from_name)
     encoded = Base64.urlsafe_encode64(raw)
     post_send(encoded)
   end
@@ -46,23 +54,45 @@ class GmailSender
   # the message, but preserves the original display name (e.g. "SMAI User
   # Support") set via Devise's `mailer_sender`. Recipients see
   #   "SMAI User Support" <connected-mailbox@gmail.com>.
+  # Returns the parsed Gmail API response hash on success, nil on failure.
   def send_mail(mail)
     rewritten_from = rewrite_from(mail)
 
     if Rails.env.test?
+      stub = synthetic_send_response
       self.class.deliveries << {
         from: rewritten_from,
         to: Array(mail.to),
         subject: mail.subject,
-        body: mail.body.to_s
+        body: mail.body.to_s,
+        response: stub
       }
-      return true
+      return stub
     end
 
     refresh_if_needed
     mail["From"] = rewritten_from
     encoded = Base64.urlsafe_encode64(mail.encoded)
     post_send(encoded)
+  end
+
+  # Fetches a Gmail thread by id with metadata-only formatting (headers
+  # but no message bodies — enough to detect replies via From/Date and
+  # message count). Returns the parsed JSON hash on success, nil on
+  # failure. In test, returns a synthetic single-message thread so callers
+  # can persist a snapshot without making an HTTP call.
+  def fetch_thread(thread_id)
+    return nil if thread_id.blank?
+
+    if Rails.env.test?
+      return synthetic_thread_response(thread_id)
+    end
+
+    refresh_if_needed
+    uri = URI("#{GMAIL_THREAD_URL}/#{thread_id}?format=metadata")
+    response = get_json(uri, bearer: @credentials.access_token)
+    return nil unless response.code.to_i.between?(200, 299)
+    JSON.parse(response.body) rescue nil
   end
 
   # Sends a self-addressed probe email from the connected mailbox and
@@ -119,10 +149,10 @@ class GmailSender
   def post_send(encoded_raw)
     response = post_json(GMAIL_SEND_URL, { raw: encoded_raw }, bearer: @credentials.access_token)
     if response.code.to_i.between?(200, 299)
-      true
+      JSON.parse(response.body) rescue nil
     else
       Rails.logger.warn "[GmailSender] send failed (#{response.code}): #{response.body}"
-      false
+      nil
     end
   end
 
@@ -147,10 +177,15 @@ class GmailSender
     )
   end
 
-  def build_message(to:, subject:, body:)
+  def build_message(to:, subject:, body:, from_name: nil)
+    from_header = if from_name.present?
+                    %("#{from_name.gsub('"', '\\"')}" <#{@credentials.email}>)
+                  else
+                    @credentials.email
+                  end
     [
       "To: #{to}",
-      "From: #{@credentials.email}",
+      "From: #{from_header}",
       "Subject: #{subject}",
       "MIME-Version: 1.0",
       "Content-Type: text/plain; charset=UTF-8",
@@ -168,5 +203,41 @@ class GmailSender
     req["Content-Type"] = "application/json"
     req.body = payload.to_json
     http.request(req)
+  end
+
+  def get_json(uri, bearer:)
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    req = Net::HTTP::Get.new(uri)
+    req["Authorization"] = "Bearer #{bearer}"
+    http.request(req)
+  end
+
+  def synthetic_send_response
+    thread_id = "test-thread-#{SecureRandom.hex(4)}"
+    {
+      "id" => "test-msg-#{SecureRandom.hex(4)}",
+      "threadId" => thread_id,
+      "labelIds" => ["SENT"]
+    }
+  end
+
+  def synthetic_thread_response(thread_id)
+    {
+      "id" => thread_id,
+      "historyId" => "1",
+      "messages" => [
+        {
+          "id" => "test-msg-#{SecureRandom.hex(4)}",
+          "threadId" => thread_id,
+          "labelIds" => ["SENT"],
+          "payload" => {
+            "headers" => [
+              { "name" => "From", "value" => @credentials.email }
+            ]
+          }
+        }
+      ]
+    }
   end
 end
