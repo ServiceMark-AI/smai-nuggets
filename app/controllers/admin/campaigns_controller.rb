@@ -2,7 +2,7 @@ class Admin::CampaignsController < Admin::BaseController
   before_action :set_campaign, only: [:show, :edit, :update, :destroy, :approve, :pause, :resume]
 
   def index
-    @campaigns = Campaign.order(created_at: :desc)
+    @campaigns = Campaign.includes(:approved_by_user, :paused_by_user, :steps).order(created_at: :desc)
   end
 
   def show

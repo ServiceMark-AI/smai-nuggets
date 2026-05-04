@@ -27,8 +27,22 @@
                 <span class="badge <%= klass %>"><%= c.status %></span>
               </td>
               <td><%= c.steps.size %></td>
-              <td><%= l(c.approved_at, format: :short) if c.approved_at %></td>
-              <td><%= l(c.paused_at, format: :short) if c.paused_at %></td>
+              <td>
+                <% if c.approved_at %>
+                  <%= l(c.approved_at, format: :short) %>
+                  <% if c.approved_by_user %>
+                    <div class="small text-muted">by <%= c.approved_by_user.display_name %></div>
+                  <% end %>
+                <% end %>
+              </td>
+              <td>
+                <% if c.paused_at %>
+                  <%= l(c.paused_at, format: :short) %>
+                  <% if c.paused_by_user %>
+                    <div class="small text-muted">by <%= c.paused_by_user.display_name %></div>
+                  <% end %>
+                <% end %>
+              </td>
             </tr>
           <% end %>
         </tbody>

@@ -31,6 +31,17 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Winter Hold", response.body
   end
 
+  test "admin index shows the approver and pauser names alongside the timestamps" do
+    sign_in @admin
+    get admin_campaigns_url
+    assert_response :success
+    # approved_campaign (Summer Push) has approved_by_user = users(:one).
+    # paused_campaign  (Winter Hold) has approved_by_user = users(:one)
+    #                                  and paused_by_user = users(:admin).
+    assert_match users(:one).display_name, response.body
+    assert_match users(:admin).display_name, response.body
+  end
+
   test "admin show renders the campaign with its steps" do
     sign_in @admin
     get admin_campaign_url(@campaign)
