@@ -1,5 +1,5 @@
 class Admin::CampaignsController < Admin::BaseController
-  before_action :set_campaign, only: [:show, :edit, :update, :destroy, :approve, :pause]
+  before_action :set_campaign, only: [:show, :edit, :update, :destroy, :approve, :pause, :resume]
 
   def index
     @campaigns = Campaign.order(created_at: :desc)
@@ -45,6 +45,15 @@ class Admin::CampaignsController < Admin::BaseController
   def pause
     @campaign.update!(status: :paused, paused_by_user: current_user, paused_at: Time.current)
     redirect_to admin_campaign_path(@campaign), notice: "Campaign paused."
+  end
+
+  # Flips a paused campaign back to :approved without overwriting the
+  # original `approved_by_user` / `approved_at` audit fields — that's
+  # what distinguishes resume from approve. The pause-time fields are
+  # cleared so the campaign reads as cleanly approved again.
+  def resume
+    @campaign.update!(status: :approved, paused_by_user: nil, paused_at: nil)
+    redirect_to admin_campaign_path(@campaign), notice: "Campaign resumed."
   end
 
   private

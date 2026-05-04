@@ -60,6 +60,7 @@ Rails.application.routes.draw do
       member do
         patch :approve
         patch :pause
+        patch :resume
       end
       resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
         collection do

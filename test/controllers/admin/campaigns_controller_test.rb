@@ -191,9 +191,41 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_equal freeze_time, @campaign.paused_at
   end
 
-  test "non-admin cannot approve or pause" do
+  test "resume flips paused -> approved, clears pause fields, preserves approval audit" do
+    paused = campaigns(:paused_campaign)
+    original_approved_by = paused.approved_by_user
+    original_approved_at = paused.approved_at
+
+    sign_in @admin
+    patch resume_admin_campaign_url(paused)
+    assert_redirected_to admin_campaign_path(paused)
+
+    paused.reload
+    assert_equal "approved", paused.status
+    assert_nil paused.paused_by_user
+    assert_nil paused.paused_at
+    assert_equal original_approved_by, paused.approved_by_user, "resume must not overwrite the original approver"
+    assert_equal original_approved_at, paused.approved_at,    "resume must not overwrite the original approval time"
+  end
+
+  test "show page renders an Unpause button only when the campaign is paused" do
+    sign_in @admin
+
+    paused = campaigns(:paused_campaign)
+    get admin_campaign_url(paused)
+    assert_select "form[action=?]", resume_admin_campaign_path(paused)
+
+    get admin_campaign_url(@campaign) # approved
+    assert_select "form[action=?]", resume_admin_campaign_path(@campaign), false
+
+    get admin_campaign_url(campaigns(:draft_campaign))
+    assert_select "form[action=?]", resume_admin_campaign_path(campaigns(:draft_campaign)), false
+  end
+
+  test "non-admin cannot approve, pause, or resume" do
     sign_in @non_admin
     draft_campaign = campaigns(:draft_campaign)
+    paused = campaigns(:paused_campaign)
 
     patch approve_admin_campaign_url(draft_campaign)
     assert_redirected_to root_path
@@ -202,6 +234,10 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     patch pause_admin_campaign_url(@campaign)
     assert_redirected_to root_path
     assert_equal "approved", @campaign.reload.status
+
+    patch resume_admin_campaign_url(paused)
+    assert_redirected_to root_path
+    assert_equal "paused", paused.reload.status
   end
 
   test "non-admin cannot create a campaign" do
