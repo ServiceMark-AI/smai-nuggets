@@ -16,7 +16,6 @@
             <th>Steps</th>
             <th>Approved</th>
             <th>Paused</th>
-            <th class="text-end"></th>
           </tr>
         </thead>
         <tbody>
@@ -30,10 +29,6 @@
               <td><%= c.steps.size %></td>
               <td><%= l(c.approved_at, format: :short) if c.approved_at %></td>
               <td><%= l(c.paused_at, format: :short) if c.paused_at %></td>
-              <td class="text-end">
-                <%= link_to "Edit", edit_admin_campaign_path(c), class: "btn btn-sm btn-outline-primary" %>
-                <%= button_to "Delete", admin_campaign_path(c), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this campaign?" } } %>
-              </td>
             </tr>
           <% end %>
         </tbody>
