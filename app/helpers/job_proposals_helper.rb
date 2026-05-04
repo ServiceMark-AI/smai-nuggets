@@ -40,7 +40,7 @@ module JobProposalsHelper
   def job_proposal_cta_link(jp)
     case jp.cta
     when :review_proposal
-      link_to "Review", edit_job_proposal_path(jp), class: "btn btn-primary btn-sm"
+      link_to "Review", edit_job_proposal_path(jp), class: "btn btn-warning btn-sm"
     when :view_job
       link_to "View job", job_proposal_path(jp), class: "btn btn-primary btn-sm"
     when :open_in_gmail
