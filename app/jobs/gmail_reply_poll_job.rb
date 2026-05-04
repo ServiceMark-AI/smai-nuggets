@@ -91,20 +91,26 @@ class GmailReplyPollJob < ApplicationJob
       return
     end
 
-    return unless reply_present?(thread, step_instance.gmail_thread_snapshot, mailbox.email)
+    reply_message = first_reply_message(thread, step_instance.gmail_thread_snapshot, mailbox.email)
+    return unless reply_message
 
-    flag_reply(step_instance)
+    flag_reply(step_instance, reply_message)
   rescue StandardError => e
     Rails.logger.error "[GmailReplyPollJob] unexpected error polling step #{step_instance_id}: #{e.class}: #{e.message}"
   end
 
-  def reply_present?(current_thread, baseline_thread, mailbox_email)
+  # Returns the first message in the current thread (after the snapshot
+  # baseline) that came from someone other than the connected mailbox,
+  # or nil when no such message exists. Returning the message itself —
+  # rather than a boolean — lets flag_reply persist the specific Gmail
+  # payload that triggered the stop, useful for diagnostics.
+  def first_reply_message(current_thread, baseline_thread, mailbox_email)
     baseline_count = Array(baseline_thread["messages"]).length
     current_messages = Array(current_thread["messages"])
-    return false if current_messages.length <= baseline_count
+    return nil if current_messages.length <= baseline_count
 
     new_messages = current_messages.last(current_messages.length - baseline_count)
-    new_messages.any? { |msg| from_other_party?(msg, mailbox_email) }
+    new_messages.find { |msg| from_other_party?(msg, mailbox_email) }
   end
 
   def from_other_party?(message, mailbox_email)
@@ -123,11 +129,12 @@ class GmailReplyPollJob < ApplicationJob
     bare ? bare[0].strip : ""
   end
 
-  def flag_reply(step_instance)
+  def flag_reply(step_instance, reply_message)
     instance = step_instance.campaign_instance
     host = instance.host
 
     JobProposal.transaction do
+      step_instance.update!(customer_replied: true, gmail_reply_payload: reply_message)
       instance.reload
       if instance.status_active? || instance.status_completed?
         instance.update!(status: :stopped_on_reply, ended_at: Time.current)

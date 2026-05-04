@@ -118,6 +118,46 @@
       <dd class="col-sm-9">
         <span class="badge text-bg-secondary"><%= @step_instance.campaign_instance.status.humanize %></span>
       </dd>
+
+      <dt class="col-sm-3">Customer replied</dt>
+      <dd class="col-sm-9">
+        <% if @step_instance.customer_replied %>
+          <span class="badge text-bg-warning">Yes</span>
+        <% else %>
+          <span class="text-muted">No</span>
+        <% end %>
+      </dd>
     </dl>
   </div>
 </div>
+
+<% gmail_payloads = {
+     "Send response (POST users/me/messages/send)" => @step_instance.gmail_send_response,
+     "Thread snapshot at send time (GET users/me/threads/{id})" => @step_instance.gmail_thread_snapshot,
+     "Customer reply payload (Gmail message JSON)" => @step_instance.gmail_reply_payload
+   } %>
+<% if gmail_payloads.values.any?(&:present?) %>
+  <div class="card shadow-sm mt-4">
+    <div class="card-header"><h2 class="h6 mb-0">Gmail diagnostics</h2></div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">
+        Raw Gmail API payloads captured for this step. Useful when chasing
+        down "why didn't the reply trip?" or "what address did Gmail
+        actually accept the message under?"
+      </p>
+      <% gmail_payloads.each do |label, payload| %>
+        <details class="mb-2">
+          <summary class="small">
+            <%= label %>
+            <% if payload.blank? %>
+              <span class="text-muted ms-1">— not captured</span>
+            <% end %>
+          </summary>
+          <% if payload.present? %>
+            <pre class="bg-body-tertiary p-3 mt-2 small" style="max-height: 24rem; overflow: auto;"><%= JSON.pretty_generate(payload) %></pre>
+          <% end %>
+        </details>
+      <% end %>
+    </div>
+  </div>
+<% end %>

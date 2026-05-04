@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_04_040000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,9 +70,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_040000) do
     t.bigint "campaign_instance_id", null: false
     t.bigint "campaign_step_id", null: false
     t.datetime "created_at", null: false
+    t.boolean "customer_replied", default: false, null: false
     t.integer "email_delivery_status", default: 0, null: false
     t.text "final_body"
     t.string "final_subject"
+    t.jsonb "gmail_reply_payload"
     t.jsonb "gmail_send_response"
     t.string "gmail_thread_id"
     t.jsonb "gmail_thread_snapshot"

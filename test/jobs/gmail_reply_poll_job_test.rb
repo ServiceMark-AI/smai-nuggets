@@ -45,8 +45,9 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
 
   test "flips instance to stopped_on_reply when a new message from the customer appears" do
     snapshot = outgoing_only("t1")
-    build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
-    current = snapshot + [message_from("customer@elsewhere.com", "t1")]
+    step = build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    reply = message_from("customer@elsewhere.com", "t1")
+    current = snapshot + [reply]
 
     freeze_time = Time.current
     travel_to(freeze_time) do
@@ -59,6 +60,10 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
     assert_equal "stopped_on_reply", @instance.status
     assert_in_delta freeze_time, @instance.ended_at, 1.second
     assert_equal "customer_waiting", @proposal.reload.status_overlay
+
+    step.reload
+    assert step.customer_replied, "step should be flagged as having a customer reply"
+    assert_equal reply, step.gmail_reply_payload, "step should retain the specific Gmail message that triggered the stop"
   end
 
   test "ignores new messages that come from the connected mailbox itself" do
