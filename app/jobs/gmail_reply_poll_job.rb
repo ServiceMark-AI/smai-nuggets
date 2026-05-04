@@ -48,10 +48,11 @@ class GmailReplyPollJob < ApplicationJob
 
   private
 
-  # Returns IDs of the most-recent sent step instance per eligible
-  # campaign instance. Postgres DISTINCT ON keeps it to one row per
-  # parent — there's no point polling N threads under one proposal when
-  # only the latest matters for reply detection.
+  # Returns IDs of every sent step instance on an eligible campaign
+  # instance. Each campaign step opens its own Gmail thread (no
+  # In-Reply-To threading on outbound), so a customer can reply to any
+  # of them independently — we have to check every thread, not just
+  # the latest one per campaign instance.
   def pollable_step_instance_ids(now)
     cutoff = now - POLLING_CUTOFF
     active_status = CampaignInstance.statuses[:active]
@@ -68,9 +69,7 @@ class GmailReplyPollJob < ApplicationJob
         active_status, cutoff
       )
       .where(job_proposals: { pipeline_stage: JobProposal.pipeline_stages[:in_campaign] })
-      .select("DISTINCT ON (campaign_step_instances.campaign_instance_id) campaign_step_instances.id, campaign_step_instances.campaign_instance_id, campaign_step_instances.created_at")
-      .order("campaign_step_instances.campaign_instance_id, campaign_step_instances.created_at DESC")
-      .map(&:id)
+      .pluck("campaign_step_instances.id")
   end
 
   def process(step_instance_id, mailbox, sender)

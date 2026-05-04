@@ -191,9 +191,9 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
     assert_equal "stopped_on_reply", @instance.reload.status
   end
 
-  test "polls only the latest sent step per campaign instance" do
-    earlier = build_sent_step_at(thread_id: "earlier", snapshot_messages: outgoing_only("earlier"), created_at: 2.days.ago)
-    latest  = build_sent_step_at(thread_id: "latest",  snapshot_messages: outgoing_only("latest"),  created_at: 1.minute.ago)
+  test "polls every sent step's thread on the same campaign instance" do
+    build_sent_step_at(thread_id: "earlier", snapshot_messages: outgoing_only("earlier"), created_at: 2.days.ago)
+    build_sent_step_at(thread_id: "latest",  snapshot_messages: outgoing_only("latest"),  created_at: 1.minute.ago)
 
     seen = []
     stub_fetch_thread_with(->(thread_id) {
@@ -203,7 +203,29 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
       GmailReplyPollJob.new.perform
     end
 
-    assert_equal ["latest"], seen, "only the most recent sent step's thread should be polled"
+    assert_equal ["earlier", "latest"].sort, seen.sort, "every sent step's thread should be polled"
+  end
+
+  test "detects a reply on an earlier step's thread, not just the latest" do
+    earlier_snapshot = outgoing_only("earlier")
+    latest_snapshot  = outgoing_only("latest")
+    earlier_step = build_sent_step_at(thread_id: "earlier", snapshot_messages: earlier_snapshot, created_at: 2.days.ago)
+    build_sent_step_at(thread_id: "latest",  snapshot_messages: latest_snapshot,  created_at: 1.minute.ago)
+
+    reply_on_earlier = message_from("customer@elsewhere.com", "earlier")
+    stub_fetch_thread_with(->(thread_id) {
+      case thread_id
+      when "earlier" then { "id" => "earlier", "messages" => earlier_snapshot + [reply_on_earlier] }
+      when "latest"  then { "id" => "latest",  "messages" => latest_snapshot }
+      end
+    }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "stopped_on_reply", @instance.reload.status
+    earlier_step.reload
+    assert earlier_step.customer_replied
+    assert_equal reply_on_earlier, earlier_step.gmail_reply_payload
   end
 
   private
