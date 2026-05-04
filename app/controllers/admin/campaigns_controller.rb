@@ -26,7 +26,7 @@ class Admin::CampaignsController < Admin::BaseController
 
   def update
     if @campaign.update(campaign_params)
-      redirect_to admin_campaigns_path, notice: "Campaign updated."
+      redirect_to admin_campaign_path(@campaign), notice: "Campaign updated."
     else
       render :edit, status: :unprocessable_content
     end

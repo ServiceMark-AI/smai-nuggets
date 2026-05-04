@@ -113,11 +113,10 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?]", new_admin_campaign_step_path(@campaign), text: "Add step"
   end
 
-  test "admin update with valid params changes the record and redirects" do
+  test "admin update with valid params changes the record and redirects to the show page" do
     sign_in @admin
-    original_status = @campaign.status
     patch admin_campaign_url(@campaign), params: { campaign: { name: "Renamed" } }
-    assert_redirected_to admin_campaigns_path
+    assert_redirected_to admin_campaign_path(@campaign)
     @campaign.reload
     assert_equal "Renamed", @campaign.name
   end
