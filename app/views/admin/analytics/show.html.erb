@@ -1,0 +1,218 @@
+<% content_for :title, "Analytics" %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h3 mb-1">Analytics</h1>
+    <div class="text-muted small">
+      All-time scope · <%= pluralize(@total_proposals, "proposal") %>.
+      Per PRD-07 §6, a date / location / job-type filter bar lives here once those scopes are wired.
+    </div>
+  </div>
+</div>
+
+<%# --- Hero tiles ----------------------------------------------------- %>
+<div class="row g-3 mb-4">
+  <div class="col-md">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted text-uppercase small mb-1">Conversion rate</div>
+        <div class="display-6 fw-semibold mb-1">
+          <%= @conversion_rate_pct.nil? ? "—" : "#{@conversion_rate_pct}%" %>
+        </div>
+        <div class="small text-muted">Won jobs as a % of activated proposals</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted text-uppercase small mb-1">Closed revenue</div>
+        <div class="h4 fw-semibold mb-1"><%= number_to_currency(@closed_revenue, precision: 0) %></div>
+        <div class="small text-muted">Proposal value of won jobs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted text-uppercase small mb-1">Active pipeline</div>
+        <div class="h4 fw-semibold mb-1"><%= number_to_currency(@active_pipeline_value, precision: 0) %></div>
+        <div class="small text-muted">Jobs currently in campaign</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md">
+    <div class="card shadow-sm h-100">
+      <div class="card-body opacity-50">
+        <div class="text-muted text-uppercase small mb-1">Avg time to first reply</div>
+        <div class="h4 fw-semibold mb-1">—</div>
+        <div class="small text-muted">Hours from send to first customer reply, won jobs · <em>pending inbound-message tracking</em></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted text-uppercase small mb-1">Follow-ups sent</div>
+        <div class="h4 fw-semibold mb-1"><%= number_with_delimiter(@follow_ups_sent) %></div>
+        <div class="small text-muted">Campaign-step emails marked sent</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# --- Funnel --------------------------------------------------------- %>
+<div class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Where jobs are won and lost</h2></div>
+  <div class="card-body">
+    <% funnel = [
+         { label: "Proposals activated",       count: @activated_count,          implemented: true },
+         { label: "First follow-up delivered", count: @first_followup_delivered, implemented: true },
+         { label: "Customer replied",          count: nil,                       implemented: false },
+         { label: "Operator responded",        count: nil,                       implemented: false },
+         { label: "Closed won",                count: @won_count,                implemented: true }
+       ] %>
+    <% funnel.each do |stage| %>
+      <div class="d-flex align-items-center mb-2">
+        <div class="me-3" style="width: 200px;">
+          <div class="fw-semibold"><%= stage[:label] %></div>
+          <div class="small text-muted">
+            <% if stage[:implemented] %>
+              <%= pluralize(stage[:count], "job") %>
+            <% else %>
+              <em>pending data</em>
+            <% end %>
+          </div>
+        </div>
+        <div class="flex-grow-1">
+          <% if stage[:implemented] %>
+            <% width_pct = (stage[:count].to_f / @funnel_max * 100).clamp(2, 100).round %>
+            <div class="progress" style="height: 32px;">
+              <div class="progress-bar bg-info" role="progressbar"
+                   style="width: <%= width_pct %>%;"
+                   aria-valuenow="<%= stage[:count] %>"
+                   aria-valuemin="0"
+                   aria-valuemax="<%= @funnel_max %>">
+                <%= stage[:count] %>
+              </div>
+            </div>
+          <% else %>
+            <div class="progress" style="height: 32px;">
+              <div class="progress-bar bg-secondary" style="width: 100%; opacity: 0.15;">&nbsp;</div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    <div class="small text-muted mt-3">
+      Lost jobs (not part of the funnel above): <%= @lost_count %>
+    </div>
+  </div>
+</div>
+
+<%# --- Originator performance ---------------------------------------- %>
+<div class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Originator performance</h2></div>
+  <div class="card-body p-0">
+    <% if @originators.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Originator</th>
+            <th class="text-end">Active jobs</th>
+            <th class="text-end">Pipeline</th>
+            <th class="text-end" title="Pending inbound-message tracking">Reply rate</th>
+            <th>Close rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% top_close = @originators.first[:close_rate_pct] %>
+          <% @originators.each do |row| %>
+            <tr>
+              <td>
+                <%= row[:user].display_name %>
+                <% if (org = row[:user].organizations.first) %>
+                  <div class="text-muted small"><%= org.name %></div>
+                <% end %>
+              </td>
+              <td class="text-end"><%= row[:active_jobs] %></td>
+              <td class="text-end"><%= number_to_currency(row[:pipeline_value], precision: 0) %></td>
+              <td class="text-end text-muted"><em>—</em></td>
+              <td>
+                <% width = top_close.positive? ? (row[:close_rate_pct].to_f / top_close * 100).round : 0 %>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 8px;">
+                    <div class="progress-bar bg-info" style="width: <%= width %>%; opacity: <%= [0.6, width / 100.0].max.round(2) %>;"></div>
+                  </div>
+                  <span class="small fw-semibold" style="width: 36px;"><%= row[:close_rate_pct] %>%</span>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No originator data yet — no proposals owned.</div>
+    <% end %>
+  </div>
+</div>
+
+<%# --- Activity chart ------------------------------------------------- %>
+<div class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Follow-up activity (last 30 days)</h2></div>
+  <div class="card-body">
+    <% if @follow_ups_by_day.any? %>
+      <% peak = @follow_ups_by_day.values.max %>
+      <div class="d-flex align-items-end gap-1" style="height: 120px;">
+        <% (29.days.ago.to_date..Date.current).each do |d| %>
+          <% n = @follow_ups_by_day[d] || @follow_ups_by_day[d.to_s] || 0 %>
+          <% h = peak.positive? ? (n.to_f / peak * 100).round : 0 %>
+          <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-end"
+               title="<%= d.strftime("%b %-d") %>: <%= n %> sent">
+            <div class="w-100 bg-info" style="height: <%= [h, 2].max %>%; opacity: <%= n.positive? ? 1 : 0.1 %>;"></div>
+          </div>
+        <% end %>
+      </div>
+      <div class="d-flex justify-content-between small text-muted mt-2">
+        <span><%= 29.days.ago.to_date.strftime("%b %-d") %></span>
+        <span>Today</span>
+      </div>
+    <% else %>
+      <div class="text-muted">No campaign emails recorded in the last 30 days.</div>
+    <% end %>
+  </div>
+</div>
+
+<%# --- Pending data callout ------------------------------------------ %>
+<div class="card border-warning shadow-sm">
+  <div class="card-header bg-warning-subtle">
+    <h2 class="h6 mb-0">Pending data — what's needed to fully realize PRD-07</h2>
+  </div>
+  <ul class="list-group list-group-flush small">
+    <li class="list-group-item">
+      <strong>Inbound-message store.</strong> No table records customer replies today. Blocks: <em>Avg Time to First Reply</em> tile · <em>Customer Replied</em> funnel stage · <em>Operator Responded</em> funnel stage · <em>Reply Rate</em> originator column. Suggested shape: a <code>messages</code> table with <code>direction</code>, <code>job_proposal_id</code>, <code>gmail_thread_id</code>, <code>created_at</code> at minimum, populated by a Gmail-poll job (cron entry already exists at <code>gmail_reply_poll</code>).
+    </li>
+    <li class="list-group-item">
+      <strong>Operator-reply tracking.</strong> Same store as above, with <code>direction = 'outbound'</code> and an <code>author_user_id</code>. Otherwise we can't distinguish a follow-up that the system sent from one the operator typed in Gmail.
+    </li>
+    <li class="list-group-item">
+      <strong>Location scoping.</strong> Proposals reference an <code>Organization</code>; <code>Organization</code> has one <code>Location</code>. Multi-location orgs would need <code>job_proposals.location_id</code> directly so the PRD's location-filter selector can scope queries cleanly.
+    </li>
+    <li class="list-group-item">
+      <strong>Date / location / job-type filter bar (PRD §6).</strong> The data is here (<code>created_at</code>, <code>job_type_id</code>); the UI just isn't yet. Hooking up date scoping is a small change once the filter bar lands.
+    </li>
+    <li class="list-group-item">
+      <strong>Period-over-period deltas (PRD §7.1).</strong> Each tile's "X% vs prior period" caption needs the previous-window query to run alongside the current-window one. Trivial once the date filter is in.
+    </li>
+    <li class="list-group-item">
+      <strong>Originator-scoped visibility (PRD §9.5).</strong> This page is admin-only. Showing each originator only their own row needs the role to be resolved through cancancan and the originator table to be filtered server-side.
+    </li>
+    <li class="list-group-item">
+      <strong>MTD / YTD dual-display + per-location breakdown on the Conversion Rate tile (SPEC-05, SPEC-06).</strong> Calc-only; can land after the date and location scopes are wired.
+    </li>
+  </ul>
+</div>

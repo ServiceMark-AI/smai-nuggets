@@ -38,6 +38,7 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
+    resource :analytics, only: [:show], controller: "analytics"
     resources :chats, only: [:index, :show]
     resources :messages, only: [:index]
     resources :tool_calls, only: [:index]
