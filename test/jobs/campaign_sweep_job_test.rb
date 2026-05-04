@@ -194,15 +194,58 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_empty GmailSender.deliveries
   end
 
-  test "marks step failed and stops instance when GmailSender returns false" do
+  test "marks step failed and stops instance when GmailSender returns nil" do
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
-    with_gmail_sender_returning(false) do
+    with_gmail_sender_returning(nil) do
       CampaignSweepJob.new.perform
     end
 
     assert_equal "failed", step_instance.reload.email_delivery_status
     assert_equal "stopped_on_delivery_issue", @instance.reload.status
+    assert_not_nil @instance.reload.ended_at, "ended_at should be stamped when the instance is stopped"
+  end
+
+  test "persists gmail send response and thread snapshot on a successful send" do
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+    step_instance.reload
+
+    assert_equal "sent", step_instance.email_delivery_status
+    assert step_instance.gmail_send_response.present?, "send response should be stored"
+    assert step_instance.gmail_send_response["threadId"].present?, "send response should include threadId"
+    assert_equal step_instance.gmail_send_response["threadId"], step_instance.gmail_thread_id
+    assert step_instance.gmail_thread_snapshot.present?, "thread snapshot should be captured"
+    assert_equal step_instance.gmail_thread_id, step_instance.gmail_thread_snapshot["id"]
+  end
+
+  test "stamps ended_at when the final step completes the campaign instance" do
+    sent_step = build_step_instance(@step_one, status: :sent, due: 2.hours.ago)
+    sent_step.update!(final_subject: "x", final_body: "y")
+    final_step = build_step_instance(@step_two, status: :pending, due: 1.minute.ago)
+
+    freeze_time = Time.current
+    travel_to(freeze_time) { CampaignSweepJob.new.perform }
+
+    @instance.reload
+    assert_equal "sent", final_step.reload.email_delivery_status
+    assert_equal "completed", @instance.status
+    assert_in_delta freeze_time, @instance.ended_at, 1.second
+  end
+
+  test "FAKE-SEND mode does not populate gmail_send_response or thread snapshot" do
+    @mailbox.destroy!
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+    ENV.delete("TEST_TO_EMAIL")
+
+    with_production_environment(false) { CampaignSweepJob.new.perform }
+
+    step_instance.reload
+    assert_equal "sent", step_instance.email_delivery_status
+    assert_nil step_instance.gmail_send_response
+    assert_nil step_instance.gmail_thread_id
+    assert_nil step_instance.gmail_thread_snapshot
   end
 
   test "skips the sweep entirely outside development when no mailbox is connected" do
@@ -266,7 +309,7 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
 
   def with_gmail_sender_returning(value)
     original = GmailSender.instance_method(:send_email)
-    GmailSender.define_method(:send_email) { |to:, subject:, body:| value }
+    GmailSender.define_method(:send_email) { |to:, subject:, body:, from_name: nil| value }
     yield
   ensure
     GmailSender.define_method(:send_email, original)

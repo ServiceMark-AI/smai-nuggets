@@ -91,7 +91,9 @@ class JobProposalsController < ApplicationController
 
     if instance&.status_paused?
       JobProposal.transaction do
-        instance.update!(status: :active)
+        # ended_at cleared so the reply poller's age cutoff treats this as
+        # a live campaign again (was set when pause stopped the instance).
+        instance.update!(status: :active, ended_at: nil)
         @job_proposal.update!(status_overlay: nil)
       end
       redirect_to job_proposal_path(@job_proposal), notice: "Campaign resumed."
@@ -108,7 +110,7 @@ class JobProposalsController < ApplicationController
     instance = @job_proposal.campaign_instances.order(created_at: :desc).first
 
     JobProposal.transaction do
-      instance.update!(status: :paused) if instance&.status_active?
+      instance.update!(status: :paused, ended_at: Time.current) if instance&.status_active?
       @job_proposal.update!(status_overlay: "paused")
     end
     redirect_to job_proposal_path(@job_proposal), notice: "Campaign paused."

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_04_030517) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_04_040000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -56,6 +56,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_030517) do
   create_table "campaign_instances", force: :cascade do |t|
     t.bigint "campaign_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "ended_at"
     t.bigint "host_id", null: false
     t.string "host_type", null: false
     t.datetime "started_at"
@@ -72,7 +73,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_030517) do
     t.integer "email_delivery_status", default: 0, null: false
     t.text "final_body"
     t.string "final_subject"
+    t.jsonb "gmail_send_response"
     t.string "gmail_thread_id"
+    t.jsonb "gmail_thread_snapshot"
     t.datetime "planned_delivery_at"
     t.datetime "updated_at", null: false
     t.index ["campaign_instance_id"], name: "index_campaign_step_instances_on_campaign_instance_id"

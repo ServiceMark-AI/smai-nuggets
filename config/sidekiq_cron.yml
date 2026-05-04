@@ -3,3 +3,9 @@ campaign_sweep:
   class: "CampaignSweepJob"
   queue: default
   description: "Sweeps approved active campaigns and sends due step emails. Every minute in development for fast iteration; every 5 minutes elsewhere."
+
+gmail_reply_poll:
+  cron: "<%= Rails.env.development? ? '* * * * *' : '*/2 * * * *' %>"
+  class: "GmailReplyPollJob"
+  queue: default
+  description: "Polls Gmail for customer replies on threads we've sent campaign emails on. Independent cadence from the send sweep so reply latency isn't bounded by send timing. Every minute in development; every 2 minutes elsewhere."
