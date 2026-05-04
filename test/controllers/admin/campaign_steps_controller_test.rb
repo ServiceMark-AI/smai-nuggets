@@ -7,7 +7,7 @@ class Admin::CampaignStepsControllerTest < ActionDispatch::IntegrationTest
     @admin = users(:admin)
     @non_admin = users(:one)
     @campaign = campaigns(:approved_campaign)  # has steps with sequence_number 1, 2
-    @empty_campaign = campaigns(:new_campaign) # no steps
+    @empty_campaign = campaigns(:draft_campaign) # no steps
   end
 
   test "redirects to sign-in when not signed in" do

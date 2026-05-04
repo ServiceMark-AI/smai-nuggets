@@ -7,7 +7,7 @@ class Campaign < ApplicationRecord
   has_many :scenarios, dependent: :nullify
   has_many :instances, class_name: "CampaignInstance", dependent: :destroy
 
-  enum :status, { new: 0, approved: 1, paused: 2 }, prefix: true
+  enum :status, { draft: 0, approved: 1, paused: 2 }, prefix: true
 
   validates :name, presence: true
 

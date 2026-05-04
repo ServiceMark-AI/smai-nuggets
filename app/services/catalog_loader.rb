@@ -217,7 +217,7 @@ class CatalogLoader
     if campaign.new_record?
       campaign.assign_attributes(
         name: "#{scenario.job_type.name} — #{scenario.short_name}",
-        status: :new
+        status: :draft
       )
       campaign.save!
       @result.campaigns_created += 1

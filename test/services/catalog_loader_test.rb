@@ -37,7 +37,7 @@ class CatalogLoaderTest < ActiveSupport::TestCase
     Scenario.includes(:job_type).find_each do |scenario|
       campaign = Campaign.find_by(attributed_to_type: "Scenario", attributed_to_id: scenario.id)
       assert campaign, "scenario #{scenario.code} should have an attributed campaign"
-      assert campaign.status_new?, "default campaign should be status :new pending operator approval"
+      assert campaign.status_draft?, "default campaign should be status :draft pending operator approval"
       assert_equal "#{scenario.job_type.name} — #{scenario.short_name}", campaign.name
 
       assert campaign.steps.any?, "campaign for #{scenario.code} should have at least one step"

@@ -15,10 +15,12 @@
     <%= f.text_field :name, class: "form-control", autofocus: true %>
   </div>
 
-  <div class="mb-3">
-    <%= f.label :status, class: "form-label" %>
-    <%= f.select :status, Campaign.statuses.keys.map { |s| [s.humanize, s] }, {}, class: "form-select" %>
-  </div>
+  <% if campaign.persisted? %>
+    <div class="mb-3">
+      <%= f.label :status, class: "form-label" %>
+      <%= f.select :status, Campaign.statuses.keys.map { |s| [s.humanize, s] }, {}, class: "form-select" %>
+    </div>
+  <% end %>
 
   <div class="mb-3">
     <%= f.label :attributed_scenario_id, "Attributed to scenario", class: "form-label" %>

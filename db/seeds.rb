@@ -345,7 +345,7 @@ end
 # in-flight CampaignInstance fixtures below have something runnable to
 # attach to. Idempotent: campaigns already :approved are left alone.
 
-Campaign.where(status: :new, attributed_to_type: "Scenario").find_each do |campaign|
+Campaign.where(status: :draft, attributed_to_type: "Scenario").find_each do |campaign|
   campaign.update!(
     status: :approved,
     approved_by_user: admin,

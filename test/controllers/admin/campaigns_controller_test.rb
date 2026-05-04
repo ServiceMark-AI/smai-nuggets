@@ -46,18 +46,18 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "admin sees the new form" do
+  test "admin sees the new form, but the status field is not shown (defaults to draft)" do
     sign_in @admin
     get new_admin_campaign_url
     assert_response :success
     assert_select "form input[name='campaign[name]']"
-    assert_select "form select[name='campaign[status]']"
+    assert_select "form select[name='campaign[status]']", count: 0
   end
 
   test "admin create with valid params persists and redirects" do
     sign_in @admin
     assert_difference "Campaign.count", 1 do
-      post admin_campaigns_url, params: { campaign: { name: "Fall Drive", status: "new" } }
+      post admin_campaigns_url, params: { campaign: { name: "Fall Drive", status: "draft" } }
     end
     assert_redirected_to admin_campaigns_path
     follow_redirect!
@@ -70,7 +70,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     scenario = scenarios(:sewage_backup)
     assert_difference "Campaign.count", 1 do
       post admin_campaigns_url, params: {
-        campaign: { name: "Sewage Outreach", status: "new", attributed_scenario_id: scenario.id }
+        campaign: { name: "Sewage Outreach", status: "draft", attributed_scenario_id: scenario.id }
       }
     end
     created = Campaign.find_by(name: "Sewage Outreach")
@@ -91,7 +91,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
   test "admin create with invalid params re-renders the form" do
     sign_in @admin
     assert_no_difference "Campaign.count" do
-      post admin_campaigns_url, params: { campaign: { name: "", status: "new" } }
+      post admin_campaigns_url, params: { campaign: { name: "", status: "draft" } }
     end
     assert_response :unprocessable_content
     assert_match(/can&#39;t be blank/, response.body)
@@ -138,12 +138,12 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_campaigns_path
   end
 
-  test "show offers Approve button only when status is new" do
+  test "show offers Approve button only when status is draft" do
     sign_in @admin
-    new_campaign = campaigns(:new_campaign)
-    get admin_campaign_url(new_campaign)
-    assert_select "form[action=?]", approve_admin_campaign_path(new_campaign)
-    assert_select "form[action=?]", pause_admin_campaign_path(new_campaign), false
+    draft_campaign = campaigns(:draft_campaign)
+    get admin_campaign_url(draft_campaign)
+    assert_select "form[action=?]", approve_admin_campaign_path(draft_campaign)
+    assert_select "form[action=?]", pause_admin_campaign_path(draft_campaign), false
 
     get admin_campaign_url(@campaign)  # @campaign is approved
     assert_select "form[action=?]", pause_admin_campaign_path(@campaign)
@@ -157,17 +157,17 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
 
   test "approve sets status, approved_by_user, and approved_at" do
     sign_in @admin
-    new_campaign = campaigns(:new_campaign)
+    draft_campaign = campaigns(:draft_campaign)
     freeze_time = Time.zone.parse("2026-05-02 12:00:00")
 
     travel_to freeze_time do
-      patch approve_admin_campaign_url(new_campaign)
+      patch approve_admin_campaign_url(draft_campaign)
     end
-    assert_redirected_to admin_campaign_path(new_campaign)
-    new_campaign.reload
-    assert_equal "approved", new_campaign.status
-    assert_equal @admin, new_campaign.approved_by_user
-    assert_equal freeze_time, new_campaign.approved_at
+    assert_redirected_to admin_campaign_path(draft_campaign)
+    draft_campaign.reload
+    assert_equal "approved", draft_campaign.status
+    assert_equal @admin, draft_campaign.approved_by_user
+    assert_equal freeze_time, draft_campaign.approved_at
   end
 
   test "pause sets status, paused_by_user, and paused_at" do
@@ -186,11 +186,11 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
 
   test "non-admin cannot approve or pause" do
     sign_in @non_admin
-    new_campaign = campaigns(:new_campaign)
+    draft_campaign = campaigns(:draft_campaign)
 
-    patch approve_admin_campaign_url(new_campaign)
+    patch approve_admin_campaign_url(draft_campaign)
     assert_redirected_to root_path
-    assert_equal "new", new_campaign.reload.status
+    assert_equal "draft", draft_campaign.reload.status
 
     patch pause_admin_campaign_url(@campaign)
     assert_redirected_to root_path
@@ -200,7 +200,7 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
   test "non-admin cannot create a campaign" do
     sign_in @non_admin
     assert_no_difference "Campaign.count" do
-      post admin_campaigns_url, params: { campaign: { name: "Sneaky", status: "new" } }
+      post admin_campaigns_url, params: { campaign: { name: "Sneaky", status: "draft" } }
     end
     assert_redirected_to root_path
   end
