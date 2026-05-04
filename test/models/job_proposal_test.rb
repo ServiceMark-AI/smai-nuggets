@@ -92,9 +92,14 @@ class JobProposalTest < ActiveSupport::TestCase
     assert_equal :view_job, JobProposal.cta_for(pipeline_stage: "in_campaign", status_overlay: "wat")
   end
 
-  test "cta delegates to cta_for using the proposal's own values" do
-    @jp.update!(pipeline_stage: :in_campaign, status_overlay: "delivery_issue")
+  test "cta delegates to cta_for using the proposal's own values once past drafting" do
+    @jp.update!(status: :approved, pipeline_stage: :in_campaign, status_overlay: "delivery_issue")
     assert_equal :fix_delivery_issue, @jp.cta
+  end
+
+  test "cta returns review_proposal for proposals still in drafting" do
+    @jp.update!(status: :drafting)
+    assert_equal :review_proposal, @jp.cta
   end
 
   # --- gmail_thread_id ---

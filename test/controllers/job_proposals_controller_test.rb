@@ -349,9 +349,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?][method=post]", job_proposal_path(jp)
     assert_select "input[name='job_proposal[customer_first_name]']:not([disabled])"
     assert_select "select[name='job_proposal[scenario_id]']:not([disabled])"
-    # Drafting fixture → submit reads "Approve content" (the act of approving
-    # the proposal content kicks off the campaign instance).
-    assert_select "input[type=submit][value='Approve content']"
+    # Drafting fixture → submit reads "Approve Proposal Content" (the act of
+    # approving the proposal content kicks off the campaign instance).
+    assert_select "input[type=submit][value='Approve Proposal Content']"
     assert_no_match(/in process/i, response.body)
   end
 
@@ -363,7 +363,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/in process/i, response.body)
     assert_select "input[name='job_proposal[customer_first_name]'][disabled]"
-    assert_select "input[type=submit][value='Approve content']", count: 0
+    assert_select "input[type=submit][value='Approve Proposal Content']", count: 0
     assert_select "input[type=submit][value=Save]", count: 0
   end
 
@@ -420,11 +420,14 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     instance = jp.campaign_instances.first
     assert_equal campaigns(:approved_campaign), instance.campaign
     assert instance.status_active?
+    # planned_delivery_at is set by approve, not by launch (per PRD-03 §6.4
+    # — timing anchored to operator approval, not save).
+    assert_nil instance.started_at
     instance.step_instances.each do |si|
       assert si.email_delivery_status_pending?
       assert_nil si.final_subject
       assert_nil si.final_body
-      assert_not_nil si.planned_delivery_at
+      assert_nil si.planned_delivery_at
     end
   end
 
@@ -848,6 +851,34 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
     assert_match(/Approved/i, flash[:notice])
     assert_equal "approved", jp.reload.status
+  end
+
+  test "approve stamps started_at and accumulates offset_min across the step sequence" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    # offset_min is interpreted as "delay from the previous step". Setting
+    # step one to 60 (1h after start) and step two to 1440 (1d after step one)
+    # — the test asserts step two lands 25h after start, not 24h, proving
+    # cumulation rather than absolute-from-start.
+    step_one = campaign_steps(:approved_step_one)
+    step_two = campaign_steps(:approved_step_two)
+    step_one.update!(offset_min: 60)
+    step_two.update!(offset_min: 1440)
+
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    si_one = CampaignStepInstance.create!(campaign_instance: instance, campaign_step: step_one, email_delivery_status: :pending)
+    si_two = CampaignStepInstance.create!(campaign_instance: instance, campaign_step: step_two, email_delivery_status: :pending)
+    jp.update!(status: :approving)
+
+    freeze_time = Time.zone.parse("2026-05-04T10:00:00Z")
+    travel_to freeze_time do
+      patch approve_job_proposal_url(jp)
+    end
+
+    instance.reload
+    assert_in_delta freeze_time.to_f, instance.started_at.to_f, 1.0
+    assert_in_delta (freeze_time + 60.minutes).to_f, si_one.reload.planned_delivery_at.to_f, 1.0
+    assert_in_delta (freeze_time + (60 + 1440).minutes).to_f, si_two.reload.planned_delivery_at.to_f, 1.0
   end
 
   test "campaign instance show renders Approve button only when host status is approving" do

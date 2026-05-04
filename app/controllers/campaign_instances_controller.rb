@@ -7,7 +7,7 @@
 # is loaded through accessible_by(current_ability), then the instance is
 # asserted to belong to that proposal so cross-tenant ID guessing 404s.
 class CampaignInstancesController < ApplicationController
-  RenderedStep = Struct.new(:step_instance, :campaign_step, :sent, :rendered, :rendering_error, keyword_init: true)
+  RenderedStep = Struct.new(:step_instance, :campaign_step, :sent, :rendered, :rendering_error, :preview_send_at, keyword_init: true)
 
   before_action :load_proposal_and_instance
 
@@ -20,7 +20,22 @@ class CampaignInstancesController < ApplicationController
                        .joins(:campaign_step)
                        .order("campaign_steps.sequence_number")
 
-    @rendered_steps = step_instances.map { |si| build_rendered_step(si) }
+    # Until the operator approves the proposal, any planned_delivery_at on
+    # the row is either nil (fresh launch) or stale (pre-approve data from
+    # an older code path) — neither is meaningful as a real schedule. Compute
+    # a preview using `now` as the hypothetical start time so the page shows
+    # when each step would land if they approved right now. Once approved,
+    # the row's planned_delivery_at is the source of truth.
+    show_preview = !@job_proposal.status_approved?
+    preview_anchor = Time.current
+    cumulative_minutes = 0
+    @rendered_steps = step_instances.map do |si|
+      cumulative_minutes += si.campaign_step.offset_min.to_i
+      preview_send_at = if show_preview && !si.email_delivery_status_sent?
+                          preview_anchor + cumulative_minutes.minutes
+                        end
+      build_rendered_step(si, preview_send_at: preview_send_at)
+    end
   end
 
   private
@@ -33,7 +48,7 @@ class CampaignInstancesController < ApplicationController
     end
   end
 
-  def build_rendered_step(si)
+  def build_rendered_step(si, preview_send_at:)
     sent = si.email_delivery_status_sent?
     if sent && si.final_subject.present?
       rendered = MailGenerator::Output.new(subject: si.final_subject, body: si.final_body.to_s)
@@ -53,7 +68,8 @@ class CampaignInstancesController < ApplicationController
       campaign_step:   si.campaign_step,
       sent:            sent,
       rendered:        rendered,
-      rendering_error: rendering_error
+      rendering_error: rendering_error,
+      preview_send_at: preview_send_at
     )
   end
 end

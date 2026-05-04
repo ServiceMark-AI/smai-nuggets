@@ -10,7 +10,7 @@ class JobProposal < ApplicationRecord
   has_many :attachments, class_name: "JobProposalAttachment", dependent: :destroy
   has_many :campaign_instances, as: :host, dependent: :destroy
 
-  enum :status, { new: 0, open: 1, closed: 2 }, prefix: true
+  enum :status, { drafting: 0, approving: 1, approved: 2 }, prefix: true
   enum :pipeline_stage,
        { in_campaign: "in_campaign", won: "won", lost: "lost" },
        prefix: true
@@ -59,6 +59,7 @@ class JobProposal < ApplicationRecord
   end
 
   def cta
+    return :review_proposal if status_drafting?
     self.class.cta_for(pipeline_stage: pipeline_stage, status_overlay: status_overlay)
   end
 

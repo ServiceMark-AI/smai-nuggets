@@ -10,14 +10,31 @@
             class: "small text-muted ms-2" %>
     <% end %>
   </h1>
-  <% inst_status_class = case @campaign_instance.status
-     when "active"    then "text-bg-success"
-     when "paused"    then "text-bg-warning"
-     when "completed" then "text-bg-secondary"
-     else "text-bg-danger"
-     end %>
-  <span class="badge <%= inst_status_class %> fs-6"><%= @campaign_instance.status.humanize %></span>
+  <div class="d-flex align-items-center gap-2">
+    <% if @job_proposal.status_approving? %>
+      <%= button_to "Approve", approve_job_proposal_path(@job_proposal),
+            method: :patch,
+            class: "btn btn-primary btn-sm",
+            form: { class: "d-inline" } %>
+    <% elsif @job_proposal.status_approved? %>
+      <span class="badge text-bg-success fs-6">Approved</span>
+    <% end %>
+    <% inst_status_class = case @campaign_instance.status
+       when "active"    then "text-bg-success"
+       when "paused"    then "text-bg-warning"
+       when "completed" then "text-bg-secondary"
+       else "text-bg-danger"
+       end %>
+    <span class="badge <%= inst_status_class %> fs-6"><%= @campaign_instance.status.humanize %></span>
+  </div>
 </div>
+
+<% if @job_proposal.status_approving? %>
+  <div class="alert alert-info">
+    <strong>Awaiting approval.</strong>
+    Review every step's email below. The background job won't send anything until you click <strong>Approve</strong>.
+  </div>
+<% end %>
 
 <div class="card shadow-sm mb-4">
   <div class="card-header"><h2 class="h6 mb-0">Recipient</h2></div>
@@ -68,7 +85,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
       <h2 class="h6 mb-0">
         Step <%= rs.campaign_step.sequence_number %>
-        <span class="text-muted ms-2"><%= humanize_offset_minutes(rs.campaign_step.offset_min) %> after launch</span>
+        <span class="text-muted ms-2"><%= humanize_offset_minutes(rs.campaign_step.offset_min) %> after the previous step</span>
       </h2>
       <div class="d-flex align-items-center gap-2">
         <%= link_to "Open step ↗", job_proposal_step_instance_path(@job_proposal, si),
@@ -98,6 +115,11 @@
           <% if rs.sent %>
             Sent <%= si.updated_at.to_fs(:long) %>
             <span class="text-muted small ms-2">(<%= time_ago_in_words(si.updated_at) %> ago)</span>
+          <% elsif rs.preview_send_at %>
+            Would send <%= rs.preview_send_at.to_fs(:long) %>
+            <span class="text-muted small ms-2">
+              (<%= time_ago_in_words(rs.preview_send_at) %> from now if approved now)
+            </span>
           <% elsif si.planned_delivery_at %>
             Planned <%= si.planned_delivery_at.to_fs(:long) %>
             <span class="text-muted small ms-2">

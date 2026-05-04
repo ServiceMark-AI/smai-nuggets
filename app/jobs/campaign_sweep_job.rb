@@ -5,8 +5,11 @@ require "net/http"
 # via the application's connected Gmail mailbox, and update both the step
 # instance and its parent campaign instance to reflect the outcome.
 #
-# Eligibility: only step instances whose parent CampaignInstance is `active`
-# and whose Campaign is `approved` are considered.
+# Eligibility: only step instances whose parent CampaignInstance is `active`,
+# whose Campaign is `approved`, and whose host JobProposal has status
+# `approved` are considered. The JobProposal status gate is the operator's
+# explicit "go" signal — until they click Approve on the campaign instance
+# page, the proposal sits in `approving` and the sweep skips it.
 #
 # Concurrency: each due step instance is claimed by atomically transitioning
 # its email_delivery_status from `pending` to `sending` with a conditional
@@ -73,11 +76,13 @@ class CampaignSweepJob < ApplicationJob
   def due_step_instance_ids(now)
     CampaignStepInstance
       .joins(campaign_instance: :campaign)
+      .joins("INNER JOIN job_proposals ON job_proposals.id = campaign_instances.host_id AND campaign_instances.host_type = 'JobProposal'")
       .where(email_delivery_status: :pending)
       .where("campaign_step_instances.planned_delivery_at <= ?", now)
       .where(campaign_instances: { status: CampaignInstance.statuses[:active] })
       .where(campaigns: { status: Campaign.statuses[:approved] })
-      .pluck(:id)
+      .where(job_proposals: { status: JobProposal.statuses[:approved] })
+      .pluck("campaign_step_instances.id")
   end
 
   def process(step_instance_id, mailbox)

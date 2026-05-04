@@ -116,4 +116,55 @@ class CampaignInstancesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     refute_match admin_campaign_path(@campaign), response.body
   end
+
+  test "previews send times anchored to now when JobProposal is not yet approved" do
+    @step_one.update!(offset_min: 60)
+    @step_two.update!(offset_min: 1440)
+    # Even when stale planned_delivery_at values exist (pre-approve flow
+    # legacy data), the page prefers the now-anchored preview while the
+    # proposal is still in approving state.
+    @si_one.update!(planned_delivery_at: 1.year.ago)
+    @si_two.update!(planned_delivery_at: 1.year.ago)
+    @proposal.update!(status: :approving)
+
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+    assert_response :success
+    assert_match(/Would send/, response.body)
+    assert_match(/if approved now/, response.body)
+    refute_match(/Planned/, response.body)
+  end
+
+  test "uses planned_delivery_at as the source of truth once the proposal is approved" do
+    @si_one.update!(planned_delivery_at: 2.days.from_now)
+    @proposal.update!(status: :approved)
+
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+    assert_response :success
+    assert_match(/Planned/, response.body)
+    refute_match(/Would send/, response.body)
+  end
+
+  test "renders timestamps in the user's time zone" do
+    fixed = Time.utc(2026, 5, 4, 18, 0, 0) # 13:00 Central, 18:00 UTC
+    @si_one.update!(email_delivery_status: :sent, updated_at: fixed,
+                    final_subject: "x", final_body: "y")
+    @proposal.update!(status: :approved)
+
+    @user.update!(time_zone: "Central Time (US & Canada)")
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+    assert_response :success
+    # Central is UTC-5 (CDT) on this date.
+    assert_match("13:00", response.body)
+    refute_match("18:00", response.body)
+
+    sign_out @user
+    @user.update!(time_zone: "UTC")
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+    assert_response :success
+    assert_match("18:00", response.body)
+  end
 end

@@ -163,11 +163,30 @@ class JobProposalsController < ApplicationController
 
   # Approve from the campaign instance show page. Flips JobProposal.status
   # to approved, which is the gate the CampaignSweepJob checks before
-  # sending step instances. Redirects back to the instance the operator
-  # was reviewing.
+  # sending step instances. Stamps the campaign instance's started_at
+  # and computes each step's planned_delivery_at by accumulating
+  # offset_min across the sequence — campaign_steps.offset_min is the
+  # delay from the *previous* step, not the absolute offset from the
+  # campaign start (PRD-03 §6.4).
+  # Redirects back to the instance the operator was reviewing.
   def approve
-    @job_proposal.update!(status: :approved)
     instance = @job_proposal.campaign_instances.order(created_at: :desc).first
+    JobProposal.transaction do
+      @job_proposal.update!(status: :approved)
+      if instance
+        started_at = Time.current
+        instance.update!(started_at: started_at)
+        cumulative_minutes = 0
+        instance.step_instances
+          .joins(:campaign_step)
+          .order("campaign_steps.sequence_number")
+          .includes(:campaign_step).each do |si|
+            cumulative_minutes += si.campaign_step.offset_min.to_i
+            si.update!(planned_delivery_at: started_at + cumulative_minutes.minutes)
+          end
+      end
+    end
+
     if instance
       redirect_to job_proposal_campaign_instance_path(@job_proposal, instance),
         notice: "Approved — the next sweep will start sending."

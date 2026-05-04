@@ -45,12 +45,15 @@ class CampaignLauncher
         status: :active
       )
 
-      anchor = Time.current
+      # planned_delivery_at is left nil here — the operator hasn't approved
+      # the campaign yet, so the start time is unknown. JobProposalsController#approve
+      # stamps started_at and computes each step's planned_delivery_at = started_at + offset_min,
+      # per PRD-03 §6.4 (timing relative to campaign_started_at).
       campaign.steps.order(:sequence_number).each do |step|
         CampaignStepInstance.create!(
           campaign_instance: instance,
           campaign_step: step,
-          planned_delivery_at: anchor + step.offset_min.minutes,
+          planned_delivery_at: nil,
           email_delivery_status: :pending
         )
       end

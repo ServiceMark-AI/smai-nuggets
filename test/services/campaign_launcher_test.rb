@@ -43,12 +43,8 @@ class CampaignLauncherTest < ActiveSupport::TestCase
     assert_equal "won", @proposal.reload.pipeline_stage
   end
 
-  test "step instances are pending with no rendered copy and offset planned_delivery_at" do
-    freeze_time = Time.zone.parse("2026-05-03T12:00:00Z")
-
-    travel_to freeze_time do
-      CampaignLauncher.launch(@proposal)
-    end
+  test "step instances are pending with no rendered copy and no planned_delivery_at until approve" do
+    CampaignLauncher.launch(@proposal)
 
     sis = @proposal.campaign_instances.first.step_instances.includes(:campaign_step).order("campaign_steps.sequence_number")
     assert_equal 2, sis.size
@@ -57,8 +53,10 @@ class CampaignLauncherTest < ActiveSupport::TestCase
       assert si.email_delivery_status_pending?
       assert_nil si.final_subject
       assert_nil si.final_body
-      expected = freeze_time + si.campaign_step.offset_min.minutes
-      assert_in_delta expected.to_f, si.planned_delivery_at.to_f, 1.0
+      # Per PRD-03 §6.4, timing is anchored to the moment the operator
+      # approves the campaign. The launcher leaves planned_delivery_at nil;
+      # JobProposalsController#approve stamps it as instance.started_at + offset_min.
+      assert_nil si.planned_delivery_at
     end
   end
 

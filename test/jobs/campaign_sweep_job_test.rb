@@ -13,7 +13,11 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     @step_one = campaign_steps(:approved_step_one)
     @step_two = campaign_steps(:approved_step_two)
     @proposal = job_proposals(:in_users_org)
+    # status:approved is the operator-explicit "go" gate the sweep checks
+    # before sending. Existing tests pre-date this gate; default to approved
+    # and let any gate-specific tests below override.
     @proposal.update!(
+      status: :approved,
       customer_email: "alice@example.com",
       customer_house_number: "100",
       customer_street: "Oak Ridge"
@@ -33,6 +37,16 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     else
       ENV["TEST_TO_EMAIL"] = @prior_test_to_email
     end
+  end
+
+  test "skips a step when host JobProposal status is not approved" do
+    @proposal.update!(status: :approving)
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "pending", step_instance.reload.email_delivery_status
+    assert_empty GmailSender.deliveries
   end
 
   test "sends a due pending step and marks it sent (redirected to TEST_TO_EMAIL)" do

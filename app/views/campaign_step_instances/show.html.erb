@@ -84,7 +84,7 @@
       <dt class="col-sm-3">Sequence</dt>
       <dd class="col-sm-9">
         <%= @campaign_step.sequence_number %>
-        <span class="text-muted small ms-2">(<%= humanize_offset_minutes(@campaign_step.offset_min) %> after launch)</span>
+        <span class="text-muted small ms-2">(<%= humanize_offset_minutes(@campaign_step.offset_min) %> after the previous step)</span>
       </dd>
 
       <dt class="col-sm-3">Planned delivery</dt>
