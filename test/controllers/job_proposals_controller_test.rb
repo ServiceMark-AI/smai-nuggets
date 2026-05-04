@@ -862,13 +862,13 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     # cumulation rather than absolute-from-start.
     step_one = campaign_steps(:approved_step_one)
     step_two = campaign_steps(:approved_step_two)
-    step_one.update!(offset_min: 60)
-    step_two.update!(offset_min: 1440)
+    step_one.update!(offset_min: 60, template_subject: "S1", template_body: "Hi {customer_first_name}")
+    step_two.update!(offset_min: 1440, template_subject: "S2", template_body: "Following up")
 
     instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
     si_one = CampaignStepInstance.create!(campaign_instance: instance, campaign_step: step_one, email_delivery_status: :pending)
     si_two = CampaignStepInstance.create!(campaign_instance: instance, campaign_step: step_two, email_delivery_status: :pending)
-    jp.update!(status: :approving)
+    jp.update!(status: :approving, customer_first_name: "Alice")
 
     freeze_time = Time.zone.parse("2026-05-04T10:00:00Z")
     travel_to freeze_time do
@@ -879,6 +879,39 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_in_delta freeze_time.to_f, instance.started_at.to_f, 1.0
     assert_in_delta (freeze_time + 60.minutes).to_f, si_one.reload.planned_delivery_at.to_f, 1.0
     assert_in_delta (freeze_time + (60 + 1440).minutes).to_f, si_two.reload.planned_delivery_at.to_f, 1.0
+  end
+
+  test "approve renders and locks each step's final_subject and final_body" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    step_one = campaign_steps(:approved_step_one)
+    step_one.update!(template_subject: "Hi {customer_first_name}", template_body: "Body for {customer_first_name}")
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    si = CampaignStepInstance.create!(campaign_instance: instance, campaign_step: step_one, email_delivery_status: :pending)
+    jp.update!(status: :approving, customer_first_name: "Alice")
+
+    patch approve_job_proposal_url(jp)
+    si.reload
+    assert_equal "Hi Alice", si.final_subject
+    assert_match(/Body for Alice/, si.final_body)
+  end
+
+  test "approve refuses and rolls back when a step's template has unresolved merge fields" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    step_one = campaign_steps(:approved_step_one)
+    step_one.update!(template_body: "Hi {totally_unknown_token}")
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    si = CampaignStepInstance.create!(campaign_instance: instance, campaign_step: step_one, email_delivery_status: :pending)
+    jp.update!(status: :approving)
+
+    patch approve_job_proposal_url(jp)
+    assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
+    assert_match(/Can't approve/i, flash[:alert])
+    assert_match(/totally_unknown_token/, flash[:alert])
+    assert_equal "approving", jp.reload.status
+    assert_nil instance.reload.started_at
+    assert_nil si.reload.final_subject
   end
 
   test "campaign instance show renders Approve button only when host status is approving" do

@@ -163,28 +163,41 @@ class JobProposalsController < ApplicationController
 
   # Approve from the campaign instance show page. Flips JobProposal.status
   # to approved, which is the gate the CampaignSweepJob checks before
-  # sending step instances. Stamps the campaign instance's started_at
-  # and computes each step's planned_delivery_at by accumulating
-  # offset_min across the sequence — campaign_steps.offset_min is the
-  # delay from the *previous* step, not the absolute offset from the
-  # campaign start (PRD-03 §6.4).
+  # sending step instances.
+  #
+  # Three things happen at approve time:
+  #   1. JobProposal.status flips to approved.
+  #   2. CampaignInstance.started_at is stamped, and each step instance's
+  #      planned_delivery_at is computed by accumulating offset_min across
+  #      the sequence (offset_min = delay from the *previous* step,
+  #      PRD-03 §6.4).
+  #   3. Each step instance's final_subject and final_body are rendered
+  #      through MailGenerator and persisted. The sweep job then sends
+  #      that frozen copy verbatim — no late re-render. Lock-in time means
+  #      later edits to the proposal don't silently change a queued email.
+  #
+  # If any step's template has unresolved merge fields, the whole approve
+  # transaction rolls back and the operator sees the offending step in
+  # the alert.
+  #
   # Redirects back to the instance the operator was reviewing.
   def approve
     instance = @job_proposal.campaign_instances.order(created_at: :desc).first
-    JobProposal.transaction do
-      @job_proposal.update!(status: :approved)
-      if instance
-        started_at = Time.current
-        instance.update!(started_at: started_at)
-        cumulative_minutes = 0
-        instance.step_instances
-          .joins(:campaign_step)
-          .order("campaign_steps.sequence_number")
-          .includes(:campaign_step).each do |si|
-            cumulative_minutes += si.campaign_step.offset_min.to_i
-            si.update!(planned_delivery_at: started_at + cumulative_minutes.minutes)
-          end
+
+    begin
+      JobProposal.transaction do
+        @job_proposal.update!(status: :approved)
+        lock_in_instance!(instance) if instance
       end
+    rescue MailGenerator::UnresolvedMergeFieldError => e
+      if instance
+        redirect_to job_proposal_campaign_instance_path(@job_proposal, instance),
+          alert: "Can't approve — a step's template has unresolved merge fields: #{e.message}. Fix the template (admin → campaigns) or the proposal data, then try again."
+      else
+        redirect_to job_proposal_path(@job_proposal),
+          alert: "Can't approve — template render failed: #{e.message}."
+      end
+      return
     end
 
     if instance
@@ -220,6 +233,24 @@ class JobProposalsController < ApplicationController
   end
 
   private
+
+  def lock_in_instance!(instance)
+    started_at = Time.current
+    instance.update!(started_at: started_at)
+    cumulative_minutes = 0
+    instance.step_instances
+      .joins(:campaign_step)
+      .order("campaign_steps.sequence_number")
+      .includes(:campaign_step).each do |si|
+        cumulative_minutes += si.campaign_step.offset_min.to_i
+        rendered = MailGenerator.render(campaign_step: si.campaign_step, job_proposal: @job_proposal)
+        si.update!(
+          planned_delivery_at: started_at + cumulative_minutes.minutes,
+          final_subject:       rendered.subject,
+          final_body:          rendered.body
+        )
+      end
+  end
 
   def load_proposal
     @job_proposal = JobProposal.accessible_by(current_ability).find(params[:id])

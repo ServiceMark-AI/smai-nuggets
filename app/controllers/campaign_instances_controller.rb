@@ -50,7 +50,12 @@ class CampaignInstancesController < ApplicationController
 
   def build_rendered_step(si, preview_send_at:)
     sent = si.email_delivery_status_sent?
-    if sent && si.final_subject.present?
+    # Once approved, final_subject/final_body are locked in (set by
+    # JobProposalsController#approve) and the sweep ships them verbatim.
+    # The page should reflect that frozen copy, not re-render against
+    # current proposal data which may have drifted. Pre-approve the
+    # persisted columns are nil, so we render live as a preview.
+    if si.final_subject.present?
       rendered = MailGenerator::Output.new(subject: si.final_subject, body: si.final_body.to_s)
       rendering_error = nil
     else

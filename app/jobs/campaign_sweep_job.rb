@@ -121,29 +121,31 @@ class CampaignSweepJob < ApplicationJob
       return
     end
 
-    rendered = MailGenerator.render(campaign_step: step_instance.campaign_step, job_proposal: host)
+    # Content is locked in at approve time (see JobProposalsController#approve).
+    # The sweep just ships the persisted final_subject / final_body — no late
+    # re-render means a post-approve edit to the proposal can't silently change
+    # a queued email.
+    subject = step_instance.final_subject
+    body    = step_instance.final_body
+    if subject.blank?
+      Rails.logger.warn "[CampaignSweepJob] step instance #{step_instance.id} has no final_subject — was it approved?"
+      mark_failed(step_instance, instance)
+      return
+    end
+
     sent = if mailbox
-             GmailSender.new(mailbox).send_email(to: recipient, subject: rendered.subject, body: rendered.body)
+             GmailSender.new(mailbox).send_email(to: recipient, subject: subject, body: body.to_s)
            else
-             # Dev fake-send: log what would have gone out and report success
-             # so the campaign progresses through its step lifecycle.
-             Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient}: #{rendered.subject.inspect}"
+             Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient}: #{subject.inspect}"
              true
            end
 
     if sent
-      step_instance.update!(
-        email_delivery_status: :sent,
-        final_subject: rendered.subject,
-        final_body: rendered.body
-      )
+      step_instance.update!(email_delivery_status: :sent)
       complete_instance_if_done(instance)
     else
       mark_failed(step_instance, instance)
     end
-  rescue MailGenerator::UnresolvedMergeFieldError => e
-    Rails.logger.warn "[CampaignSweepJob] render failed for step instance #{step_instance.id}: #{e.message}"
-    mark_failed(step_instance, instance)
   rescue StandardError => e
     Rails.logger.error "[CampaignSweepJob] unexpected error sending step instance #{step_instance.id}: #{e.class}: #{e.message}"
     mark_failed(step_instance, instance)

@@ -163,9 +163,15 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_empty GmailSender.deliveries
   end
 
-  test "marks step failed and stops instance when render has unresolved merge fields" do
-    @step_one.update!(template_body: "Hi {totally_unknown_field}")
-    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+  test "marks step failed and stops instance when final_subject is missing (legacy/un-approved row)" do
+    step_instance = CampaignStepInstance.create!(
+      campaign_instance: @instance,
+      campaign_step: @step_one,
+      planned_delivery_at: 1.minute.ago,
+      email_delivery_status: :pending,
+      final_subject: nil,
+      final_body: nil
+    )
 
     CampaignSweepJob.new.perform
 
@@ -229,11 +235,18 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
   private
 
   def build_step_instance(step, status:, due:)
+    # Post-approve, every step instance carries its final_subject /
+    # final_body — content is locked in at approve time and the sweep
+    # ships that frozen copy. Render here via MailGenerator so each
+    # test starts with a realistic post-approve row.
+    rendered = MailGenerator.render(campaign_step: step, job_proposal: @proposal)
     CampaignStepInstance.create!(
       campaign_instance: @instance,
       campaign_step: step,
       planned_delivery_at: due,
-      email_delivery_status: status
+      email_delivery_status: status,
+      final_subject: rendered.subject,
+      final_body: rendered.body
     )
   end
 
