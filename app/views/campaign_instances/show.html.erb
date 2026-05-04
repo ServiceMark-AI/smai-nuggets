@@ -2,14 +2,19 @@
 
 <%= link_to "← Back to proposal", job_proposal_path(@job_proposal), class: "small text-muted" %>
 
-<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
-  <h1 class="h3 mb-0">
-    <%= @campaign_instance.campaign.name %>
-    <% if current_user.is_admin %>
-      <%= link_to "view template", admin_campaign_path(@campaign_instance.campaign),
-            class: "small text-muted ms-2" %>
-    <% end %>
-  </h1>
+<div class="d-flex justify-content-between align-items-start mt-2 mb-4">
+  <div>
+    <h1 class="h3 mb-1">
+      <%= @job_proposal.short_address || "Job Proposal ##{@job_proposal.id}" %>
+    </h1>
+    <div class="text-muted">
+      <%= @campaign_instance.campaign.name %>
+      <% if current_user.is_admin %>
+        <%= link_to "view template", admin_campaign_path(@campaign_instance.campaign),
+              class: "small ms-2" %>
+      <% end %>
+    </div>
+  </div>
   <div class="d-flex align-items-center gap-2">
     <% if @job_proposal.status_approving? %>
       <%= button_to "Approve", approve_job_proposal_path(@job_proposal),
