@@ -28,6 +28,7 @@ Rails.application.routes.draw do
       patch :resume
       post  :launch_campaign
     end
+    resources :step_instances, only: [:show], controller: "campaign_step_instances"
   end
 
   namespace :admin do

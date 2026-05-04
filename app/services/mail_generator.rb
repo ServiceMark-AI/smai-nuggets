@@ -80,6 +80,20 @@ class MailGenerator
     new(campaign_step, job_proposal).call
   end
 
+  # Same substitution as .render, but tolerant of unresolved placeholders —
+  # they're left as `{token}` in the output instead of raising. Use for UI
+  # previews where a single typo'd merge field shouldn't crash the whole
+  # page; reserve .render for the actual send path where unresolved fields
+  # are a real failure.
+  def self.render_safely(campaign_step:, job_proposal:)
+    instance = new(campaign_step, job_proposal)
+    values   = KNOWN_KEYS.to_h { |k| [k, instance.send(:resolve, k)] }
+    Output.new(
+      subject: substitute(campaign_step.template_subject, values),
+      body:    substitute(campaign_step.template_body,    values)
+    )
+  end
+
   # Render the step's subject and body with SAMPLE_VALUES substituted in,
   # using THE SAME substitution path as send-time render — the only
   # difference is the values hash (sample data) and the unresolved-field

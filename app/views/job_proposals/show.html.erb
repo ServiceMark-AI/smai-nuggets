@@ -142,10 +142,22 @@
                  when "pending" then "text-bg-secondary"
                  when "failed", "bounced" then "text-bg-danger"
                  else "text-bg-secondary"
-                 end %>
+                 end
+               # For sent steps the recorded final_subject is what shipped;
+               # otherwise render the live template against this proposal's
+               # data so the inline subject reflects what would go out now.
+               displayed_subject = if step_status == "sent" && si.final_subject.present?
+                                    si.final_subject
+                                  else
+                                    MailGenerator.render_safely(campaign_step: si.campaign_step, job_proposal: @job_proposal).subject
+                                  end %>
             <tr>
               <td><%= si.campaign_step.sequence_number %></td>
-              <td><%= si.campaign_step.template_subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></td>
+              <td>
+                <%= link_to job_proposal_step_instance_path(@job_proposal, si), class: "text-decoration-none" do %>
+                  <%= displayed_subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %>
+                <% end %>
+              </td>
               <td><span class="badge <%= status_class %>"><%= step_status.humanize %></span></td>
               <td>
                 <% if step_status == "sent" %>

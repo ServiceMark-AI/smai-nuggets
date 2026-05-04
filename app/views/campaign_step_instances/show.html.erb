@@ -1,0 +1,114 @@
+<% content_for :title, "Step #{@campaign_step.sequence_number} — #{@job_proposal.short_address || "Proposal ##{@job_proposal.id}"}" %>
+
+<%= link_to "← Back to proposal", job_proposal_path(@job_proposal), class: "small text-muted" %>
+
+<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+  <h1 class="h3 mb-0">
+    Step <%= @campaign_step.sequence_number %>
+    <span class="text-muted small ms-2">of <%= @step_instance.campaign_instance.campaign.name %></span>
+  </h1>
+  <% status_class = case @step_instance.email_delivery_status
+     when "sent"    then "text-bg-success"
+     when "sending" then "text-bg-info"
+     when "pending" then "text-bg-secondary"
+     when "failed", "bounced" then "text-bg-danger"
+     else "text-bg-secondary"
+     end %>
+  <span class="badge <%= status_class %> fs-6"><%= @step_instance.email_delivery_status.humanize %></span>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header">
+    <h2 class="h6 mb-0"><%= @sent ? "What was sent" : "Draft preview (live data)" %></h2>
+  </div>
+  <div class="card-body">
+    <dl class="row mb-3">
+      <dt class="col-sm-2 text-muted">From</dt>
+      <dd class="col-sm-10">
+        <% if @from_address %>
+          <code><%= @from_address %></code>
+          <span class="text-muted small ms-2">(connected application mailbox)</span>
+        <% else %>
+          <span class="text-warning">No application mailbox connected — in development the sweep job runs in FAKE-SEND mode and skips the real Gmail call.</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-2 text-muted">To</dt>
+      <dd class="col-sm-10">
+        <% if @to_address %>
+          <code><%= @to_address %></code>
+          <% if (override = ENV["TEST_TO_EMAIL"]).present? && !Rails.env.production? %>
+            <span class="text-muted small ms-2">— redirected to <code><%= override %></code> while TEST_TO_EMAIL is set</span>
+          <% end %>
+        <% else %>
+          <span class="text-warning">Customer email is blank on this proposal — sends would fail with a delivery issue. Edit the proposal to fix.</span>
+        <% end %>
+      </dd>
+
+      <dt class="col-sm-2 text-muted">Subject</dt>
+      <dd class="col-sm-10">
+        <%= @rendered.subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %>
+      </dd>
+    </dl>
+
+    <div class="border-top pt-3">
+      <div class="text-muted small mb-1">Body</div>
+      <% if @rendered.body.present? %>
+        <div style="white-space: pre-wrap;"><%= @rendered.body %></div>
+      <% else %>
+        <span class="text-muted fst-italic">(no body)</span>
+      <% end %>
+    </div>
+
+    <% unless @sent %>
+      <div class="form-text mt-3">
+        Merge fields are filled with this proposal's current data via <code>MailGenerator.render_safely</code>. Unresolved placeholders (typo'd merge fields, missing optional data) appear as <code>{token}</code> rather than crashing the page; they would, however, fail the real send — fix them on the campaign or the proposal before the step fires.
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header"><h2 class="h6 mb-0">Timing & status</h2></div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Sequence</dt>
+      <dd class="col-sm-9">
+        <%= @campaign_step.sequence_number %>
+        <span class="text-muted small ms-2">(<%= humanize_offset_minutes(@campaign_step.offset_min) %> after launch)</span>
+      </dd>
+
+      <dt class="col-sm-3">Planned delivery</dt>
+      <dd class="col-sm-9">
+        <% if @step_instance.planned_delivery_at %>
+          <%= @step_instance.planned_delivery_at.to_fs(:long) %>
+          <span class="text-muted small ms-2">(<%= time_ago_in_words(@step_instance.planned_delivery_at) %><%= @step_instance.planned_delivery_at <= Time.current ? " ago" : " from now" %>)</span>
+        <% else %>
+          <span class="text-muted">—</span>
+        <% end %>
+      </dd>
+
+      <% if @sent %>
+        <dt class="col-sm-3">Actually sent</dt>
+        <dd class="col-sm-9">
+          <%= @step_instance.updated_at.to_fs(:long) %>
+          <span class="text-muted small ms-2">(<%= time_ago_in_words(@step_instance.updated_at) %> ago)</span>
+        </dd>
+      <% end %>
+
+      <% if @step_instance.gmail_thread_id.present? %>
+        <dt class="col-sm-3">Gmail thread</dt>
+        <dd class="col-sm-9">
+          <%= link_to "Open in Gmail ↗", gmail_thread_url(@step_instance.gmail_thread_id),
+                target: "_blank", rel: "noopener" %>
+          <code class="text-muted small ms-2"><%= @step_instance.gmail_thread_id %></code>
+        </dd>
+      <% end %>
+
+      <dt class="col-sm-3">Campaign instance</dt>
+      <dd class="col-sm-9">
+        <span class="badge text-bg-secondary"><%= @step_instance.campaign_instance.status.humanize %></span>
+      </dd>
+    </dl>
+  </div>
+</div>
