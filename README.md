@@ -1,4 +1,6 @@
-# smai-server
+# smai-nuggets
+
+Beaver Nuggets are the iconic Buc-ee's snack, so the Texas/beaver reference lands instantly for anyone in the know but stays subtle enough for external use. "Nugget" also evokes something small and valuable — exactly the spirit of an MVP. And it sounds great in a Rails context ("deploying Nugget v0.1," "the Nugget mailer queue"). Bonus: easy to say in standup, looks good on a Slack channel (#proj-nugget), and the eventual v2 practically names itself (Project Brisket).
 
 The Rails server behind ServiceMark AI — multi-tenant, Postgres-backed, Sidekiq for background work, Gmail send-on-behalf-of for outbound campaigns.
 
