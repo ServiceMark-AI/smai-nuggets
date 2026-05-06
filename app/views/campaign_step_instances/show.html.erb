@@ -134,7 +134,7 @@
 <% gmail_payloads = {
      "Send response (POST users/me/messages/send)" => @step_instance.gmail_send_response,
      "Thread snapshot at send time (GET users/me/threads/{id})" => @step_instance.gmail_thread_snapshot,
-     "Customer reply payload (Gmail message JSON)" => @step_instance.gmail_reply_payload
+     "Inbound message that triggered the stop — reply or bounce (Gmail message JSON)" => @step_instance.gmail_reply_payload
    } %>
 <% if gmail_payloads.values.any?(&:present?) %>
   <div class="card shadow-sm mt-4">

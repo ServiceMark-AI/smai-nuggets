@@ -171,6 +171,65 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
     assert_equal snapshot, step.reload.gmail_thread_snapshot["messages"]
   end
 
+  test "flips instance to stopped_on_delivery_issue when a Mailer-Daemon bounce arrives" do
+    snapshot = outgoing_only("t1")
+    step = build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    bounce = message_from("Mailer-Daemon@googlemail.com", "t1")
+    current = snapshot + [bounce]
+
+    freeze_time = Time.current
+    travel_to(freeze_time) do
+      stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+        GmailReplyPollJob.new.perform
+      end
+    end
+
+    @instance.reload
+    assert_equal "stopped_on_delivery_issue", @instance.status
+    assert_in_delta freeze_time, @instance.ended_at, 1.second
+    assert_equal "delivery_issue", @proposal.reload.status_overlay
+
+    step.reload
+    assert_equal "bounced", step.email_delivery_status
+    assert_not step.customer_replied, "bounce path should not set customer_replied"
+    assert_equal bounce, step.gmail_reply_payload
+  end
+
+  test "recognizes a postmaster bounce" do
+    snapshot = outgoing_only("t1")
+    step = build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    bounce = message_from("postmaster@elsewhere.com", "t1")
+    current = snapshot + [bounce]
+
+    stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "stopped_on_delivery_issue", @instance.reload.status
+    assert_equal "bounced", step.reload.email_delivery_status
+  end
+
+  test "Mailer-Daemon From with display-name-and-bracket form is recognized as a bounce" do
+    snapshot = outgoing_only("t1")
+    step = build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    bounce = {
+      "id" => "dsn-1",
+      "threadId" => "t1",
+      "labelIds" => ["INBOX"],
+      "payload" => {
+        "headers" => [{ "name" => "From", "value" => 'Mail Delivery Subsystem <mailer-daemon@googlemail.com>' }]
+      }
+    }
+    current = snapshot + [bounce]
+
+    stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "stopped_on_delivery_issue", @instance.reload.status
+    assert_equal "bounced", step.reload.email_delivery_status
+  end
+
   test "From header parsing handles 'Display Name <email>' format" do
     snapshot = outgoing_only("t1")
     build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
