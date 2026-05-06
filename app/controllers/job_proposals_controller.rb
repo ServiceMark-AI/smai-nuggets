@@ -264,8 +264,9 @@ class JobProposalsController < ApplicationController
 
   def set_form_options
     @owner_options = @job_proposal.organization.users.order(:email)
-    @job_type_options = JobType.order(:name)
-    @scenario_options = Scenario.includes(:job_type).order("job_types.name", :short_name)
+    tenant = @job_proposal.tenant
+    @job_type_options = tenant.activated_job_types.order(:name)
+    @scenario_options = tenant.activated_scenarios.includes(:job_type).order("job_types.name", :short_name)
   end
 
   def proposal_params

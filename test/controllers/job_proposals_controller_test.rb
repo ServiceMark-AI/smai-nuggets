@@ -376,6 +376,25 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/in process/i, response.body)
   end
 
+  test "edit job_type select only includes job types this tenant has activated" do
+    sign_in @user
+    jp = job_proposals(:in_users_org) # tenants(:one): activates job_types(:one) only
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "select[name='job_proposal[job_type_id]'] option[value='#{job_types(:one).id}']"
+    assert_select "select[name='job_proposal[job_type_id]'] option[value='#{job_types(:two).id}']", count: 0
+  end
+
+  test "edit scenario select only includes scenarios this tenant has activated, with data-job-type-id" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "select[name='job_proposal[scenario_id]'] option[value='#{scenarios(:sewage_backup).id}'][data-job-type-id='#{scenarios(:sewage_backup).job_type_id}']"
+    # clean_water scenario isn't activated for tenant one — must be omitted
+    assert_select "select[name='job_proposal[scenario_id]'] option[value='#{scenarios(:clean_water).id}']", count: 0
+  end
+
   test "edit renders read-only with a warning when a campaign instance exists" do
     sign_in @user
     jp = job_proposals(:in_users_org)

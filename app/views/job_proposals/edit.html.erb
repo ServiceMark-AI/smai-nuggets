@@ -90,7 +90,11 @@
         </div>
         <div class="col-md-6">
           <%= f.label :scenario_id, "Scenario", class: "form-label" %>
-          <%= f.collection_select :scenario_id, @scenario_options, :id, ->(s) { "#{s.job_type.name} — #{s.short_name}" },
+          <% scenario_options_for_html = @scenario_options.map do |s|
+               ["#{s.job_type.name} — #{s.short_name}", s.id, { "data-job-type-id" => s.job_type_id }]
+             end %>
+          <%= f.select :scenario_id,
+                options_for_select(scenario_options_for_html, @job_proposal.scenario_id),
                 { include_blank: "— None —" },
                 class: "form-select", disabled: @campaign_in_flight %>
           <div class="form-text">A campaign launches when the proposal is saved with a scenario whose campaign is approved.</div>
@@ -148,3 +152,52 @@
     <% end %>
   </div>
 <% end %>
+
+<%# Keep the job-type and scenario selects in sync:
+    - When job type changes, hide scenarios that don't belong to it (and
+      clear the scenario selection if it's no longer compatible).
+    - When a scenario is picked, set the job type to that scenario's
+      parent automatically.
+    Tenant activation is enforced server-side in set_form_options — this
+    script only handles the cross-field UX. %>
+<script>
+  (function() {
+    const jobTypeSelect = document.getElementById('job_proposal_job_type_id');
+    const scenarioSelect = document.getElementById('job_proposal_scenario_id');
+    if (!jobTypeSelect || !scenarioSelect) return;
+
+    function filterScenarios() {
+      const jobTypeId = jobTypeSelect.value;
+      let cleared = false;
+      Array.from(scenarioSelect.options).forEach(function(opt) {
+        if (!opt.value) return; // leave the blank "— None —" alone
+        const optJobType = opt.dataset.jobTypeId;
+        const matches = !jobTypeId || optJobType === jobTypeId;
+        opt.hidden = !matches;
+        opt.disabled = !matches;
+        if (!matches && opt.selected) {
+          opt.selected = false;
+          cleared = true;
+        }
+      });
+      if (cleared) scenarioSelect.value = '';
+    }
+
+    function syncJobTypeFromScenario() {
+      const opt = scenarioSelect.options[scenarioSelect.selectedIndex];
+      if (!opt || !opt.value) return;
+      const jt = opt.dataset.jobTypeId;
+      if (jt && jobTypeSelect.value !== jt) {
+        jobTypeSelect.value = jt;
+        filterScenarios();
+      }
+    }
+
+    jobTypeSelect.addEventListener('change', filterScenarios);
+    scenarioSelect.addEventListener('change', syncJobTypeFromScenario);
+
+    // Initial pass so a pre-selected job type filters the scenario list
+    // when the page first renders.
+    filterScenarios();
+  })();
+</script>
