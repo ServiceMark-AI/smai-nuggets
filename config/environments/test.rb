@@ -35,6 +35,15 @@ Rails.application.configure do
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
+  # Run jobs against the in-memory test adapter so the suite doesn't
+  # require a live Redis. application.rb sets :sidekiq globally for
+  # production-like behavior; in CI no Redis is running, and Active
+  # Storage's analyze pipeline (e.g., on image attachments) would
+  # otherwise enqueue through Sidekiq and fail with a connection
+  # refused. The :test adapter is also what assert_enqueued_with
+  # expects.
+  config.active_job.queue_adapter = :test
+
   # Tell Action Mailer not to deliver emails to the real world.
   # The :test delivery method accumulates sent emails in the
   # ActionMailer::Base.deliveries array.
