@@ -2,7 +2,7 @@ class UsersController < ApplicationController
   def index
     @tenant = current_user.tenant
     if @tenant
-      @users = @tenant.users.order(:email)
+      @users = @tenant.users.includes(:email_delegations).order(:email)
       @pending_invitations = @tenant.invitations.where(accepted_at: nil).order(created_at: :desc)
     else
       @users = User.none

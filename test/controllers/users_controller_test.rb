@@ -62,6 +62,28 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_match "pending@example.com", response.body
   end
 
+  test "users with a Gmail delegation get a Linked badge with the delegated address" do
+    EmailDelegation.create!(
+      user: @user,
+      provider: "google",
+      email: "ops-mike@example.com",
+      access_token: "tok"
+    )
+
+    sign_in @user
+    get users_url
+    assert_response :success
+    assert_match "Linked", response.body
+    assert_match "ops-mike@example.com", response.body
+  end
+
+  test "users without a Gmail delegation show 'Not linked'" do
+    sign_in @user
+    get users_url
+    assert_response :success
+    assert_match "Not linked", response.body
+  end
+
   test "tenant-less user sees an info message and no invite button" do
     orphan = User.create!(email: "orphan@example.com", password: "Password1", is_pending: false)
     sign_in orphan
