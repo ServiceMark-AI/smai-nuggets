@@ -1,12 +1,51 @@
 <% content_for :title, "Home" %>
 
-<div class="row justify-content-center">
-  <div class="col-md-8">
-    <div class="card shadow-sm">
-      <div class="card-body p-4">
-        <h1 class="card-title h3 mb-3">Welcome<%= ", #{current_user.full_name || current_user.email}" %></h1>
-        <p class="card-text text-muted mb-0">You're signed in.</p>
+<div class="mb-4">
+  <h1 class="h3 mb-1">Welcome<%= ", #{current_user.full_name || current_user.email}" %></h1>
+  <p class="text-muted mb-0">Pick where you'd like to go.</p>
+</div>
+
+<% needs_attention_n = needs_attention_count %>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <%= link_to job_proposals_path, class: "card shadow-sm h-100 text-decoration-none text-reset home-card" do %>
+      <div class="card-body p-4 d-flex flex-column">
+        <h2 class="h4 mb-2">Proposals</h2>
+        <p class="text-muted mb-0">Browse every job proposal across your team.</p>
       </div>
-    </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-6">
+    <%= link_to job_proposals_path(filter: "needs_attention"), class: "card shadow-sm h-100 text-decoration-none text-reset home-card" do %>
+      <div class="card-body p-4 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h2 class="h4 mb-0">Needs Attention</h2>
+          <% if needs_attention_n > 0 %>
+            <span class="badge text-bg-danger rounded-pill"><%= needs_attention_n %></span>
+          <% end %>
+        </div>
+        <p class="text-muted mb-0">Proposals waiting on you to draft, approve, or follow up.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-6">
+    <%= link_to users_path, class: "card shadow-sm h-100 text-decoration-none text-reset home-card" do %>
+      <div class="card-body p-4 d-flex flex-column">
+        <h2 class="h4 mb-2">Co-workers</h2>
+        <p class="text-muted mb-0">See your teammates and invite new ones.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-6">
+    <%= link_to analytics_path, class: "card shadow-sm h-100 text-decoration-none text-reset home-card" do %>
+      <div class="card-body p-4 d-flex flex-column">
+        <h2 class="h4 mb-2">Analytics</h2>
+        <p class="text-muted mb-0">Track proposal volume, wins, and revenue trends.</p>
+      </div>
+    <% end %>
   </div>
 </div>

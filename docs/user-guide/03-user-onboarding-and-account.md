@@ -27,7 +27,7 @@ Each invitation link can only be used once. If yours has expired or you can't fi
 
 ## 3.2 Signing in
 
-Go to the sign-in page and enter your email and password. After signing in, the sidebar will show **Job Proposals** and **Users**. If you're an admin, you'll also see the **Admin** group below those.
+Go to the sign-in page and enter your email and password. After signing in, you'll land on the home page with cards for **Proposals**, **Needs Attention**, **Co-workers**, and **Analytics**, and the sidebar will show **Job Proposals** and **Co-workers**. If you're an admin, you'll also see the **Admin** group below those.
 
 ## 3.3 I forgot my password
 
@@ -92,10 +92,10 @@ If you're on Google Workspace, ask your Workspace admin to allow the SMAI app fo
 
 Once you have an account, you can invite teammates yourself.
 
-1. **Sidebar → Users**.
+1. **Sidebar → Co-workers**.
 2. Click **Invite user** (top right).
 3. Enter the teammate's email address and click **Send invite**.
 
-The invitation goes out right away. The new person gets the same link-based flow described in [§3.1](#31-accepting-an-invitation), and the link expires in seven days. Their pending invite shows up on the **Users** page with who sent it and when it expires.
+The invitation goes out right away. The new person gets the same link-based flow described in [§3.1](#31-accepting-an-invitation), and the link expires in seven days. Their pending invite shows up on the **Co-workers** page with who sent it and when it expires.
 
 If you don't see the **Invite user** button, your account isn't tied to a company yet — ask an admin to add you.

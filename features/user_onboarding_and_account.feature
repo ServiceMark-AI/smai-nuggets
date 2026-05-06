@@ -12,7 +12,7 @@ Feature: User onboarding and account
     Given I am a tenant user
     When I sign in with my email and password
     Then I should land on the Job Proposals page
-    And the sidebar shows "Job Proposals" and "Users"
+    And the sidebar shows "Job Proposals" and "Co-workers"
 
   @pending
   Scenario: §3.3 Resetting my password
