@@ -19,6 +19,7 @@ Rails.application.routes.draw do
   patch "change_password" => "passwords#update"
   get "my_organization" => "my_organization#show", as: :my_organization
   resource :location, only: [:new, :create, :edit, :update]
+  resource :analytics, only: [:show], controller: "analytics"
 
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
   get "/auth/failure", to: "email_delegations#failure", as: :email_delegation_failure
