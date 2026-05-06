@@ -1,6 +1,14 @@
 <aside class="col-md-3 col-lg-2 bg-body-tertiary border-end py-4">
   <nav class="nav flex-column">
-    <%= link_to "Job Proposals", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals'}" %>
+    <%= link_to "Job Proposals", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals' && params[:filter] != 'needs_attention'}" %>
+    <% needs_attention_n = needs_attention_count %>
+    <%= link_to job_proposals_path(filter: "needs_attention"),
+                class: "nav-link d-flex align-items-center justify-content-between #{'active' if controller_name == 'job_proposals' && params[:filter] == 'needs_attention'}" do %>
+      <span>Needs Attention</span>
+      <% if needs_attention_n > 0 %>
+        <span class="badge text-bg-danger rounded-pill"><%= needs_attention_n %></span>
+      <% end %>
+    <% end %>
     <%= link_to "Users", users_path, class: "nav-link #{'active' if controller_name == 'users'}" %>
 
     <% if current_user.is_admin %>

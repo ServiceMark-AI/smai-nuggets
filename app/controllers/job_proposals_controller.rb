@@ -24,7 +24,9 @@ class JobProposalsController < ApplicationController
     @selected_owner_id = params[:owner_id].presence
     @selected_creator_id = params[:creator_id].presence
     @search = params[:q].to_s.strip
+    @needs_attention_only = params[:filter] == "needs_attention"
 
+    scope = scope.needs_attention if @needs_attention_only
     scope = scope.where(status: @selected_status) if @selected_status
     scope = scope.where(owner_id: @selected_owner_id) if @selected_owner_id
     scope = scope.where(created_by_user_id: @selected_creator_id) if @selected_creator_id

@@ -107,6 +107,45 @@ class JobProposalTest < ActiveSupport::TestCase
     assert_equal :review_campaign, @jp.cta
   end
 
+  # --- needs_attention scope ---
+
+  test "needs_attention includes drafting proposals" do
+    @jp.update!(status: :drafting)
+    assert_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention includes approving proposals" do
+    @jp.update!(status: :approving)
+    assert_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention includes approved proposals with customer_waiting overlay" do
+    @jp.update!(status: :approved, pipeline_stage: :in_campaign, status_overlay: "customer_waiting")
+    assert_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention includes approved proposals with delivery_issue overlay" do
+    @jp.update!(status: :approved, pipeline_stage: :in_campaign, status_overlay: "delivery_issue")
+    assert_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention excludes approved in-campaign proposals with no overlay" do
+    @jp.update!(status: :approved, pipeline_stage: :in_campaign, status_overlay: nil)
+    assert_not_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention excludes approved proposals with paused overlay" do
+    @jp.update!(status: :approved, pipeline_stage: :in_campaign, status_overlay: "paused")
+    assert_not_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention excludes won/lost proposals regardless of overlay" do
+    @jp.update!(status: :approved, pipeline_stage: :won, status_overlay: "customer_waiting")
+    assert_not_includes JobProposal.needs_attention, @jp
+    @jp.update!(pipeline_stage: :lost)
+    assert_not_includes JobProposal.needs_attention, @jp
+  end
+
   # --- gmail_thread_id ---
 
   test "gmail_thread_id is nil when no step instances exist" do

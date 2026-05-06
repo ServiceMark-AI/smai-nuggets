@@ -2,6 +2,16 @@ module JobProposalsHelper
   SORTABLE_COLUMNS = %w[created_at proposal_value].freeze
   DEFAULT_SORT_DIR = "desc".freeze
 
+  # Count of proposals visible to the current user that need operator
+  # action (drafting, approving, or in-campaign with a customer reply
+  # / delivery issue overlay). Drives the sidebar "Needs Attention"
+  # badge. Memoized per request because the layout calls this on
+  # every authenticated page render.
+  def needs_attention_count
+    return 0 unless current_user
+    @_needs_attention_count ||= JobProposal.accessible_by(current_ability).needs_attention.count
+  end
+
   def sortable_header(column, label, th_class: nil)
     current_column = active_sort_column
     current_dir = active_sort_direction

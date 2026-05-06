@@ -15,6 +15,21 @@ class JobProposal < ApplicationRecord
        { in_campaign: "in_campaign", won: "won", lost: "lost" },
        prefix: true
 
+  # Operator hasn't done their part yet on this proposal — it sits in
+  # one of: drafting (not finished), approving (campaign drafted but
+  # awaiting operator approval), or approved+in-campaign with an
+  # attention-grabbing overlay (customer replied, delivery failed).
+  # Powers the sidebar's "Needs Attention" badge and filter.
+  scope :needs_attention, -> {
+    drafting_or_approving = where(status: [:drafting, :approving])
+    flagged_in_flight = where(
+      status: :approved,
+      pipeline_stage: :in_campaign,
+      status_overlay: %w[customer_waiting delivery_issue]
+    )
+    drafting_or_approving.or(flagged_in_flight)
+  }
+
   # Fields whose presence is required before a campaign can launch. The
   # operator-facing reason is shown both inline on the edit page (so the
   # author knows why the field matters) and on the proposal show page's

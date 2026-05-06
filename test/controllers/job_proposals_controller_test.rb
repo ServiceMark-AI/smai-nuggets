@@ -92,6 +92,27 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Carol", response.body
   end
 
+  test "needs_attention filter narrows the list to proposals operator must act on" do
+    # Fixtures: in_users_org=drafting(Alice), same_tenant_other_org=approving(Bob),
+    # other_tenant=drafting(Carol). All three are inherently needs-attention because
+    # of their statuses. Move Alice out of attention to verify the filter excludes her.
+    job_proposals(:in_users_org).update!(
+      status: :approved,
+      pipeline_stage: :in_campaign,
+      status_overlay: nil,
+      customer_email: "alice@example.com",
+      customer_house_number: "1",
+      customer_street: "Oak"
+    )
+
+    sign_in @admin
+    get job_proposals_url, params: { filter: "needs_attention" }
+    assert_response :success
+    assert_match "Bob", response.body                  # status=approving — included
+    assert_match "Carol", response.body                # status=drafting — included
+    assert_no_match "Alice", response.body             # approved + no overlay — excluded
+  end
+
   test "filters compose with each other" do
     sign_in @admin
     get job_proposals_url, params: { status: "drafting", owner_id: users(:one).id }
