@@ -234,6 +234,44 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_in_delta freeze_time, @instance.ended_at, 1.second
   end
 
+  test "first step attaches PDF attachments from the proposal" do
+    attach_pdf!(@proposal, filename: "proposal.pdf")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    delivery = GmailSender.deliveries.first
+    assert_equal 1, delivery[:attachments].size
+    assert_equal "proposal.pdf", delivery[:attachments].first[:filename]
+    assert_equal "application/pdf", delivery[:attachments].first[:mime_type]
+  end
+
+  test "later steps do not attach the proposal PDF" do
+    attach_pdf!(@proposal, filename: "proposal.pdf")
+    sent_step_one = build_step_instance(@step_one, status: :sent, due: 2.hours.ago)
+    sent_step_one.update!(final_subject: "x", final_body: "y")
+    final_step = build_step_instance(@step_two, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "sent", final_step.reload.email_delivery_status
+    delivery = GmailSender.deliveries.first
+    assert_equal [], delivery[:attachments], "step two should not carry the proposal PDF"
+  end
+
+  test "non-PDF attachments are not sent on the first email" do
+    image = @proposal.attachments.build(uploaded_by_user: users(:one))
+    image.file.attach(io: StringIO.new("\x89PNG fake"), filename: "ceiling.png", content_type: "image/png")
+    image.save!
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    assert_equal [], GmailSender.deliveries.first[:attachments]
+  end
+
   test "FAKE-SEND mode does not populate gmail_send_response or thread snapshot" do
     @mailbox.destroy!
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
@@ -307,9 +345,20 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     )
   end
 
+  def attach_pdf!(proposal, filename:)
+    att = proposal.attachments.build(uploaded_by_user: users(:one))
+    att.file.attach(
+      io: StringIO.new("%PDF-1.4 fake content"),
+      filename: filename,
+      content_type: "application/pdf"
+    )
+    att.save!
+    att
+  end
+
   def with_gmail_sender_returning(value)
     original = GmailSender.instance_method(:send_email)
-    GmailSender.define_method(:send_email) { |to:, subject:, body:, from_name: nil| value }
+    GmailSender.define_method(:send_email) { |to:, subject:, body:, from_name: nil, attachments: []| value }
     yield
   ensure
     GmailSender.define_method(:send_email, original)

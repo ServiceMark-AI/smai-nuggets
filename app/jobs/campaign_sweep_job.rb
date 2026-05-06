@@ -141,11 +141,17 @@ class CampaignSweepJob < ApplicationJob
     # name set on their profile.
     from_name = host.owner&.full_name
 
+    # The first email of the sequence carries the proposal's PDF
+    # attachments; subsequent steps go out as plain text. "First" is
+    # the lowest sequence_number among this campaign's steps — robust
+    # to admins deleting and re-adding step 1.
+    attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
+
     sender = mailbox ? GmailSender.new(mailbox) : nil
     send_response = if sender
-                      sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name)
+                      sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
                     else
-                      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}): #{subject.inspect}"
+                      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
                       nil # fake-send path: no Gmail response to record
                     end
 
@@ -189,6 +195,32 @@ class CampaignSweepJob < ApplicationJob
       gmail_thread_id: thread_id,
       gmail_thread_snapshot: thread_snapshot
     )
+  end
+
+  # True iff this step is the first one in its campaign by
+  # sequence_number. Computed by comparing against the campaign's
+  # minimum sequence_number, so it remains correct if step 1 is
+  # later renumbered or removed.
+  def first_step?(step_instance)
+    campaign_id = step_instance.campaign_step.campaign_id
+    first_seq = CampaignStep.where(campaign_id: campaign_id).minimum(:sequence_number)
+    step_instance.campaign_step.sequence_number == first_seq
+  end
+
+  # Returns an array of { filename:, content:, mime_type: } hashes for
+  # every PDF attachment on the proposal. Skips non-PDF attachments
+  # (we only want the original proposal document on the first email,
+  # not photos or other supporting files).
+  def pdf_attachments_for(proposal)
+    proposal.attachments.includes(file_attachment: :blob).filter_map do |att|
+      next unless att.file.attached?
+      next unless att.file.content_type == "application/pdf" || att.file.filename.to_s.downcase.end_with?(".pdf")
+      {
+        filename:  att.file.filename.to_s,
+        content:   att.file.download,
+        mime_type: att.file.content_type || "application/pdf"
+      }
+    end
   end
 
   def mark_failed(step_instance, instance)

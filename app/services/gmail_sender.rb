@@ -2,6 +2,7 @@ require "net/http"
 require "uri"
 require "json"
 require "base64"
+require "mail"
 
 # Sends mail via the Gmail API using OAuth credentials. Works against any
 # object that responds to email / access_token / refresh_token / expires_at /
@@ -34,18 +35,34 @@ class GmailSender
   # "labelIds" => [...]}) and nil on failure. In test, returns a synthetic
   # hash with the same shape so callers (CampaignSweepJob) can persist it
   # without branching on env.
-  def send_email(to:, subject:, body:, from_name: nil)
+  #
+  # Pass attachments: as an array of hashes [{ filename:, content:,
+  # mime_type: }, ...] to send a multipart/mixed message. The plain
+  # body becomes the first text/plain part and each attachment is added
+  # via the Mail gem. With no attachments, the original hand-rolled
+  # plain-text path is used so the bytes on the wire are unchanged from
+  # the pre-attachment behavior.
+  def send_email(to:, subject:, body:, from_name: nil, attachments: [])
     from_address = from_name.present? ? %("#{from_name}" <#{@credentials.email}>) : @credentials.email
 
     if Rails.env.test?
       stub = synthetic_send_response
-      self.class.deliveries << { from: from_address, to: to, subject: subject, body: body, response: stub }
+      self.class.deliveries << {
+        from: from_address, to: to, subject: subject, body: body,
+        attachments: Array(attachments).map { |a| a.slice(:filename, :mime_type).merge(byte_size: a[:content].to_s.bytesize) },
+        response: stub
+      }
       return stub
     end
 
     refresh_if_needed
-    raw = build_message(to: to, subject: subject, body: body, from_name: from_name)
-    encoded = Base64.urlsafe_encode64(raw)
+    encoded = if Array(attachments).any?
+                mail = build_multipart(to: to, from: from_address, subject: subject, body: body, attachments: attachments)
+                Base64.urlsafe_encode64(mail.encoded)
+              else
+                raw = build_message(to: to, subject: subject, body: body, from_name: from_name)
+                Base64.urlsafe_encode64(raw)
+              end
     post_send(encoded)
   end
 
@@ -175,6 +192,24 @@ class GmailSender
       access_token: data["access_token"],
       expires_at: data["expires_in"] ? Time.current + data["expires_in"].to_i.seconds : nil
     )
+  end
+
+  # Builds a multipart/mixed Mail::Message with a plain-text body and
+  # one part per attachment hash. The Mail gem handles MIME boundaries,
+  # base64 encoding of binary content, and Content-Disposition headers.
+  def build_multipart(to:, from:, subject:, body:, attachments:)
+    msg = Mail.new
+    msg.to      = to
+    msg.from    = from
+    msg.subject = subject
+    msg.body    = body
+    Array(attachments).each do |att|
+      msg.attachments[att[:filename]] = {
+        content:   att[:content],
+        mime_type: att[:mime_type] || "application/octet-stream"
+      }
+    end
+    msg
   end
 
   def build_message(to:, subject:, body:, from_name: nil)
