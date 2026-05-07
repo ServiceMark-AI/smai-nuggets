@@ -63,6 +63,17 @@
   --bs-danger-text-emphasis: #991b1b;
   --bs-danger-bg-subtle: #fbd5d5;
   --bs-danger-border-subtle: #f3a9a9;
+
+  /* info — aliased to brand teal because the design spec has no cyan in
+   * its palette at all. Per docs/design/DESIGN-SPEC.md §1 ("Purposeful
+   * Teal") + §8.2 (AdminStatusBadge: "Info" sits in the gray group, not a
+   * blue group). Any neutral/informational alert that doesn't read well
+   * as teal should switch to alert-secondary. */
+  --bs-info: #00B3B3;
+  --bs-info-rgb: 0, 179, 179;
+  --bs-info-text-emphasis: #00807f;
+  --bs-info-bg-subtle: #cceeed;
+  --bs-info-border-subtle: #99dcdb;
 }
 
 .btn-primary {
@@ -123,6 +134,28 @@
   --bs-btn-disabled-bg: #dc2626;
   --bs-btn-disabled-border-color: #dc2626;
   --bs-btn-focus-shadow-rgb: 224, 71, 71;
+}
+
+.btn-info {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: #00B3B3;
+  --bs-btn-border-color: #00B3B3;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: #00a1a1;
+  --bs-btn-hover-border-color: #00a1a1;
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: #008f8f;
+  --bs-btn-active-border-color: #008080;
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: #00B3B3;
+  --bs-btn-disabled-border-color: #00B3B3;
+  --bs-btn-focus-shadow-rgb: 51, 194, 194;
+}
+
+/* Bootstrap's compiled .text-bg-info hardcodes black text (chosen for
+ * contrast against the cyan default). Teal needs white text. */
+.text-bg-info {
+  color: #fff !important;
 }
 
 .link-primary:hover,
