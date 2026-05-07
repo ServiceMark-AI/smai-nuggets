@@ -21,6 +21,14 @@
 
 :root,
 [data-bs-theme="light"] {
+  /* page background — slightly tinted off-white so white cards/sections
+   * stand out. Per docs/design/DESIGN-SPEC.md §2.1 (`--color-neutral-light`)
+   * and §2.2 (`--background`). Bootstrap's --bs-card-bg defaults to
+   * --bs-body-bg, so we override card-bg back to pure white. */
+  --bs-body-bg: #F7F9F9;
+  --bs-body-bg-rgb: 247, 249, 249;
+  --bs-card-bg: #ffffff;
+
   /* primary — brand teal */
   --bs-primary: #00B3B3;
   --bs-primary-rgb: 0, 179, 179;
@@ -179,6 +187,27 @@
 .home-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.home-card-icon {
+  width: 64px;
+  height: 64px;
+  background-color: rgba(0, 179, 179, 0.10);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00B3B3;
+}
+
+.home-card-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (min-width: 768px) {
