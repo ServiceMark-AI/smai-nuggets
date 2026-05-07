@@ -86,7 +86,7 @@
           <% if stage[:implemented] %>
             <% width_pct = (stage[:count].to_f / analytics.funnel_max * 100).clamp(2, 100).round %>
             <div class="progress" style="height: 32px;">
-              <div class="progress-bar bg-info" role="progressbar"
+              <div class="progress-bar bg-primary" role="progressbar"
                    style="width: <%= width_pct %>%;"
                    aria-valuenow="<%= stage[:count] %>"
                    aria-valuemin="0"
@@ -140,7 +140,7 @@
                 <% width = top_close.positive? ? (row[:close_rate_pct].to_f / top_close * 100).round : 0 %>
                 <div class="d-flex align-items-center gap-2">
                   <div class="progress flex-grow-1" style="height: 8px;">
-                    <div class="progress-bar bg-info" style="width: <%= width %>%; opacity: <%= [0.6, width / 100.0].max.round(2) %>;"></div>
+                    <div class="progress-bar bg-primary" style="width: <%= width %>%; opacity: <%= [0.6, width / 100.0].max.round(2) %>;"></div>
                   </div>
                   <span class="small fw-semibold" style="width: 36px;"><%= row[:close_rate_pct] %>%</span>
                 </div>
@@ -167,7 +167,7 @@
           <% h = peak.positive? ? (n.to_f / peak * 100).round : 0 %>
           <div class="flex-grow-1 d-flex flex-column align-items-center justify-content-end"
                title="<%= d.strftime("%b %-d") %>: <%= n %> sent">
-            <div class="w-100 bg-info" style="height: <%= [h, 2].max %>%; opacity: <%= n.positive? ? 1 : 0.1 %>;"></div>
+            <div class="w-100 bg-primary" style="height: <%= [h, 2].max %>%; opacity: <%= n.positive? ? 1 : 0.1 %>;"></div>
           </div>
         <% end %>
       </div>
