@@ -9,6 +9,169 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+/*
+ * Brand color overrides — retint Bootstrap's `primary` from blue to the
+ * canonical ServiceMark AI teal (#00B3B3) per docs/design/DESIGN-SPEC.md §2.1.
+ *
+ * Most utilities (.bg-primary, .text-primary, .link-primary, .border-primary,
+ * focus rings via --bs-primary-rgb) follow the CSS variable. Bootstrap 5.3.8's
+ * compiled CSS hardcodes hex values inside .btn-primary and .link-primary:hover,
+ * so those need their component-level vars overridden explicitly.
+ */
+
+:root,
+[data-bs-theme="light"] {
+  /* primary — brand teal */
+  --bs-primary: #00B3B3;
+  --bs-primary-rgb: 0, 179, 179;
+  --bs-primary-text-emphasis: #00807f;
+  --bs-primary-bg-subtle: #cceeed;
+  --bs-primary-border-subtle: #99dcdb;
+  --bs-link-color: #00B3B3;
+  --bs-link-color-rgb: 0, 179, 179;
+  --bs-link-hover-color: #008f8f;
+  --bs-link-hover-color-rgb: 0, 143, 143;
+
+  /* success — temporarily aliased to brand teal so existing
+   * `text-bg-success`/`btn-success`/`bg-success` markup reads teal without
+   * a bulk markup change. Spec §2.2 actual value is #22c55e — restore that
+   * here when we want true success-green back. */
+  --bs-success: #00B3B3;
+  --bs-success-rgb: 0, 179, 179;
+  --bs-success-text-emphasis: #00807f;
+  --bs-success-bg-subtle: #cceeed;
+  --bs-success-border-subtle: #99dcdb;
+
+  /* warning */
+  --bs-warning: #f59e0b;
+  --bs-warning-rgb: 245, 158, 11;
+  --bs-warning-text-emphasis: #b16906;
+  --bs-warning-bg-subtle: #fef0d6;
+  --bs-warning-border-subtle: #fbd99c;
+
+  /* danger / destructive */
+  --bs-danger: #dc2626;
+  --bs-danger-rgb: 220, 38, 38;
+  --bs-danger-text-emphasis: #991b1b;
+  --bs-danger-bg-subtle: #fbd5d5;
+  --bs-danger-border-subtle: #f3a9a9;
+}
+
+.btn-primary {
+  --bs-btn-bg: #00B3B3;
+  --bs-btn-border-color: #00B3B3;
+  --bs-btn-hover-bg: #00a1a1;
+  --bs-btn-hover-border-color: #00a1a1;
+  --bs-btn-active-bg: #008f8f;
+  --bs-btn-active-border-color: #008080;
+  --bs-btn-disabled-bg: #00B3B3;
+  --bs-btn-disabled-border-color: #00B3B3;
+  --bs-btn-focus-shadow-rgb: 51, 194, 194;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #00B3B3;
+  --bs-btn-border-color: #00B3B3;
+  --bs-btn-hover-bg: #00B3B3;
+  --bs-btn-hover-border-color: #00B3B3;
+  --bs-btn-active-bg: #00B3B3;
+  --bs-btn-active-border-color: #00B3B3;
+  --bs-btn-disabled-color: #00B3B3;
+  --bs-btn-disabled-border-color: #00B3B3;
+  --bs-btn-focus-shadow-rgb: 51, 194, 194;
+}
+
+.btn-success {
+  --bs-btn-bg: #00B3B3;
+  --bs-btn-border-color: #00B3B3;
+  --bs-btn-hover-bg: #00a1a1;
+  --bs-btn-hover-border-color: #00a1a1;
+  --bs-btn-active-bg: #008f8f;
+  --bs-btn-active-border-color: #008080;
+  --bs-btn-disabled-bg: #00B3B3;
+  --bs-btn-disabled-border-color: #00B3B3;
+  --bs-btn-focus-shadow-rgb: 51, 194, 194;
+}
+
+.btn-warning {
+  --bs-btn-bg: #f59e0b;
+  --bs-btn-border-color: #f59e0b;
+  --bs-btn-hover-bg: #dd8f0a;
+  --bs-btn-hover-border-color: #dd8f0a;
+  --bs-btn-active-bg: #c47e09;
+  --bs-btn-active-border-color: #b07309;
+  --bs-btn-disabled-bg: #f59e0b;
+  --bs-btn-disabled-border-color: #f59e0b;
+  --bs-btn-focus-shadow-rgb: 247, 173, 44;
+}
+
+.btn-danger {
+  --bs-btn-bg: #dc2626;
+  --bs-btn-border-color: #dc2626;
+  --bs-btn-hover-bg: #c52121;
+  --bs-btn-hover-border-color: #c52121;
+  --bs-btn-active-bg: #ad1d1d;
+  --bs-btn-active-border-color: #991919;
+  --bs-btn-disabled-bg: #dc2626;
+  --bs-btn-disabled-border-color: #dc2626;
+  --bs-btn-focus-shadow-rgb: 224, 71, 71;
+}
+
+.link-primary:hover,
+.link-primary:focus {
+  color: RGBA(0, 143, 143, var(--bs-link-opacity, 1)) !important;
+  text-decoration-color: RGBA(0, 143, 143, var(--bs-link-underline-opacity, 1)) !important;
+}
+
+/*
+ * Sidebar — slate background, white-ish inactive text, slate-accent hover,
+ * teal active item. Per docs/design/DESIGN-SPEC.md §2.4 (sidebar tokens),
+ * §7.12 (SmaiSidebar desktop), and §13.4 (sidebar nav items).
+ */
+
+.app-sidebar {
+  background-color: #1F2A33;
+  color: #ffffff;
+}
+
+.app-sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 0.5rem;
+  margin: 0.125rem 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.app-sidebar .nav-link:hover,
+.app-sidebar .nav-link:focus {
+  background-color: #2A3742;
+  color: #ffffff;
+}
+
+.app-sidebar .nav-link.active {
+  background-color: #00B3B3;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.app-sidebar h6,
+.app-sidebar .text-muted {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/*
+ * Footer — matches servicemark.ai marketing site footer (slate bg + light text)
+ * and pairs with the slate sidebar above. Per docs/design/DESIGN-SPEC.md §2.4.
+ */
+
+.app-footer {
+  background-color: #1F2A33;
+  color: #ffffff;
+}
+
+.app-footer a:hover {
+  color: #00B3B3 !important;
+}
+
 .home-card {
   transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out;
 }

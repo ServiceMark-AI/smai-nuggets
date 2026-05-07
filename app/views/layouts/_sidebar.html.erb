@@ -1,4 +1,4 @@
-<aside class="col-md-3 col-lg-2 bg-body-tertiary border-end py-4 app-sidebar">
+<aside class="col-md-3 col-lg-2 py-4 app-sidebar">
   <nav class="nav flex-column">
     <%= link_to "Job Proposals", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals' && params[:filter] != 'needs_attention'}" %>
     <% needs_attention_n = needs_attention_count %>
