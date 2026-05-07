@@ -1,0 +1,14 @@
+Hi,
+
+<% if @from_admin -%>
+A SMAI administrator has invited you to join <%= @tenant.name %>.
+<% else -%>
+<%= @inviter_name %> has invited you to join <%= @tenant.name %> on SMAI.
+<% end -%>
+
+Accept the invitation by visiting:
+<%= @accept_url %>
+
+This link expires <%= @expires_at.to_fs(:long) %>.
+
+If you don't have a SMAI account yet, you'll be asked to sign up — your tenant and organization will be set up automatically.

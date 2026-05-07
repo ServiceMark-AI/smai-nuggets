@@ -42,6 +42,12 @@
         <strong>Missing env vars:</strong> <%= missing.join(", ") %>. See <code>.env.example</code>.
       </div>
     <% end %>
+    <% if user_signed_in? && current_user.full_name.blank? && !(controller_name == "profiles" && action_name == "edit") %>
+      <div class="alert alert-warning rounded-0 mb-0 small text-center">
+        Your profile is missing a name, so outgoing emails will only show your email address.
+        <%= link_to "Add your name", edit_profile_path, class: "alert-link" %>.
+      </div>
+    <% end %>
     <%= render "layouts/navbar" %>
 
     <% if user_signed_in? %>

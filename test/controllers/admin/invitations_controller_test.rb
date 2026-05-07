@@ -55,7 +55,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
-    assert_equal "lead@example.com", delivery[:to]
+    assert_equal ["lead@example.com"], delivery[:to]
     assert_equal %("SMAI Admin" <noreply@app.example.com>), delivery[:from]
     assert_match @tenant.name, delivery[:subject]
     invitation = Invitation.last

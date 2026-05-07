@@ -32,12 +32,8 @@ class Admin::InvitationsController < Admin::BaseController
         return
       end
 
-      sent = GmailSender.new(mailbox).send_email(
-        to: invitation.email,
-        from_name: "SMAI Admin",
-        subject: "You're invited to #{@tenant.name}",
-        body: invitation_body(invitation)
-      )
+      mail = InvitationMailer.with(invitation: invitation).invite.message
+      sent = GmailSender.new(mailbox).send_mail(mail)
       if sent
         redirect_to admin_tenant_path(@tenant), notice: "Invitation sent to #{invitation.email}."
       else
@@ -91,17 +87,4 @@ class Admin::InvitationsController < Admin::BaseController
     { notice: "Added #{user.email} to #{organization.name}." }
   end
 
-  def invitation_body(invitation)
-    accept = invitation_url(invitation.token)
-    <<~BODY
-      Hi,
-
-      #{current_user.full_name || current_user.email} has invited you to join #{@tenant.name} on SMAI.
-
-      Click here to accept (link expires #{invitation.expires_at.to_fs(:long)}):
-      #{accept}
-
-      If you don't have an account yet, you'll be asked to sign up — your tenant and organization will be set automatically.
-    BODY
-  end
 end

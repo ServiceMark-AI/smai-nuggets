@@ -74,6 +74,11 @@ class GmailSender
   # Returns the parsed Gmail API response hash on success, nil on failure.
   def send_mail(mail)
     rewritten_from = rewrite_from(mail)
+    mail["From"] = rewritten_from
+    # Force rendering so multipart parts (text/html) flatten into the
+    # message body. Without this, mail.body.to_s is empty when the
+    # message was built lazily via ActionMailer's Mailer.with(...).action.
+    mail.encoded
 
     if Rails.env.test?
       stub = synthetic_send_response
@@ -81,14 +86,13 @@ class GmailSender
         from: rewritten_from,
         to: Array(mail.to),
         subject: mail.subject,
-        body: mail.body.to_s,
+        body: snapshot_body(mail),
         response: stub
       }
       return stub
     end
 
     refresh_if_needed
-    mail["From"] = rewritten_from
     encoded = Base64.urlsafe_encode64(mail.encoded)
     post_send(encoded)
   end
@@ -161,6 +165,18 @@ class GmailSender
   def rewrite_from(mail)
     display = mail[:from]&.display_names&.first
     display.present? ? %("#{display}" <#{@credentials.email}>) : @credentials.email
+  end
+
+  # Test-mode body snapshot. For multipart messages, the human-readable
+  # text part is what assertions usually want to match; mail.body.to_s
+  # on a multipart message gives the encoded multipart wrapper with
+  # MIME boundaries, which makes for awkward grepping in tests.
+  def snapshot_body(mail)
+    if mail.multipart?
+      (mail.text_part&.body&.decoded || mail.html_part&.body&.decoded || mail.body.to_s).to_s
+    else
+      mail.body.to_s
+    end
   end
 
   def post_send(encoded_raw)
