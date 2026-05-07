@@ -164,4 +164,13 @@ class ApplicationHelperTest < ActionView::TestCase
       prior[k].nil? ? ENV.delete(k) : ENV[k] = prior[k]
     end
   end
+
+  test "page_title appends the app name when a content_for(:title) is set" do
+    content_for :title, "Job Proposals"
+    assert_equal "Job Proposals — ServiceMark.AI", page_title
+  end
+
+  test "page_title falls back to the app name alone when no title is set" do
+    assert_equal "ServiceMark.AI", page_title
+  end
 end

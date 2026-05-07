@@ -1,6 +1,8 @@
-<nav class="navbar navbar-expand bg-dark border-bottom" data-bs-theme="dark">
+<nav class="navbar navbar-expand bg-white border-bottom">
   <div class="container-fluid">
-    <%= link_to "SMAI", (user_signed_in? ? root_path : new_user_session_path), class: "navbar-brand fw-bold" %>
+    <%= link_to (user_signed_in? ? root_path : new_user_session_path), class: "navbar-brand p-0" do %>
+      <%= image_tag "/servicemark-ai-logo-black-w7R36CSZ.png", alt: "ServiceMark AI", height: 28, class: "d-block" %>
+    <% end %>
 
     <% if user_signed_in? %>
       <div class="ms-auto d-flex align-items-center gap-2">
@@ -11,7 +13,7 @@
           <span aria-hidden="true">+</span>
         <% end %>
         <div class="dropdown">
-          <button class="btn btn-dark border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu">
+          <button class="btn btn-outline-secondary border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu">
             <span class="navbar-toggler-icon"></span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">

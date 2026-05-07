@@ -1,4 +1,14 @@
 module ApplicationHelper
+  APP_NAME = "ServiceMark.AI".freeze
+
+  # Combines the page-specific title (set via `content_for :title, "..."`)
+  # with the app name suffix. Falls back to the app name alone when a
+  # view didn't set a title.
+  def page_title
+    page = content_for(:title).to_s.strip
+    page.present? ? "#{page} — #{APP_NAME}" : APP_NAME
+  end
+
   # Env vars whose absence we want admins warned about in the UI.
   # Mirrors .env.example so a fresh deploy can spot what's missing at a glance.
   REQUIRED_ENV_VARS = %w[
