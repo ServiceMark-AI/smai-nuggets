@@ -215,3 +215,17 @@
     min-height: calc(100vh - var(--smai-navbar-height, 56px));
   }
 }
+
+/*
+ * Floating, semi-transparent header. Uses Bootstrap's .sticky-top for
+ * positioning + z-index; this rule adds the frosted-glass effect.
+ * Background alpha is on top of --bs-body-bg so content scrolls under
+ * with a subtle blur.
+ */
+
+.app-header {
+  background-color: rgba(var(--bs-body-bg-rgb), 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--bs-border-color);
+}
