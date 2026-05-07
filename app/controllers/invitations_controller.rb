@@ -60,6 +60,7 @@ class InvitationsController < ApplicationController
 
       sent = GmailSender.new(mailbox).send_email(
         to: invitation.email,
+        from_name: "SMAI Admin",
         subject: "You're invited to #{tenant.name}",
         body: invitation_body(invitation, tenant)
       )
