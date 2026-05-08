@@ -27,6 +27,22 @@ demo_owner.update!(tenant: demo_tenant) if demo_owner.tenant != demo_tenant
 demo_owner.update!(first_name: "Jordan", last_name: "Pierce") if demo_owner.first_name.blank? && demo_owner.last_name.blank?
 admin.update!(tenant: demo_tenant) if admin.tenant.nil?
 
+# Two demo locations for the demo tenant. Proposals below are split across
+# them so the Job Proposals location filter has interesting data.
+DEMO_TENANT_LOCATIONS = [
+  { display_name: "Naperville HQ", address_line_1: "200 W Jefferson Ave",
+    city: "Naperville", state: "IL", postal_code: "60540", phone_number: "(630) 555-0140" },
+  { display_name: "Rockford Branch", address_line_1: "120 W State St",
+    city: "Rockford", state: "IL", postal_code: "61101", phone_number: "(815) 555-0118" }
+].freeze
+
+demo_locations = DEMO_TENANT_LOCATIONS.map do |attrs|
+  demo_tenant.locations.find_or_initialize_by(display_name: attrs[:display_name]).tap do |loc|
+    loc.assign_attributes(attrs.merge(is_active: true))
+    loc.save!
+  end
+end
+
 # Restoration job types and scenarios. Same code that powers the
 # `catalog:load` rake task used in production.
 CatalogLoader.load!
@@ -204,6 +220,7 @@ DEMO_PROPOSALS.each_with_index do |row, i|
 
   proposal = JobProposal.find_or_initialize_by(internal_reference: row[:ref])
   proposal.tenant = demo_tenant
+  proposal.location = demo_locations[i % demo_locations.size]
   proposal.owner = demo_owner
   proposal.created_by_user = (i.even? ? demo_owner : admin)
   proposal.job_type = scenario.job_type
@@ -219,7 +236,12 @@ DEMO_PROPOSALS.each_with_index do |row, i|
   proposal.customer_zip = row[:zip]
   proposal.proposal_value = row[:value]
   proposal.job_description = row[:description]
-  proposal.status = row[:status]
+  # The row's symbolic :status (:new/:open/:closed) is a demo-state marker
+  # used by the closed-branch logic below. The persisted JobProposal.status
+  # enum is drafting/approving/approved — every demo row is past the
+  # drafting/approving phase (all carry pipeline_stage in_campaign/won/lost),
+  # so they all persist as :approved.
+  proposal.status = :approved
   proposal.pipeline_stage = row[:stage]
   proposal.status_overlay = row[:overlay]
   proposal.status_details = row[:overlay]&.humanize
