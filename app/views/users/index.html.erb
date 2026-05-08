@@ -139,9 +139,24 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div class="mb-0">
+            <div class="mb-3">
               <%= f.label :email, "Email address", class: "form-label" %>
               <%= f.email_field :email, class: "form-control", placeholder: "name@example.com", required: true %>
+            </div>
+            <div class="form-check mb-3">
+              <%= f.check_box :is_account_admin, class: "form-check-input", id: "invite-is-account-admin", data: { invite_admin_target: "checkbox" } %>
+              <%= f.label :is_account_admin, "Is Account Admin", class: "form-check-label", for: "invite-is-account-admin" %>
+              <div class="form-text">Account admins aren't tied to a single location.</div>
+            </div>
+            <div class="mb-0" id="invite-location-field" data-invite-admin-target="locationField">
+              <%= f.label :location_id, "Location", class: "form-label" %>
+              <%= f.select :location_id,
+                    @invite_locations.map { |loc| [loc.display_name, loc.id] },
+                    { include_blank: "Select a location" },
+                    { class: "form-select", id: "invite-location-select", required: true, data: { invite_admin_target: "select" } } %>
+              <% if @invite_locations.empty? %>
+                <div class="form-text text-warning">No active locations are configured for your tenant yet.</div>
+              <% end %>
             </div>
           </div>
           <div class="modal-footer">
@@ -153,4 +168,32 @@
       </div>
     </div>
   </div>
+
+  <script>
+    (function () {
+      function init() {
+        var checkbox = document.getElementById("invite-is-account-admin");
+        var field = document.getElementById("invite-location-field");
+        var select = document.getElementById("invite-location-select");
+        if (!checkbox || !field || !select) return;
+        function sync() {
+          if (checkbox.checked) {
+            field.style.display = "none";
+            select.required = false;
+            select.value = "";
+          } else {
+            field.style.display = "";
+            select.required = true;
+          }
+        }
+        checkbox.addEventListener("change", sync);
+        sync();
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
 <% end %>

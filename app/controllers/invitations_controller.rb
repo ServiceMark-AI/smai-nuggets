@@ -37,15 +37,33 @@ class InvitationsController < ApplicationController
       return
     end
 
+    is_account_admin = ActiveModel::Type::Boolean.new.cast(params.dig(:invitation, :is_account_admin))
+    location_id = params.dig(:invitation, :location_id).presence
+
+    if !is_account_admin && location_id.blank?
+      redirect_to users_path, alert: "Pick a location, or check Is Account Admin."
+      return
+    end
+
+    location = nil
+    if location_id.present?
+      location = Location.joins(:organization).where(organizations: { tenant_id: tenant.id }).find_by(id: location_id)
+      if location.nil?
+        redirect_to users_path, alert: "That location isn't part of your tenant."
+        return
+      end
+    end
+
     email = params.dig(:invitation, :email).to_s.strip
     existing = email.blank? ? nil : User.find_by(email: email.downcase)
     if existing
-      result = handle_existing_user_invite(existing, tenant: tenant, organization: organization)
+      result = handle_existing_user_invite(existing, tenant: tenant, organization: organization, location: location)
       redirect_to users_path, **result and return
     end
 
     invitation = tenant.invitations.build(
       organization: organization,
+      location: location,
       invited_by_user: current_user,
       email: email
     )
@@ -93,7 +111,7 @@ class InvitationsController < ApplicationController
   #   - already in this organization: rejected with a friendly note
   #   - exists, no tenant or same tenant, not in this org: silently added
   #     to the org (and tenant set if previously nil); no email sent
-  def handle_existing_user_invite(user, tenant:, organization:)
+  def handle_existing_user_invite(user, tenant:, organization:, location: nil)
     if user.is_admin
       return { alert: "#{user.email} is a system admin — admins aren't added through tenant invites." }
     end
@@ -106,6 +124,7 @@ class InvitationsController < ApplicationController
 
     User.transaction do
       user.update!(tenant: tenant) if user.tenant.nil?
+      user.update!(location: location) if location && user.location_id.nil?
       OrganizationalMember.create!(user: user, organization: organization, role: :member)
     end
     { notice: "Added #{user.email} to #{organization.name}." }

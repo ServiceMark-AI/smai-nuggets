@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -150,11 +150,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
     t.string "email", null: false
     t.datetime "expires_at", null: false
     t.bigint "invited_by_user_id", null: false
+    t.bigint "location_id"
     t.bigint "organization_id", null: false
     t.bigint "tenant_id", null: false
     t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["invited_by_user_id"], name: "index_invitations_on_invited_by_user_id"
+    t.index ["location_id"], name: "index_invitations_on_location_id"
     t.index ["organization_id"], name: "index_invitations_on_organization_id"
     t.index ["tenant_id"], name: "index_invitations_on_tenant_id"
     t.index ["token"], name: "index_invitations_on_token", unique: true
@@ -379,6 +381,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
     t.string "last_name"
     t.datetime "last_sign_in_at"
     t.string "last_sign_in_ip"
+    t.bigint "location_id"
     t.string "phone_number"
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
@@ -388,6 +391,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
     t.string "time_zone", default: "Central Time (US & Canada)", null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["location_id"], name: "index_users_on_location_id"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["tenant_id"], name: "index_users_on_tenant_id"
   end
@@ -402,6 +406,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"
   add_foreign_key "chats", "models"
   add_foreign_key "email_delegations", "users"
+  add_foreign_key "invitations", "locations"
   add_foreign_key "invitations", "organizations"
   add_foreign_key "invitations", "tenants"
   add_foreign_key "invitations", "users", column: "invited_by_user_id"
@@ -432,5 +437,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_04_050000) do
   add_foreign_key "tenant_scenarios", "scenarios"
   add_foreign_key "tenant_scenarios", "tenants"
   add_foreign_key "tool_calls", "messages"
+  add_foreign_key "users", "locations"
   add_foreign_key "users", "tenants"
 end

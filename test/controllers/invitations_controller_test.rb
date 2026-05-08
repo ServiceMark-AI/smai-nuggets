@@ -60,7 +60,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "create requires authentication" do
     assert_no_difference "Invitation.count" do
-      post invitations_path, params: { invitation: { email: "x@example.com" } }
+      post invitations_path, params: { invitation: { email: "x@example.com", is_account_admin: "1" } }
     end
     assert_redirected_to new_user_session_path
   end
@@ -70,7 +70,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     sign_in orphan
 
     assert_no_difference "Invitation.count" do
-      post invitations_path, params: { invitation: { email: "x@example.com" } }
+      post invitations_path, params: { invitation: { email: "x@example.com", is_account_admin: "1" } }
     end
     assert_redirected_to users_path
     assert_match(/not assigned to a tenant/i, flash[:alert].to_s)
@@ -83,7 +83,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     GmailSender.reset_deliveries!
     assert_no_difference "Invitation.count" do
-      post invitations_path, params: { invitation: { email: "lead@example.com" } }
+      post invitations_path, params: { invitation: { email: "lead@example.com", is_account_admin: "1" } }
     end
     assert_empty GmailSender.deliveries
     assert_redirected_to users_path
@@ -100,7 +100,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     prior = ENV.delete("APP_HOST")
     begin
       assert_no_difference "Invitation.count" do
-        post invitations_path, params: { invitation: { email: "lead@example.com" } }
+        post invitations_path, params: { invitation: { email: "lead@example.com", is_account_admin: "1" } }
       end
       assert_match(/APP_HOST is not set/i, flash[:alert].to_s)
     ensure
@@ -116,7 +116,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     GmailSender.reset_deliveries!
     assert_difference "Invitation.count", 1 do
-      post invitations_path, params: { invitation: { email: "newhire@example.com" } }
+      post invitations_path, params: { invitation: { email: "newhire@example.com", is_account_admin: "1" } }
     end
 
     assert_equal 1, GmailSender.deliveries.size
@@ -139,7 +139,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     sign_in inviter
 
     assert_no_difference "Invitation.count" do
-      post invitations_path, params: { invitation: { email: "" } }
+      post invitations_path, params: { invitation: { email: "", is_account_admin: "1" } }
     end
     assert_redirected_to users_path
     assert_match(/email can/i, flash[:alert].to_s)
@@ -152,7 +152,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     OrganizationalMember.create!(organization: child, user: inviter, role: :admin)
     sign_in inviter
 
-    post invitations_path, params: { invitation: { email: "rootinvite@example.com" } }
+    post invitations_path, params: { invitation: { email: "rootinvite@example.com", is_account_admin: "1" } }
     invitation = Invitation.where(email: "rootinvite@example.com").last
     assert_equal @org, invitation.organization
   end
@@ -172,7 +172,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     GmailSender.reset_deliveries!
     assert_no_difference "Invitation.count" do
       assert_difference "OrganizationalMember.count", 1 do
-        post invitations_path, params: { invitation: { email: "teammate@example.com" } }
+        post invitations_path, params: { invitation: { email: "teammate@example.com", is_account_admin: "1" } }
       end
     end
     assert_empty GmailSender.deliveries
@@ -191,7 +191,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Invitation.count" do
       assert_no_difference "OrganizationalMember.count" do
-        post invitations_path, params: { invitation: { email: "alreadyhere@example.com" } }
+        post invitations_path, params: { invitation: { email: "alreadyhere@example.com", is_account_admin: "1" } }
       end
     end
     assert_match(/already a member/i, flash[:alert].to_s)
@@ -209,7 +209,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     OrganizationalMember.create!(organization: other_org, user: cross_user, role: :member)
 
     assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
-      post invitations_path, params: { invitation: { email: "elsewhere@example.com" } }
+      post invitations_path, params: { invitation: { email: "elsewhere@example.com", is_account_admin: "1" } }
     end
     assert_match(/another tenant/i, flash[:alert].to_s)
   end
@@ -221,7 +221,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     sign_in inviter
 
     assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
-      post invitations_path, params: { invitation: { email: users(:admin).email } }
+      post invitations_path, params: { invitation: { email: users(:admin).email, is_account_admin: "1" } }
     end
     assert_match(/system admin/i, flash[:alert].to_s)
   end
@@ -279,5 +279,69 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
       delete invitation_path(@invitation)
     end
     assert_match(/already been accepted/i, flash[:alert].to_s)
+  end
+
+  # --- location handling --------------------------------------------------
+
+  test "create rejects when neither admin nor location is provided" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "needs-loc@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    assert_no_difference "Invitation.count" do
+      post invitations_path, params: { invitation: { email: "newperson@example.com" } }
+    end
+    assert_redirected_to users_path
+    assert_match(/Pick a location, or check Is Account Admin/i, flash[:alert].to_s)
+  end
+
+  test "create persists location_id on the invitation when one is chosen" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "with-loc@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    branch_org = @tenant.organizations.create!(name: "Branch")
+    location = Location.create!(
+      organization: branch_org, display_name: "Dallas", address_line_1: "1 Main",
+      city: "Dallas", state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    sign_in inviter
+
+    assert_difference "Invitation.count", 1 do
+      post invitations_path, params: { invitation: { email: "loc-person@example.com", location_id: location.id } }
+    end
+    invitation = Invitation.where(email: "loc-person@example.com").last
+    assert_equal location, invitation.location
+  end
+
+  test "create rejects a location that belongs to a different tenant" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+    inviter = User.create!(email: "cross-loc@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    other_tenant = Tenant.create!(name: "OtherCo2")
+    other_org = other_tenant.organizations.create!(name: "Other HQ")
+    foreign_location = Location.create!(
+      organization: other_org, display_name: "Reno", address_line_1: "9 Foreign",
+      city: "Reno", state: "NV", postal_code: "89501", phone_number: "(775) 555-0101", is_active: true
+    )
+    sign_in inviter
+
+    assert_no_difference "Invitation.count" do
+      post invitations_path, params: { invitation: { email: "leak@example.com", location_id: foreign_location.id } }
+    end
+    assert_match(/isn't part of your tenant/i, flash[:alert].to_s)
+  end
+
+  test "is_account_admin checked allows the invite to go through with no location" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    inviter = User.create!(email: "admin-invite@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    sign_in inviter
+
+    assert_difference "Invitation.count", 1 do
+      post invitations_path, params: { invitation: { email: "another-admin@example.com", is_account_admin: "1" } }
+    end
+    invitation = Invitation.where(email: "another-admin@example.com").last
+    assert_nil invitation.location_id
   end
 end

@@ -71,6 +71,45 @@ class InvitationTest < ActiveSupport::TestCase
     end
   end
 
+  # --- location handling ---
+
+  test "accept! sets user.location when the invitation has a location" do
+    location = Location.create!(
+      organization: @org, display_name: "Dallas", address_line_1: "1 Main",
+      city: "Dallas", state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    invitation = Invitation.create!(
+      tenant: @tenant, organization: @org, location: location,
+      invited_by_user: @inviter, email: "loc-joiner@example.com"
+    )
+    user = User.create!(email: "loc-joiner@example.com", password: "Password1")
+
+    invitation.accept!(user)
+    assert_equal location, user.reload.location
+  end
+
+  test "accept! leaves user.location nil when the invitation has no location" do
+    user = User.create!(email: "joiner@example.com", password: "Password1")
+    @invitation.accept!(user)
+    assert_nil user.reload.location_id
+  end
+
+  test "invitation is invalid when location belongs to a different tenant" do
+    other_tenant = Tenant.create!(name: "OtherInvCo")
+    other_org = other_tenant.organizations.create!(name: "Other HQ")
+    foreign_location = Location.create!(
+      organization: other_org, display_name: "Reno", address_line_1: "9 Foreign",
+      city: "Reno", state: "NV", postal_code: "89501", phone_number: "(775) 555-0101", is_active: true
+    )
+
+    invitation = Invitation.new(
+      tenant: @tenant, organization: @org, location: foreign_location,
+      invited_by_user: @inviter, email: "leak@example.com"
+    )
+    refute invitation.valid?
+    assert_match(/same tenant/i, invitation.errors[:location].join(" "))
+  end
+
   test "send_blockers lists both gaps when both are missing" do
     prior = ENV.delete("APP_HOST")
     begin

@@ -4,9 +4,14 @@ class UsersController < ApplicationController
     if @tenant
       @users = @tenant.users.includes(:email_delegations).order(:email)
       @pending_invitations = @tenant.invitations.where(accepted_at: nil).order(created_at: :desc)
+      @invite_locations = Location.active
+                                  .joins(:organization)
+                                  .where(organizations: { tenant_id: @tenant.id })
+                                  .order(:display_name)
     else
       @users = User.none
       @pending_invitations = Invitation.none
+      @invite_locations = Location.none
     end
     @invitation = Invitation.new
   end

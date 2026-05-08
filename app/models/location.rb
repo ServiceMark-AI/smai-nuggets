@@ -2,6 +2,8 @@ class Location < ApplicationRecord
   belongs_to :organization
   belongs_to :created_by_user, class_name: "User", optional: true
   belongs_to :updated_by_user, class_name: "User", optional: true
+  has_many :users, dependent: :nullify
+  has_many :invitations, dependent: :nullify
 
   validates :organization_id, uniqueness: true
 

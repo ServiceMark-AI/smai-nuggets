@@ -5,6 +5,7 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable, :trackable
 
   belongs_to :tenant, optional: true
+  belongs_to :location, optional: true
   has_many :organizational_members, dependent: :destroy
   has_many :organizations, through: :organizational_members
   has_many :email_delegations, dependent: :destroy
