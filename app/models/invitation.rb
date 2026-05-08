@@ -44,6 +44,11 @@ class Invitation < ApplicationRecord
     transaction do
       user.update!(tenant: tenant) if user.tenant_id.nil?
       user.update!(location: location) if location_id.present? && user.location_id.nil?
+      # Carry over the invitee profile fields the inviter filled in, but
+      # don't overwrite anything the user already set during sign-up.
+      user.update!(first_name: first_name)     if first_name.present?   && user.first_name.blank?
+      user.update!(last_name: last_name)       if last_name.present?    && user.last_name.blank?
+      user.update!(phone_number: phone_number) if phone_number.present? && user.phone_number.blank?
       # users.is_pending defaults to true at insert; clearing it here is
       # the only place a real user transitions from "Pending" to "Active"
       # in the Users tables. Without this, an invited user keeps showing

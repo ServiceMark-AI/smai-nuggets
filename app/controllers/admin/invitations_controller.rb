@@ -17,7 +17,10 @@ class Admin::InvitationsController < Admin::BaseController
 
     invitation = @tenant.invitations.build(
       invited_by_user: current_user,
-      email: email
+      email: email,
+      first_name: params.dig(:invitation, :first_name).to_s.strip.presence,
+      last_name: params.dig(:invitation, :last_name).to_s.strip.presence,
+      phone_number: params.dig(:invitation, :phone_number).to_s.strip.presence
     )
 
     if invitation.save

@@ -91,6 +91,27 @@ class InvitationTest < ActiveSupport::TestCase
     assert_nil user.reload.location_id
   end
 
+  test "accept! copies invitee profile fields onto the joining user" do
+    @invitation.update!(first_name: "Inga", last_name: "Vega", phone_number: "(214) 555-1010")
+    user = User.create!(email: "joiner@example.com", password: "Password1")
+    @invitation.accept!(user)
+    user.reload
+    assert_equal "Inga", user.first_name
+    assert_equal "Vega", user.last_name
+    assert_equal "(214) 555-1010", user.phone_number
+  end
+
+  test "accept! does not overwrite name or phone the user already set" do
+    @invitation.update!(first_name: "Inga", last_name: "Vega", phone_number: "(214) 555-1010")
+    user = User.create!(email: "joiner@example.com", password: "Password1",
+                       first_name: "Already", last_name: "Set", phone_number: "(555) 000-0000")
+    @invitation.accept!(user)
+    user.reload
+    assert_equal "Already", user.first_name
+    assert_equal "Set", user.last_name
+    assert_equal "(555) 000-0000", user.phone_number
+  end
+
   test "invitation is invalid when location belongs to a different tenant" do
     other_tenant = Tenant.create!(name: "OtherInvCo")
     foreign_location = Location.create!(
