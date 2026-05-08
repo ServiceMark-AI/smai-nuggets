@@ -20,7 +20,10 @@
       "Read(//private/tmp/**)",
       "Bash(docker-compose run *)",
       "Bash(docker-compose start *)",
-      "Bash(docker-compose stop *)"
+      "Bash(docker-compose stop *)",
+      "Bash(gh repo *)",
+      "Bash(gh milestone *)",
+      "Bash(gh api *)"
     ]
   }
 }
