@@ -276,10 +276,21 @@ class JobProposalsController < ApplicationController
     @owner_options = tenant.users.order(:email)
     @job_type_options = tenant.activated_job_types.order(:name)
     @scenario_options = tenant.activated_scenarios.includes(:job_type).order("job_types.name", :short_name)
+    @location_editable = !current_user.scoped_to_location?
+    @location_options = @location_editable ? tenant.locations.order(:display_name) : Location.none
   end
 
   def proposal_params
-    params.require(:job_proposal).permit(*EDITABLE_PARAMS)
+    permitted = EDITABLE_PARAMS.dup
+    permitted << :location_id unless current_user.scoped_to_location?
+    attrs = params.require(:job_proposal).permit(*permitted)
+    # Defense in depth: even when location_id is permitted, drop it unless
+    # the picked location belongs to this proposal's tenant.
+    if attrs[:location_id].present? &&
+       !@job_proposal.tenant.locations.exists?(id: attrs[:location_id])
+      attrs = attrs.except(:location_id)
+    end
+    attrs
   end
 
   def launch_notice(result)

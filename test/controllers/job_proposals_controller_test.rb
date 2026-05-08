@@ -450,17 +450,20 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/in process/i, response.body)
   end
 
-  test "edit renders the proposal's location as a disabled field" do
+  test "edit renders the proposal's location as a disabled field for regular users" do
     sign_in @user
     jp = job_proposals(:in_users_org)
     jp.update!(location: locations(:ne_dallas))
+    @user.update!(location: locations(:ne_dallas))   # make @user a regular tenant user
     get edit_job_proposal_url(jp)
     assert_response :success
     assert_select "input[name=proposal_location][disabled][value=?]", locations(:ne_dallas).display_name
+    assert_select "select[name='job_proposal[location_id]']", count: 0
   end
 
-  test "update ignores location_id even if submitted (location is not editable)" do
+  test "regular user update ignores location_id (location is not editable for them)" do
     sign_in @user
+    @user.update!(location: locations(:ne_dallas))   # regular user
     jp = job_proposals(:in_users_org)
     original_location = locations(:ne_dallas)
     jp.update!(location: original_location)
@@ -473,6 +476,48 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     patch job_proposal_url(jp), params: { job_proposal: { location_id: other.id, customer_first_name: "Edited" } }
     assert_equal original_location, jp.reload.location
     assert_equal "Edited", jp.customer_first_name
+  end
+
+  test "edit renders a Location select for account admins" do
+    tenant_admin = User.create!(email: "ta-edit@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: locations(:ne_dallas))
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "select[name='job_proposal[location_id]']"
+    assert_select "input[name=proposal_location][disabled]", count: 0
+  end
+
+  test "account admin can reassign the proposal's location" do
+    tenant_admin = User.create!(email: "ta-update@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: locations(:ne_dallas))
+    other = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "9 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0303", is_active: true
+    )
+
+    patch job_proposal_url(jp), params: { job_proposal: { location_id: other.id, customer_first_name: "Edited" } }
+    assert_equal other, jp.reload.location
+    assert_equal "Edited", jp.customer_first_name
+  end
+
+  test "account admin cannot reassign to a location in another tenant" do
+    tenant_admin = User.create!(email: "ta-cross@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+    jp = job_proposals(:in_users_org)
+    original = locations(:ne_dallas)
+    jp.update!(location: original)
+    foreign_tenant = Tenant.create!(name: "ForeignCo")
+    foreign_location = foreign_tenant.locations.create!(
+      display_name: "Foreign", address_line_1: "1 Foreign", city: "Reno",
+      state: "NV", postal_code: "89501", phone_number: "(775) 555-0303", is_active: true
+    )
+
+    patch job_proposal_url(jp), params: { job_proposal: { location_id: foreign_location.id, customer_first_name: "Edited" } }
+    assert_equal original, jp.reload.location
   end
 
   test "edit hides the Loss notes section while the proposal is still drafting" do
