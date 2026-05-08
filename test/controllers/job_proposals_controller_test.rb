@@ -450,6 +450,26 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/in process/i, response.body)
   end
 
+  test "edit hides the Loss notes section while the proposal is still drafting" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :drafting)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_no_match(/Loss notes/, response.body)
+    assert_select "input[name='job_proposal[loss_reason]']", count: 0
+  end
+
+  test "edit shows the Loss notes section once the proposal is past drafting" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approving)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_match(/Loss notes/, response.body)
+    assert_select "input[name='job_proposal[loss_reason]']"
+  end
+
   test "edit job_type select only includes job types this tenant has activated" do
     sign_in @user
     jp = job_proposals(:in_users_org) # tenants(:one): activates job_types(:one) only
