@@ -32,7 +32,7 @@
           <dd class="col-sm-8">
             <% badges = [] %>
             <% badges << content_tag(:span, "Application Admin", class: "badge text-bg-dark") if @user.is_admin %>
-            <% badges << content_tag(:span, "Tenant Admin", class: "badge text-bg-info") if @user.tenant_id.present? && @user.location_id.nil? %>
+            <% badges << content_tag(:span, "Tenant Admin", class: "badge text-bg-info") if @user.is_tenant_admin? %>
             <% if badges.any? %>
               <%= safe_join(badges, " ") %>
             <% else %>

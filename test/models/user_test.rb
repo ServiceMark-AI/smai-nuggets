@@ -6,6 +6,29 @@ class UserTest < ActiveSupport::TestCase
     @location = locations(:ne_dallas)
   end
 
+  test "is_tenant_admin? is true when the user has a tenant and no location" do
+    user = User.new(tenant: @tenant)
+    assert user.is_tenant_admin?
+  end
+
+  test "is_tenant_admin? is false when the user has a location" do
+    user = User.new(tenant: @tenant, location: @location)
+    refute user.is_tenant_admin?
+  end
+
+  test "is_tenant_admin? is false for a tenantless user" do
+    user = User.new
+    refute user.is_tenant_admin?
+  end
+
+  test "is_tenant_admin? does not consider is_admin (orthogonal)" do
+    # An application admin attached to a tenant with no location is also
+    # technically a tenant admin by this predicate. is_admin is a separate
+    # concern handled at call sites.
+    user = User.new(tenant: @tenant, is_admin: true)
+    assert user.is_tenant_admin?
+  end
+
   test "can_invite_into_tenant? is false when the user has no tenant" do
     user = User.new
     refute user.can_invite_into_tenant?
