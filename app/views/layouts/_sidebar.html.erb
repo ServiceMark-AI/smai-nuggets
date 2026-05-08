@@ -10,7 +10,7 @@
     <% end %>
     <%= link_to "Jobs", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals' && params[:filter] != 'needs_attention'}" %>
     <%= link_to "Analytics", analytics_path, class: "nav-link #{'active' if controller_path == 'analytics'}" %>
-    <%= link_to "Co-workers", users_path, class: "nav-link #{'active' if controller_name == 'users'}" %>
+    <%= link_to "Team", users_path, class: "nav-link #{'active' if controller_name == 'users'}" %>
 
     <% if current_user.is_admin %>
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Platform Admin</h6>

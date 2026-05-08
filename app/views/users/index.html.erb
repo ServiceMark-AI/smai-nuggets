@@ -1,7 +1,7 @@
-<% content_for :title, "Co-workers" %>
+<% content_for :title, "Team" %>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Co-workers</h1>
+  <h1 class="h3 mb-0">Team</h1>
   <% if @tenant && current_user.can_invite_into_tenant? %>
     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
       Invite user
