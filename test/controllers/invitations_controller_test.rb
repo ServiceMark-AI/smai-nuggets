@@ -291,4 +291,35 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     invitation = Invitation.where(email: "another-admin@example.com").last
     assert_nil invitation.location_id
   end
+
+  # --- inviter eligibility -------------------------------------------------
+
+  test "regular tenant user with a location cannot create an invitation" do
+    location = @tenant.locations.create!(
+      display_name: "Main", address_line_1: "1 Main", city: "Dallas",
+      state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    regular = User.create!(email: "regular@example.com", password: "Password1", is_pending: false, tenant: @tenant, location: location)
+    sign_in regular
+
+    assert_no_difference "Invitation.count" do
+      post invitations_path, params: { invitation: { email: "newhire@example.com", is_account_admin: "1" } }
+    end
+    assert_redirected_to users_path
+    assert_match(/Only account admins/i, flash[:alert].to_s)
+  end
+
+  test "an application admin attached to the tenant can invite even with a location" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    location = @tenant.locations.create!(
+      display_name: "Main", address_line_1: "1 Main", city: "Dallas",
+      state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    app_admin = User.create!(email: "app-admin@example.com", password: "Password1", is_pending: false, tenant: @tenant, location: location, is_admin: true)
+    sign_in app_admin
+
+    assert_difference "Invitation.count", 1 do
+      post invitations_path, params: { invitation: { email: "via-admin@example.com", is_account_admin: "1" } }
+    end
+  end
 end

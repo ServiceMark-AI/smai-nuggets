@@ -2,7 +2,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h3 mb-0">Co-workers</h1>
-  <% if @tenant %>
+  <% if @tenant && current_user.can_invite_into_tenant? %>
     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
       Invite user
     </button>
@@ -111,6 +111,7 @@
     </div>
   </div>
 
+  <% if current_user.can_invite_into_tenant? %>
   <div class="modal fade" id="inviteUserModal" tabindex="-1" aria-labelledby="inviteUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -167,6 +168,7 @@
       </div>
     </div>
   </div>
+  <% end %>
 
   <script>
     (function () {

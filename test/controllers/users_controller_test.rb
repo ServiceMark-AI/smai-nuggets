@@ -87,4 +87,18 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/not assigned to a tenant/i, response.body)
     assert_no_match(/Invite user/i, response.body)
   end
+
+  test "regular tenant user (with a location) does not see the Invite button or modal" do
+    location = @tenant.locations.create!(
+      display_name: "Main", address_line_1: "1 Main", city: "Dallas",
+      state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    regular = User.create!(email: "regular@example.com", password: "Password1", is_pending: false, tenant: @tenant, location: location)
+    sign_in regular
+
+    get users_url
+    assert_response :success
+    assert_no_match(/Invite user/i, response.body)
+    assert_select "#inviteUserModal", false
+  end
 end

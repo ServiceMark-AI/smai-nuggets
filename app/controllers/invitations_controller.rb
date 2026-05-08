@@ -25,6 +25,11 @@ class InvitationsController < ApplicationController
       return
     end
 
+    unless current_user.can_invite_into_tenant?
+      redirect_to users_path, alert: "Only account admins can invite teammates."
+      return
+    end
+
     blockers = Invitation.send_blockers
     if blockers.any?
       redirect_to users_path, alert: "Can't send invitations yet: #{blockers.join(' ')}"
