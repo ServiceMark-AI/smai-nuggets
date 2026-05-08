@@ -450,6 +450,31 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/in process/i, response.body)
   end
 
+  test "edit renders the proposal's location as a disabled field" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: locations(:ne_dallas))
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "input[name=proposal_location][disabled][value=?]", locations(:ne_dallas).display_name
+  end
+
+  test "update ignores location_id even if submitted (location is not editable)" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    original_location = locations(:ne_dallas)
+    jp.update!(location: original_location)
+
+    other = tenants(:one).locations.create!(
+      display_name: "Other", address_line_1: "9 Elsewhere", city: "Plano",
+      state: "TX", postal_code: "75024", phone_number: "(214) 555-0303", is_active: true
+    )
+
+    patch job_proposal_url(jp), params: { job_proposal: { location_id: other.id, customer_first_name: "Edited" } }
+    assert_equal original_location, jp.reload.location
+    assert_equal "Edited", jp.customer_first_name
+  end
+
   test "edit hides the Loss notes section while the proposal is still drafting" do
     sign_in @user
     jp = job_proposals(:in_users_org)

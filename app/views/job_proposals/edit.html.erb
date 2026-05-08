@@ -142,6 +142,14 @@
                 class: "form-select", disabled: @campaign_in_flight %>
           <div class="form-text">An assistant uploading on behalf of a teammate can reassign the proposal here.</div>
         </div>
+        <div class="col-md-6">
+          <%= label_tag :proposal_location, "Location", class: "form-label" %>
+          <%= text_field_tag :proposal_location,
+                @job_proposal.location&.display_name,
+                class: "form-control", disabled: true,
+                placeholder: "—" %>
+          <div class="form-text">Set when the job was created and isn't editable here.</div>
+        </div>
       </div>
     </div>
   </div>
