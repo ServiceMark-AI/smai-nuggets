@@ -64,8 +64,8 @@ module JobProposalsHelper
               class: "btn btn-success btn-sm",
               target: "_blank", rel: "noopener"
     when :fix_delivery_issue
-      link_to "Fix delivery issue", edit_job_proposal_path(jp),
-              class: "btn btn-warning btn-sm"
+      link_to "Fix Issue", edit_job_proposal_path(jp),
+              class: "btn btn-danger btn-sm"
     when :resume_campaign
       button_to "Resume", resume_job_proposal_path(jp),
                 method: :patch,
@@ -77,6 +77,29 @@ module JobProposalsHelper
   def gmail_thread_url(thread_id)
     return "https://mail.google.com/mail/u/0/" if thread_id.blank?
     "https://mail.google.com/mail/u/0/#all/#{thread_id}"
+  end
+
+  # Inline status-overlay label rendered on the proposal index card.
+  # Returns nil when there's no overlay so callers can render nothing.
+  OVERLAY_LABELS = {
+    "customer_waiting" => { text: "reply needed",  klass: "text-warning fw-semibold" },
+    "delivery_issue"   => { text: "delivery issue", klass: "text-danger fw-semibold" },
+    "paused"           => { text: "paused",        klass: "text-muted fw-semibold" }
+  }.freeze
+
+  def proposal_overlay_label(jp)
+    cfg = OVERLAY_LABELS[jp.status_overlay]
+    return nil unless cfg
+    content_tag(:span, cfg[:text], class: cfg[:klass])
+  end
+
+  # Single-line customer address: "house street, city ST zip".
+  # Empty parts are dropped; returns nil when nothing to show.
+  def proposal_full_address(jp)
+    street = [jp.customer_house_number, jp.customer_street].map { |p| p.to_s.strip }.reject(&:empty?).join(" ")
+    city_state = [jp.customer_city, jp.customer_state].map { |p| p.to_s.strip }.reject(&:empty?).join(" ")
+    tail = [city_state, jp.customer_zip.to_s.strip].reject(&:empty?).join(" ")
+    [street, tail].reject(&:empty?).join(", ").presence
   end
 
   # Renders a small "Needed for the campaign to start: ..." caption under

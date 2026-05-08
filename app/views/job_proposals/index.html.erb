@@ -1,13 +1,18 @@
-<% content_for :title, "Jobs" %>
+<%
+  page_title = @needs_attention_only ? "Jobs Requiring Attention" : "Jobs"
+  count = @job_proposals.size
+%>
+<% content_for :title, page_title %>
 
 <div class="d-flex align-items-center gap-3 mb-3">
   <div class="d-flex align-items-baseline gap-2">
-    <h1 class="h3 mb-0">Jobs</h1>
+    <h1 class="h3 mb-0"><%= page_title %></h1>
     <% if current_user.scoped_to_location? && current_user.location %>
       <span class="text-muted small">at <%= current_user.location.display_name %></span>
     <% end %>
   </div>
-  <div class="ms-auto d-flex gap-2">
+  <div class="ms-auto d-flex align-items-center gap-3">
+    <span class="text-muted small"><%= pluralize(count, "item") %></span>
     <%= link_to "New Job", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
     <% if current_user.is_admin %>
       <%= link_to "New Manual Job", new_admin_job_proposal_path, class: "btn btn-outline-primary btn-sm" %>
@@ -54,92 +59,51 @@
               include_blank: "Any creator",
               class: "form-select form-select-sm" %>
       </div>
-      <% # Preserve the active sort across filter submits %>
-      <%= hidden_field_tag :sort, params[:sort] if params[:sort].present? %>
-      <%= hidden_field_tag :dir,  params[:dir]  if params[:dir].present?  %>
+      <%= hidden_field_tag :filter, params[:filter] if params[:filter].present? %>
       <div class="col-sm-2 d-flex gap-2">
         <%= f.submit "Filter", class: "btn btn-primary btn-sm" %>
         <% if @selected_status || @selected_owner_id || @selected_creator_id || @selected_location_id || @search.present? %>
-          <%= link_to "Clear", job_proposals_path, class: "btn btn-outline-secondary btn-sm" %>
+          <%= link_to "Clear", job_proposals_path(filter: params[:filter]), class: "btn btn-outline-secondary btn-sm" %>
         <% end %>
       </div>
     </div>
   </div>
 <% end %>
 
-<div class="card shadow-sm">
-  <div class="card-body p-0">
-    <% if @job_proposals.any? %>
-      <table class="table table-hover mb-0 align-middle">
-        <thead class="table-light">
-          <tr>
-            <% if @show_location_controls %>
-              <th>Location</th>
+<% if @job_proposals.any? %>
+  <% @job_proposals.each do |jp| %>
+    <div class="card shadow-sm mb-2 jp-card">
+      <div class="card-body d-flex align-items-center gap-3 p-3">
+        <%= link_to job_proposal_path(jp), class: "flex-grow-1 text-decoration-none text-reset" do %>
+          <div class="d-flex align-items-baseline flex-wrap gap-2 mb-1">
+            <span class="fw-bold">
+              <%= [jp.customer_first_name, jp.customer_last_name].compact_blank.join(" ").presence || "Job ##{jp.id}" %>
+            </span>
+            <% if jp.proposal_value %>
+              <span class="text-muted fw-bold"><%= number_to_currency(jp.proposal_value, precision: 0) %></span>
             <% end %>
-            <th>Address</th>
-            <th>CTA</th>
-            <th>Customer</th>
-            <th>Status overlay<br>Pipeline stage</th>
-            <th>Job Type</th>
-            <th>Status</th>
-            <%= sortable_header "proposal_value", "Proposal value", th_class: "text-end" %>
-            <th>Owner</th>
-            <%= sortable_header "created_at", "Created" %>
-          </tr>
-        </thead>
-        <tbody>
-          <% @job_proposals.each do |jp| %>
-            <tr>
-              <% if @show_location_controls %>
-                <td>
-                  <% if jp.location %>
-                    <%= jp.location.display_name %>
-                  <% else %>
-                    <span class="text-muted">—</span>
-                  <% end %>
-                </td>
-              <% end %>
-              <td>
-                <% if jp.short_address %>
-                  <%= link_to jp.short_address, job_proposal_path(jp) %>
-                <% else %>
-                  <%= link_to "—", job_proposal_path(jp), class: "text-muted" %>
-                <% end %>
-              </td>
-              <td><%= job_proposal_cta_link(jp) %></td>
-              <td><%= [jp.customer_first_name, jp.customer_last_name].compact_blank.join(" ").presence || "—" %></td>
-              <td>
-                <% if jp.status_overlay %>
-                  <% ov_class = case jp.status_overlay when "delivery_issue", "customer_waiting" then "text-bg-danger" when "paused" then "text-bg-warning" else "text-bg-info" end %>
-                  <span class="badge <%= ov_class %>"><%= jp.status_overlay.humanize %></span>
-                <% else %>
-                  <span class="text-muted small fst-italic">No overlay</span>
-                <% end %>
-                <div class="mt-1">
-                  <% if jp.pipeline_stage %>
-                    <% pipe_class = case jp.pipeline_stage when "won" then "badge text-bg-success" when "lost" then "badge border border-danger text-danger" else "badge text-bg-info" end %>
-                    <span class="<%= pipe_class %>"><%= jp.pipeline_stage.humanize %></span>
-                  <% else %>
-                    <span class="text-muted small fst-italic">No pipeline stage</span>
-                  <% end %>
-                </div>
-              </td>
-              <td><%= jp.job_type&.name || "—" %></td>
-              <td><span class="badge text-bg-secondary"><%= jp.status %></span></td>
-              <td class="text-end"><%= number_to_currency(jp.proposal_value) if jp.proposal_value %></td>
-              <td><%= jp.owner.display_name %></td>
-              <td>
-                <%= jp.created_at.to_date.to_fs(:long) %>
-                <% if jp.created_by_user %>
-                  <div class="small text-muted">by <%= jp.created_by_user.display_name %></div>
-                <% end %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    <% else %>
-      <div class="p-4 text-center text-muted">No job proposals match these filters.</div>
-    <% end %>
+          </div>
+          <div class="text-muted mb-1">
+            <%= proposal_full_address(jp) || "—" %>
+          </div>
+          <div class="small">
+            <% if @show_location_controls && jp.location %>
+              <span class="text-muted me-2"><%= jp.location.display_name %></span>
+              <span class="text-muted me-2">·</span>
+            <% end %>
+            <span class="text-muted me-2"><%= jp.job_type&.name || "no job type" %></span>
+            <% if (overlay = proposal_overlay_label(jp)) %>
+              <span class="text-muted me-2">·</span>
+              <%= overlay %>
+            <% end %>
+          </div>
+        <% end %>
+        <div class="ms-auto flex-shrink-0"><%= job_proposal_cta_link(jp) %></div>
+      </div>
+    </div>
+  <% end %>
+<% else %>
+  <div class="card shadow-sm">
+    <div class="card-body p-4 text-center text-muted">No job proposals match these filters.</div>
   </div>
-</div>
+<% end %>

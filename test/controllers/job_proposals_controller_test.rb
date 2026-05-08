@@ -179,7 +179,12 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     @jp.update!(customer_house_number: "1247", customer_street: "Oak Ridge Drive")
     get job_proposals_url
     assert_response :success
-    assert_select "a[href=?]", job_proposal_path(@jp), text: "1247 Oak Ridge Drive"
+    # Each card body wraps its content in a link to the show page; the
+    # address renders inside the link, so the address text appears within
+    # an anchor pointing at the proposal.
+    assert_select "a[href=?]", job_proposal_path(@jp) do
+      assert_select "*", text: /1247 Oak Ridge Drive/
+    end
   end
 
   test "show renders for a proposal the user can access" do
@@ -277,26 +282,6 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("Alice"), :<, response.body.index("Carol")
   end
 
-  test "sortable header renders the up arrow when active asc" do
-    sign_in @admin
-    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
-    assert_match "Proposal value", response.body
-    assert_match "↑", response.body
-  end
-
-  test "sortable header renders the down arrow when active desc" do
-    sign_in @admin
-    get job_proposals_url, params: { sort: "created_at", dir: "desc" }
-    assert_match "↓", response.body
-  end
-
-  test "sortable header renders the bidirectional icon for inactive columns" do
-    sign_in @admin
-    get job_proposals_url, params: { sort: "created_at", dir: "desc" }
-    # Proposal value is not the active column, so it should show the bidir icon
-    assert_match "↕", response.body
-  end
-
   # --- search ---
 
   test "search filters by customer first name" do
@@ -373,7 +358,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob", response.body
   end
 
-  test "tenant admin sees the Location column and can filter by location" do
+  test "tenant admin sees the location label on each card and can filter by location" do
     location_a = locations(:ne_dallas)
     location_b = tenants(:one).locations.create!(
       display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
@@ -387,8 +372,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
     get job_proposals_url
     assert_response :success
-    assert_select "th", text: "Location"
     assert_select "select[name=location_id]"
+    assert_match location_a.display_name, response.body
+    assert_match location_b.display_name, response.body
     assert_match "Alice", response.body
     assert_match "Bob", response.body
 
@@ -416,11 +402,17 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "at #{locations(:ne_dallas).display_name}", response.body
   end
 
-  test "filter form preserves the active sort via hidden fields" do
+  test "filter form preserves the needs_attention filter across submits" do
     sign_in @admin
-    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
-    assert_select "input[type=hidden][name=sort][value=?]", "proposal_value"
-    assert_select "input[type=hidden][name=dir][value=?]", "asc"
+    get job_proposals_url, params: { filter: "needs_attention" }
+    assert_select "input[type=hidden][name=filter][value=?]", "needs_attention"
+  end
+
+  test "needs_attention filter renders the Jobs Requiring Attention header" do
+    sign_in @admin
+    get job_proposals_url, params: { filter: "needs_attention" }
+    assert_response :success
+    assert_select "h1", text: "Jobs Requiring Attention"
   end
 
   # --- edit / update ---
@@ -812,7 +804,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     jp = job_proposals(:in_users_org)
     jp.update!(status: :approved, pipeline_stage: "in_campaign", status_overlay: "delivery_issue")
     get job_proposals_url
-    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Fix delivery issue/
+    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Fix Issue/
   end
 
   test "index renders Open in Gmail CTA targeting a new tab" do
