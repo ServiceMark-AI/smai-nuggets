@@ -1,15 +1,15 @@
-<% content_for :title, "Job Proposals" %>
+<% content_for :title, "Jobs" %>
 
 <div class="d-flex align-items-center gap-3 mb-3">
   <div class="d-flex align-items-baseline gap-2">
-    <h1 class="h3 mb-0">Job Proposals</h1>
+    <h1 class="h3 mb-0">Jobs</h1>
     <% if current_user.scoped_to_location? && current_user.location %>
       <span class="text-muted small">at <%= current_user.location.display_name %></span>
     <% end %>
   </div>
-  <%= link_to "New Job Proposal", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
+  <%= link_to "New Job", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
   <% if current_user.is_admin %>
-    <%= link_to "New Manual Job Proposal", new_admin_job_proposal_path, class: "btn btn-outline-primary btn-sm" %>
+    <%= link_to "New Manual Job", new_admin_job_proposal_path, class: "btn btn-outline-primary btn-sm" %>
   <% end %>
 </div>
 

@@ -412,7 +412,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     get job_proposals_url
     assert_response :success
-    assert_select "h1", text: /Job Proposals/
+    assert_select "h1", text: /Jobs/
     assert_match "at #{locations(:ne_dallas).display_name}", response.body
   end
 
