@@ -26,7 +26,7 @@ Sidekiq.configure_server do |config|
   # Load recurring job schedule on Sidekiq server boot. The schedule lives
   # in config/sidekiq_cron.yml and is re-loaded each time Sidekiq starts.
   # ERB is evaluated first so the schedule can vary by environment
-  # (e.g. CampaignSweepJob runs every minute in dev, every 5 in prod).
+  # (e.g. GmailReplyPollJob runs every minute in dev, every 2 in prod).
   require "erb"
   schedule = YAML.safe_load(ERB.new(File.read(schedule_path)).result, aliases: true) || {}
   Sidekiq::Cron::Job.load_from_hash!(schedule) if schedule.any?
