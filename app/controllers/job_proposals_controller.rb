@@ -163,7 +163,14 @@ class JobProposalsController < ApplicationController
   end
 
   def mark_lost
-    @job_proposal.update!(pipeline_stage: :lost)
+    reason = params[:loss_reason].to_s.strip
+    notes  = params[:loss_notes].to_s.strip
+    if reason.blank? || notes.blank?
+      redirect_to job_proposal_path(@job_proposal),
+        alert: "Loss reason and loss notes are both required to mark a job lost."
+      return
+    end
+    @job_proposal.update!(pipeline_stage: :lost, loss_reason: reason, loss_notes: notes)
     redirect_to job_proposal_path(@job_proposal), notice: "Marked as lost."
   end
 

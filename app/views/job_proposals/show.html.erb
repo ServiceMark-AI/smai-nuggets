@@ -24,10 +24,10 @@
           method: :patch,
           class: "btn btn-outline-success btn-sm",
           form: { class: "d-inline" } %>
-    <%= button_to "Mark Lost", mark_lost_job_proposal_path(@job_proposal),
-          method: :patch,
-          class: "btn btn-outline-danger btn-sm",
-          form: { class: "d-inline" } %>
+    <button type="button" class="btn btn-outline-danger btn-sm"
+            data-bs-toggle="modal" data-bs-target="#markLostModal">
+      Mark Lost
+    </button>
     <%# Pause only makes sense while a CampaignInstance is actively
         running. A completed run (all steps shipped) or a terminal-stopped
         run (delivery_issue, customer_reply, etc.) has nothing to pause. %>
@@ -296,6 +296,40 @@
           </li>
         <% end %>
       </ul>
+    </div>
+  </div>
+<% end %>
+
+<% unless %w[won lost].include?(@job_proposal.pipeline_stage) %>
+  <div class="modal fade" id="markLostModal" tabindex="-1" aria-labelledby="markLostModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <%= form_with url: mark_lost_job_proposal_path(@job_proposal), method: :patch, local: true do |f| %>
+          <div class="modal-header">
+            <h5 class="modal-title" id="markLostModalLabel">Mark this job as lost</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small mb-3">
+              Capture why the customer didn't move forward. Both fields are required.
+            </p>
+            <div class="mb-3">
+              <%= label_tag :loss_reason, "Loss reason", class: "form-label" %>
+              <%= text_field_tag :loss_reason, @job_proposal.loss_reason, class: "form-control", required: true,
+                    placeholder: "e.g. Price, Timing, No response" %>
+            </div>
+            <div class="mb-0">
+              <%= label_tag :loss_notes, "Loss notes", class: "form-label" %>
+              <%= text_area_tag :loss_notes, @job_proposal.loss_notes, rows: 3, class: "form-control", required: true,
+                    placeholder: "Any context worth recording about why this was lost." %>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <%= f.submit "Mark Lost", class: "btn btn-danger" %>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 <% end %>

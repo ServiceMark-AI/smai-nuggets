@@ -854,33 +854,63 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "mark_lost flips pipeline_stage to lost and redirects with notice" do
+  test "mark_lost with both loss fields flips pipeline_stage to lost and persists them" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    patch mark_lost_job_proposal_url(jp)
+    patch mark_lost_job_proposal_url(jp), params: {
+      loss_reason: "Price",
+      loss_notes:  "Picked the lower bid."
+    }
     assert_redirected_to job_proposal_path(jp)
     assert_match(/lost/i, flash[:notice])
-    assert_equal "lost", jp.reload.pipeline_stage
+    jp.reload
+    assert_equal "lost", jp.pipeline_stage
+    assert_equal "Price", jp.loss_reason
+    assert_equal "Picked the lower bid.", jp.loss_notes
   end
 
-  test "show page renders Mark Won and Mark Lost buttons when pipeline_stage is not won/lost" do
+  test "mark_lost rejects when loss_reason is blank" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil)
+    patch mark_lost_job_proposal_url(jp), params: { loss_reason: "", loss_notes: "Notes." }
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/required/i, flash[:alert])
+    assert_nil jp.reload.pipeline_stage
+  end
+
+  test "mark_lost rejects when loss_notes is blank" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil)
+    patch mark_lost_job_proposal_url(jp), params: { loss_reason: "Price", loss_notes: "" }
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/required/i, flash[:alert])
+    assert_nil jp.reload.pipeline_stage
+  end
+
+  test "show page renders Mark Won button and a Mark Lost trigger when pipeline_stage is not won/lost" do
     sign_in @user
     jp = job_proposals(:in_users_org)
     jp.update!(pipeline_stage: nil)
     get job_proposal_url(jp)
     assert_response :success
     assert_select "form[action=?] button", mark_won_job_proposal_path(jp), text: /Mark Won/
-    assert_select "form[action=?] button", mark_lost_job_proposal_path(jp), text: /Mark Lost/
+    # Mark Lost is now a modal trigger button (not a form), and the modal
+    # contains the form posting to mark_lost.
+    assert_select "button[data-bs-target='#markLostModal']", text: /Mark Lost/
+    assert_select "#markLostModal form[action=?]", mark_lost_job_proposal_path(jp)
   end
 
-  test "show page hides Mark Won/Lost when pipeline_stage is already won" do
+  test "show page hides Mark Won/Lost trigger and modal when pipeline_stage is already won" do
     sign_in @user
     jp = job_proposals(:in_users_org)
     jp.update!(pipeline_stage: "won")
     get job_proposal_url(jp)
     assert_response :success
     assert_select "form[action=?]", mark_won_job_proposal_path(jp), count: 0
-    assert_select "form[action=?]", mark_lost_job_proposal_path(jp), count: 0
+    assert_select "button[data-bs-target='#markLostModal']", count: 0
+    assert_select "#markLostModal", count: 0
   end
 
   # --- revert_pipeline_stage ----------------------------------------------
