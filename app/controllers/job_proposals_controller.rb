@@ -20,11 +20,21 @@ class JobProposalsController < ApplicationController
     user_ids = (scope.distinct.pluck(:owner_id) + scope.distinct.pluck(:created_by_user_id)).uniq
     @user_options = User.where(id: user_ids).order(:email)
 
+    @show_location_controls = !current_user.scoped_to_location?
+    @location_options = current_user.tenant&.locations&.order(:display_name) || Location.none
+
     @selected_status = params[:status].presence
     @selected_owner_id = params[:owner_id].presence
     @selected_creator_id = params[:creator_id].presence
     @search = params[:q].to_s.strip
     @needs_attention_only = params[:filter] == "needs_attention"
+
+    if current_user.scoped_to_location?
+      scope = scope.where(location_id: current_user.location_id)
+    else
+      @selected_location_id = params[:location_id].presence
+      scope = scope.where(location_id: @selected_location_id) if @selected_location_id
+    end
 
     scope = scope.needs_attention if @needs_attention_only
     scope = scope.where(status: @selected_status) if @selected_status

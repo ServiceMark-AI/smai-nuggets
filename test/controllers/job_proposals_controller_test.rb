@@ -336,6 +336,86 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Alice", response.body
   end
 
+  # --- location-based scoping ---------------------------------------------
+
+  test "regular tenant user only sees proposals at their location" do
+    # users(:one) is tenant: one with no location set in the fixture
+    location_a = locations(:ne_dallas)  # tenant: one
+    location_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a, customer_first_name: "Alice")
+    job_proposals(:same_tenant_other_org).update!(location: location_b, customer_first_name: "Bob")
+
+    @user.update!(location: location_a)
+    sign_in @user
+    get job_proposals_url
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+  end
+
+  test "regular tenant user cannot bypass the location filter via params" do
+    location_a = locations(:ne_dallas)
+    location_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a, customer_first_name: "Alice")
+    job_proposals(:same_tenant_other_org).update!(location: location_b, customer_first_name: "Bob")
+
+    @user.update!(location: location_a)
+    sign_in @user
+    get job_proposals_url, params: { location_id: location_b.id }
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+  end
+
+  test "tenant admin sees the Location column and can filter by location" do
+    location_a = locations(:ne_dallas)
+    location_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a, customer_first_name: "Alice")
+    job_proposals(:same_tenant_other_org).update!(location: location_b, customer_first_name: "Bob")
+
+    tenant_admin = User.create!(email: "ta@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+
+    get job_proposals_url
+    assert_response :success
+    assert_select "th", text: "Location"
+    assert_select "select[name=location_id]"
+    assert_match "Alice", response.body
+    assert_match "Bob", response.body
+
+    get job_proposals_url, params: { location_id: location_a.id }
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+  end
+
+  test "regular tenant user does not see the Location column or filter" do
+    @user.update!(location: locations(:ne_dallas))
+    sign_in @user
+    get job_proposals_url
+    assert_response :success
+    assert_select "th", text: "Location", count: 0
+    assert_select "select[name=location_id]", count: 0
+  end
+
+  test "regular tenant user sees their location name near the H1" do
+    @user.update!(location: locations(:ne_dallas))
+    sign_in @user
+    get job_proposals_url
+    assert_response :success
+    assert_select "h1", text: /Job Proposals/
+    assert_match "at #{locations(:ne_dallas).display_name}", response.body
+  end
+
   test "filter form preserves the active sort via hidden fields" do
     sign_in @admin
     get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }

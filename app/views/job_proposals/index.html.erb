@@ -1,7 +1,12 @@
 <% content_for :title, "Job Proposals" %>
 
 <div class="d-flex align-items-center gap-3 mb-3">
-  <h1 class="h3 mb-0">Job Proposals</h1>
+  <div class="d-flex align-items-baseline gap-2">
+    <h1 class="h3 mb-0">Job Proposals</h1>
+    <% if current_user.scoped_to_location? && current_user.location %>
+      <span class="text-muted small">at <%= current_user.location.display_name %></span>
+    <% end %>
+  </div>
   <%= link_to "New Job Proposal", new_job_proposal_path, class: "btn btn-primary btn-sm" %>
   <% if current_user.is_admin %>
     <%= link_to "New Manual Job Proposal", new_admin_job_proposal_path, class: "btn btn-outline-primary btn-sm" %>
@@ -17,6 +22,15 @@
               placeholder: "Customer, address, or reference",
               class: "form-control form-control-sm" %>
       </div>
+      <% if @show_location_controls %>
+        <div class="col-sm-2">
+          <%= label_tag :location_id, "Location", class: "form-label small mb-1" %>
+          <%= select_tag :location_id,
+                options_from_collection_for_select(@location_options, :id, :display_name, @selected_location_id),
+                include_blank: "All locations",
+                class: "form-select form-select-sm" %>
+        </div>
+      <% end %>
       <div class="col-sm-2">
         <%= label_tag :status, "Status", class: "form-label small mb-1" %>
         <%= select_tag :status,
@@ -43,7 +57,7 @@
       <%= hidden_field_tag :dir,  params[:dir]  if params[:dir].present?  %>
       <div class="col-sm-2 d-flex gap-2">
         <%= f.submit "Filter", class: "btn btn-primary btn-sm" %>
-        <% if @selected_status || @selected_owner_id || @selected_creator_id || @search.present? %>
+        <% if @selected_status || @selected_owner_id || @selected_creator_id || @selected_location_id || @search.present? %>
           <%= link_to "Clear", job_proposals_path, class: "btn btn-outline-secondary btn-sm" %>
         <% end %>
       </div>
@@ -57,6 +71,9 @@
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-light">
           <tr>
+            <% if @show_location_controls %>
+              <th>Location</th>
+            <% end %>
             <th>Address</th>
             <th>CTA</th>
             <th>Customer</th>
@@ -71,6 +88,15 @@
         <tbody>
           <% @job_proposals.each do |jp| %>
             <tr>
+              <% if @show_location_controls %>
+                <td>
+                  <% if jp.location %>
+                    <%= jp.location.display_name %>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+              <% end %>
               <td>
                 <% if jp.short_address %>
                   <%= link_to jp.short_address, job_proposal_path(jp) %>

@@ -30,4 +30,24 @@ class UserTest < ActiveSupport::TestCase
     user = User.new(is_admin: true)
     refute user.can_invite_into_tenant?
   end
+
+  test "scoped_to_location? is true for a regular tenant user" do
+    user = User.new(tenant: @tenant, location: @location)
+    assert user.scoped_to_location?
+  end
+
+  test "scoped_to_location? is false for an account admin (no location)" do
+    user = User.new(tenant: @tenant)
+    refute user.scoped_to_location?
+  end
+
+  test "scoped_to_location? is false for an application admin even with a location" do
+    user = User.new(tenant: @tenant, location: @location, is_admin: true)
+    refute user.scoped_to_location?
+  end
+
+  test "scoped_to_location? is false for a tenantless user" do
+    user = User.new
+    refute user.scoped_to_location?
+  end
 end

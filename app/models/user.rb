@@ -26,4 +26,12 @@ class User < ApplicationRecord
     return false if tenant_id.nil?
     is_admin || location_id.nil?
   end
+
+  # A regular tenant user is bound to a single location and should see
+  # only their location's data on tenant-wide listings (the Job Proposals
+  # index in particular). Tenant admins (no location) and SMAI staff
+  # (is_admin) see broader scope.
+  def scoped_to_location?
+    !is_admin && tenant_id.present? && location_id.present?
+  end
 end
