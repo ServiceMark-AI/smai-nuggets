@@ -25,6 +25,21 @@
           <dt class="col-sm-4">Tenant</dt>
           <dd class="col-sm-8"><%= @user.tenant&.name || content_tag(:span, "—", class: "text-muted") %></dd>
 
+          <dt class="col-sm-4">Location</dt>
+          <dd class="col-sm-8"><%= @user.location&.display_name || content_tag(:span, "—", class: "text-muted") %></dd>
+
+          <dt class="col-sm-4">Role</dt>
+          <dd class="col-sm-8">
+            <% badges = [] %>
+            <% badges << content_tag(:span, "Application Admin", class: "badge text-bg-dark") if @user.is_admin %>
+            <% badges << content_tag(:span, "Tenant Admin", class: "badge text-bg-info") if @user.tenant_id.present? && @user.location_id.nil? %>
+            <% if badges.any? %>
+              <%= safe_join(badges, " ") %>
+            <% else %>
+              <span class="text-muted">—</span>
+            <% end %>
+          </dd>
+
           <dt class="col-sm-4">Last login</dt>
           <dd class="col-sm-8"><%= @user.last_sign_in_at&.to_fs(:long) || content_tag(:span, "—", class: "text-muted") %></dd>
 

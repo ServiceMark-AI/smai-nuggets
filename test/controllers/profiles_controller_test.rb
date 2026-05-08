@@ -67,4 +67,47 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Jane", @user.first_name
     assert_equal original_email, @user.email
   end
+
+  # --- role indicators ----------------------------------------------------
+
+  test "show renders Application Admin badge for is_admin users" do
+    sign_in users(:admin)
+    get profile_url
+    assert_select "dd", text: /Application Admin/
+  end
+
+  test "show renders Tenant Admin badge for tenant users with no location" do
+    @user.update!(location: nil)
+    sign_in @user
+    get profile_url
+    assert_select "dd", text: /Tenant Admin/
+    assert_no_match(/Application Admin/, response.body)
+  end
+
+  test "show hides Tenant Admin badge for tenant users with a location" do
+    @user.update!(location: locations(:ne_dallas))
+    sign_in @user
+    get profile_url
+    assert_no_match(/Tenant Admin/, response.body)
+    assert_match locations(:ne_dallas).display_name, response.body
+  end
+
+  test "show renders both badges when an application admin also has a tenant and no location" do
+    admin = users(:admin)
+    admin.update!(tenant: tenants(:one), location: nil)
+    sign_in admin
+    get profile_url
+    assert_match(/Application Admin/, response.body)
+    assert_match(/Tenant Admin/, response.body)
+  end
+
+  test "show falls back to em-dash when user has no role indicators" do
+    orphan = User.create!(email: "no-role@example.com", password: "Password1", is_pending: false)
+    sign_in orphan
+    get profile_url
+    # Role row's dd shows "—" when neither badge applies
+    assert_select "dt", text: "Role"
+    assert_no_match(/Application Admin/, response.body)
+    assert_no_match(/Tenant Admin/, response.body)
+  end
 end
