@@ -1,9 +1,8 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-# In tenant one, organization one — visible to user :one (member of org one).
+# In tenant one — visible to user :one (same tenant).
 in_users_org:
   tenant: one
-  organization: one
   owner: one
   created_by_user: one
   job_type: one
@@ -12,10 +11,9 @@ in_users_org:
   proposal_value: 12500.00
   status: 0
 
-# In tenant one, organization two — NOT visible to user :one (not a member of org two).
+# Also in tenant one — visible to user :one.
 same_tenant_other_org:
   tenant: one
-  organization: two
   owner: one
   created_by_user: one
   customer_first_name: Bob
@@ -26,7 +24,6 @@ same_tenant_other_org:
 # In tenant two — visible to user :two only.
 other_tenant:
   tenant: two
-  organization: three
   owner: two
   created_by_user: two
   customer_first_name: Carol

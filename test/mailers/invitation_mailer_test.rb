@@ -3,7 +3,6 @@ require "test_helper"
 class InvitationMailerTest < ActionMailer::TestCase
   setup do
     @tenant = Tenant.create!(name: "AcmeCo")
-    @org = @tenant.organizations.create!(name: "AcmeCo")
   end
 
   test "invite from a tenant user uses the inviter's name in subject, body, and From" do
@@ -17,7 +16,6 @@ class InvitationMailerTest < ActionMailer::TestCase
     )
     invitation = Invitation.create!(
       tenant: @tenant,
-      organization: @org,
       invited_by_user: inviter,
       email: "newhire@example.com"
     )
@@ -44,7 +42,6 @@ class InvitationMailerTest < ActionMailer::TestCase
     )
     invitation = Invitation.create!(
       tenant: @tenant,
-      organization: @org,
       invited_by_user: admin,
       email: "newhire@example.com"
     )

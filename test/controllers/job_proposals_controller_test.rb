@@ -4,8 +4,8 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @user = users(:one)               # tenant: one, member of org one
-    @other_tenant_user = users(:two)  # tenant: two, member of org three
+    @user = users(:one)               # tenant: one
+    @other_tenant_user = users(:two)  # tenant: two
     @admin = users(:admin)            # is_admin
   end
 
@@ -14,18 +14,12 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
-  test "user sees proposals in their tenant and orgs they are a member of" do
+  test "user sees all proposals in their tenant" do
     sign_in @user
     get job_proposals_url
     assert_response :success
-    assert_match "Alice", response.body  # in_users_org: tenant=one, org=one ✓
-  end
-
-  test "user does not see proposals from orgs they are not in, even in same tenant" do
-    sign_in @user
-    get job_proposals_url
-    assert_response :success
-    assert_no_match "Bob", response.body  # same_tenant_other_org: tenant=one, org=two ✗ (user not in org two)
+    assert_match "Alice", response.body  # in_users_org: tenant=one ✓
+    assert_match "Bob", response.body    # same_tenant_other_org: tenant=one ✓
   end
 
   test "user does not see proposals from other tenants" do
@@ -44,9 +38,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob", response.body
   end
 
-  test "user with no organization memberships sees empty state" do
-    lonely = User.create!(email: "lonely@example.com", password: "Password1", tenant: tenants(:one))
-    sign_in lonely
+  test "user with no tenant sees empty state" do
+    orphan = User.create!(email: "orphan-jp@example.com", password: "Password1")
+    sign_in orphan
     get job_proposals_url
     assert_response :success
     assert_no_match "Alice", response.body
@@ -165,16 +159,16 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert proposal.internal_reference.to_s.start_with?("STUB-")
   end
 
-  test "create fails when user has no organization" do
-    lonely = User.create!(email: "lonely2@example.com", password: "Password1", tenant: tenants(:one))
-    sign_in lonely
+  test "create fails when user has no tenant" do
+    orphan = User.create!(email: "orphan-jp-create@example.com", password: "Password1")
+    sign_in orphan
     file = Rack::Test::UploadedFile.new(StringIO.new("x"), "text/plain", original_filename: "x.txt")
 
     assert_no_difference "JobProposal.count" do
       post job_proposals_url, params: { file: file }
     end
     assert_response :unprocessable_content
-    assert_match(/tenant and organization/i, response.body)
+    assert_match(/tenant/i, response.body)
   end
 
   # --- show action ---
@@ -185,7 +179,12 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     @jp.update!(customer_house_number: "1247", customer_street: "Oak Ridge Drive")
     get job_proposals_url
     assert_response :success
-    assert_select "a[href=?]", job_proposal_path(@jp), text: "1247 Oak Ridge Drive"
+    # Each card body wraps its content in a link to the show page; the
+    # address renders inside the link, so the address text appears within
+    # an anchor pointing at the proposal.
+    assert_select "a[href=?]", job_proposal_path(@jp) do
+      assert_select "*", text: /1247 Oak Ridge Drive/
+    end
   end
 
   test "show renders for a proposal the user can access" do
@@ -283,26 +282,6 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("Alice"), :<, response.body.index("Carol")
   end
 
-  test "sortable header renders the up arrow when active asc" do
-    sign_in @admin
-    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
-    assert_match "Proposal value", response.body
-    assert_match "↑", response.body
-  end
-
-  test "sortable header renders the down arrow when active desc" do
-    sign_in @admin
-    get job_proposals_url, params: { sort: "created_at", dir: "desc" }
-    assert_match "↓", response.body
-  end
-
-  test "sortable header renders the bidirectional icon for inactive columns" do
-    sign_in @admin
-    get job_proposals_url, params: { sort: "created_at", dir: "desc" }
-    # Proposal value is not the active column, so it should show the bidir icon
-    assert_match "↕", response.body
-  end
-
   # --- search ---
 
   test "search filters by customer first name" do
@@ -342,11 +321,98 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Alice", response.body
   end
 
-  test "filter form preserves the active sort via hidden fields" do
+  # --- location-based scoping ---------------------------------------------
+
+  test "regular tenant user only sees proposals at their location" do
+    # users(:one) is tenant: one with no location set in the fixture
+    location_a = locations(:ne_dallas)  # tenant: one
+    location_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a, customer_first_name: "Alice")
+    job_proposals(:same_tenant_other_org).update!(location: location_b, customer_first_name: "Bob")
+
+    @user.update!(location: location_a)
+    sign_in @user
+    get job_proposals_url
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+  end
+
+  test "regular tenant user cannot bypass the location filter via params" do
+    location_a = locations(:ne_dallas)
+    location_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a, customer_first_name: "Alice")
+    job_proposals(:same_tenant_other_org).update!(location: location_b, customer_first_name: "Bob")
+
+    @user.update!(location: location_a)
+    sign_in @user
+    get job_proposals_url, params: { location_id: location_b.id }
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+  end
+
+  test "tenant admin sees the location label on each card and can filter by location" do
+    location_a = locations(:ne_dallas)
+    location_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a, customer_first_name: "Alice")
+    job_proposals(:same_tenant_other_org).update!(location: location_b, customer_first_name: "Bob")
+
+    tenant_admin = User.create!(email: "ta@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+
+    get job_proposals_url
+    assert_response :success
+    assert_select "select[name=location_id]"
+    assert_match location_a.display_name, response.body
+    assert_match location_b.display_name, response.body
+    assert_match "Alice", response.body
+    assert_match "Bob", response.body
+
+    get job_proposals_url, params: { location_id: location_a.id }
+    assert_response :success
+    assert_match "Alice", response.body
+    assert_no_match "Bob", response.body
+  end
+
+  test "regular tenant user does not see the Location column or filter" do
+    @user.update!(location: locations(:ne_dallas))
+    sign_in @user
+    get job_proposals_url
+    assert_response :success
+    assert_select "th", text: "Location", count: 0
+    assert_select "select[name=location_id]", count: 0
+  end
+
+  test "regular tenant user sees their location name near the H1" do
+    @user.update!(location: locations(:ne_dallas))
+    sign_in @user
+    get job_proposals_url
+    assert_response :success
+    assert_select "h1", text: /Jobs/
+    assert_match "at #{locations(:ne_dallas).display_name}", response.body
+  end
+
+  test "filter form preserves the needs_attention filter across submits" do
     sign_in @admin
-    get job_proposals_url, params: { sort: "proposal_value", dir: "asc" }
-    assert_select "input[type=hidden][name=sort][value=?]", "proposal_value"
-    assert_select "input[type=hidden][name=dir][value=?]", "asc"
+    get job_proposals_url, params: { filter: "needs_attention" }
+    assert_select "input[type=hidden][name=filter][value=?]", "needs_attention"
+  end
+
+  test "needs_attention filter renders the Jobs Requiring Attention header" do
+    sign_in @admin
+    get job_proposals_url, params: { filter: "needs_attention" }
+    assert_response :success
+    assert_select "h1", text: "Jobs Requiring Attention"
   end
 
   # --- edit / update ---
@@ -374,6 +440,96 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     # approving the proposal content kicks off the campaign instance).
     assert_select "input[type=submit][value='Approve Proposal Content']"
     assert_no_match(/in process/i, response.body)
+  end
+
+  test "edit renders the proposal's location as a disabled field for regular users" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: locations(:ne_dallas))
+    @user.update!(location: locations(:ne_dallas))   # make @user a regular tenant user
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "input[name=proposal_location][disabled][value=?]", locations(:ne_dallas).display_name
+    assert_select "select[name='job_proposal[location_id]']", count: 0
+  end
+
+  test "regular user update ignores location_id (location is not editable for them)" do
+    sign_in @user
+    @user.update!(location: locations(:ne_dallas))   # regular user
+    jp = job_proposals(:in_users_org)
+    original_location = locations(:ne_dallas)
+    jp.update!(location: original_location)
+
+    other = tenants(:one).locations.create!(
+      display_name: "Other", address_line_1: "9 Elsewhere", city: "Plano",
+      state: "TX", postal_code: "75024", phone_number: "(214) 555-0303", is_active: true
+    )
+
+    patch job_proposal_url(jp), params: { job_proposal: { location_id: other.id, customer_first_name: "Edited" } }
+    assert_equal original_location, jp.reload.location
+    assert_equal "Edited", jp.customer_first_name
+  end
+
+  test "edit renders a Location select for account admins" do
+    tenant_admin = User.create!(email: "ta-edit@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: locations(:ne_dallas))
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_select "select[name='job_proposal[location_id]']"
+    assert_select "input[name=proposal_location][disabled]", count: 0
+  end
+
+  test "account admin can reassign the proposal's location" do
+    tenant_admin = User.create!(email: "ta-update@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: locations(:ne_dallas))
+    other = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "9 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0303", is_active: true
+    )
+
+    patch job_proposal_url(jp), params: { job_proposal: { location_id: other.id, customer_first_name: "Edited" } }
+    assert_equal other, jp.reload.location
+    assert_equal "Edited", jp.customer_first_name
+  end
+
+  test "account admin cannot reassign to a location in another tenant" do
+    tenant_admin = User.create!(email: "ta-cross@example.com", password: "Password1", is_pending: false, tenant: tenants(:one))
+    sign_in tenant_admin
+    jp = job_proposals(:in_users_org)
+    original = locations(:ne_dallas)
+    jp.update!(location: original)
+    foreign_tenant = Tenant.create!(name: "ForeignCo")
+    foreign_location = foreign_tenant.locations.create!(
+      display_name: "Foreign", address_line_1: "1 Foreign", city: "Reno",
+      state: "NV", postal_code: "89501", phone_number: "(775) 555-0303", is_active: true
+    )
+
+    patch job_proposal_url(jp), params: { job_proposal: { location_id: foreign_location.id, customer_first_name: "Edited" } }
+    assert_equal original, jp.reload.location
+  end
+
+  test "edit hides the Loss notes section while the proposal is still drafting" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :drafting)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_no_match(/Loss notes/, response.body)
+    assert_select "input[name='job_proposal[loss_reason]']", count: 0
+  end
+
+  test "edit shows the Loss notes section once the proposal is past drafting" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approving)
+    get edit_job_proposal_url(jp)
+    assert_response :success
+    assert_match(/Loss notes/, response.body)
+    assert_select "input[name='job_proposal[loss_reason]']"
   end
 
   test "edit job_type select only includes job types this tenant has activated" do
@@ -423,7 +579,6 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     jp = job_proposals(:in_users_org)
     other_owner = User.create!(email: "assistant@example.com", password: "Password1", tenant: jp.tenant)
-    OrganizationalMember.create!(user: other_owner, organization: jp.organization, role: "member")
 
     assert_difference "CampaignInstance.count", 1 do
       assert_difference "CampaignStepInstance.count", 2 do  # approved_campaign has 2 steps
@@ -649,7 +804,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     jp = job_proposals(:in_users_org)
     jp.update!(status: :approved, pipeline_stage: "in_campaign", status_overlay: "delivery_issue")
     get job_proposals_url
-    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Fix delivery issue/
+    assert_select "a[href=?]", edit_job_proposal_path(jp), text: /Fix Issue/
   end
 
   test "index renders Open in Gmail CTA targeting a new tab" do

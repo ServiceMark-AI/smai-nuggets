@@ -3,9 +3,8 @@ require "test_helper"
 class JobProposalProcessorTest < ActiveSupport::TestCase
   setup do
     tenant = tenants(:one)
-    org = organizations(:one)
     @proposal = JobProposal.create!(
-      tenant: tenant, organization: org,
+      tenant: tenant,
       owner: users(:one), created_by_user: users(:one)
     )
     att = @proposal.attachments.build(uploaded_by_user: users(:one))

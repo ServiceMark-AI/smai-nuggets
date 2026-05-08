@@ -25,7 +25,7 @@
       <strong>Operator-reply tracking.</strong> Same store as above, with <code>direction = 'outbound'</code> and an <code>author_user_id</code>. Otherwise we can't distinguish a follow-up that the system sent from one the operator typed in Gmail.
     </li>
     <li class="list-group-item">
-      <strong>Location scoping.</strong> Proposals reference an <code>Organization</code>; <code>Organization</code> has one <code>Location</code>. Multi-location orgs would need <code>job_proposals.location_id</code> directly so the PRD's location-filter selector can scope queries cleanly.
+      <strong>Location scoping.</strong> Proposals carry an optional <code>job_proposals.location_id</code>; the PRD's location-filter selector will scope queries off that column.
     </li>
     <li class="list-group-item">
       <strong>Date / location / job-type filter bar (PRD §6).</strong> The data is here (<code>created_at</code>, <code>job_type_id</code>); the UI just isn't yet. Hooking up date scoping is a small change once the filter bar lands.

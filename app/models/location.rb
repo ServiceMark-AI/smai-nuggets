@@ -1,9 +1,10 @@
 class Location < ApplicationRecord
-  belongs_to :organization
+  belongs_to :tenant
   belongs_to :created_by_user, class_name: "User", optional: true
   belongs_to :updated_by_user, class_name: "User", optional: true
-
-  validates :organization_id, uniqueness: true
+  has_many :users, dependent: :nullify
+  has_many :invitations, dependent: :nullify
+  has_many :job_proposals, dependent: :nullify
 
   validates :display_name, presence: true
   validates :address_line_1, presence: true

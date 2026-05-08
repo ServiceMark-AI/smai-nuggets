@@ -17,8 +17,6 @@ Rails.application.routes.draw do
   patch "profile" => "profiles#update"
   get "change_password" => "passwords#edit", as: :change_password
   patch "change_password" => "passwords#update"
-  get "my_organization" => "my_organization#show", as: :my_organization
-  resource :location, only: [:new, :create, :edit, :update]
   resource :analytics, only: [:show], controller: "analytics"
 
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
@@ -51,14 +49,12 @@ Rails.application.routes.draw do
     end
     resources :tenants, only: [:index, :show, :new, :create] do
       resources :invitations, only: [:create, :destroy]
+      resources :locations, only: [:new, :create]
       resource :activations, only: [:show], controller: "activations"
       resources :job_type_activations, only: [:create, :destroy] do
         member { post :activate_all_scenarios }
       end
       resources :scenario_activations, only: [:create, :destroy]
-    end
-    resources :organizations, only: [:show] do
-      resources :locations, only: [:new, :create]
     end
     resources :job_types do
       resources :scenarios, only: [:new, :create]

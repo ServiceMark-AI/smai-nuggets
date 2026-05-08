@@ -3,11 +3,9 @@ require "test_helper"
 class InvitationTest < ActiveSupport::TestCase
   setup do
     @tenant = Tenant.create!(name: "InvCo")
-    @org = @tenant.organizations.create!(name: "HQ")
     @inviter = users(:admin)
     @invitation = Invitation.create!(
       tenant: @tenant,
-      organization: @org,
       invited_by_user: @inviter,
       email: "joiner@example.com"
     )
@@ -19,12 +17,11 @@ class InvitationTest < ActiveSupport::TestCase
     assert_equal @tenant, user.reload.tenant
   end
 
-  test "accept! creates the OrganizationalMember row" do
+  test "accept! attaches the user to the tenant (no location when invite has none)" do
     user = User.create!(email: "joiner@example.com", password: "Password1")
-    assert_difference "OrganizationalMember.count", 1 do
-      @invitation.accept!(user)
-    end
-    assert_includes user.organizations, @org
+    @invitation.accept!(user)
+    assert_equal @tenant, user.reload.tenant
+    assert_nil user.location_id
   end
 
   test "accept! flips is_pending to false on the joining user" do
@@ -69,6 +66,44 @@ class InvitationTest < ActiveSupport::TestCase
     ensure
       ENV["APP_HOST"] = prior
     end
+  end
+
+  # --- location handling ---
+
+  test "accept! sets user.location when the invitation has a location" do
+    location = Location.create!(
+      tenant: @tenant, display_name: "Dallas", address_line_1: "1 Main",
+      city: "Dallas", state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    invitation = Invitation.create!(
+      tenant: @tenant, location: location,
+      invited_by_user: @inviter, email: "loc-joiner@example.com"
+    )
+    user = User.create!(email: "loc-joiner@example.com", password: "Password1")
+
+    invitation.accept!(user)
+    assert_equal location, user.reload.location
+  end
+
+  test "accept! leaves user.location nil when the invitation has no location" do
+    user = User.create!(email: "joiner@example.com", password: "Password1")
+    @invitation.accept!(user)
+    assert_nil user.reload.location_id
+  end
+
+  test "invitation is invalid when location belongs to a different tenant" do
+    other_tenant = Tenant.create!(name: "OtherInvCo")
+    foreign_location = Location.create!(
+      tenant: other_tenant, display_name: "Reno", address_line_1: "9 Foreign",
+      city: "Reno", state: "NV", postal_code: "89501", phone_number: "(775) 555-0101", is_active: true
+    )
+
+    invitation = Invitation.new(
+      tenant: @tenant, location: foreign_location,
+      invited_by_user: @inviter, email: "leak@example.com"
+    )
+    refute invitation.valid?
+    assert_match(/same tenant/i, invitation.errors[:location].join(" "))
   end
 
   test "send_blockers lists both gaps when both are missing" do

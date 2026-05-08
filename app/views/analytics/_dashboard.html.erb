@@ -129,8 +129,8 @@
             <tr>
               <td>
                 <%= row[:user].display_name %>
-                <% if (org = row[:user].organizations.first) %>
-                  <div class="text-muted small"><%= org.name %></div>
+                <% if (loc = row[:user].location) %>
+                  <div class="text-muted small"><%= loc.display_name %></div>
                 <% end %>
               </td>
               <td class="text-end"><%= row[:active_jobs] %></td>

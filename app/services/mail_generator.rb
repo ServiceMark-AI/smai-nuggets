@@ -190,7 +190,7 @@ class MailGenerator
     when "originator_last_name"   then originator&.last_name
     when "originator_phone"       then originator&.phone_number
     when "originator_email"       then originator&.email
-    when "company_name"           then organization&.name || tenant&.name
+    when "company_name"           then tenant&.name
     when "company_phone"          then location&.phone_number
     when "location_name"          then location&.display_name
     when "location_address"       then location_address
@@ -202,16 +202,12 @@ class MailGenerator
     @job_proposal.owner
   end
 
-  def organization
-    @job_proposal.organization
-  end
-
   def tenant
     @job_proposal.tenant
   end
 
   def location
-    organization&.location
+    @job_proposal.location
   end
 
   def originator_name

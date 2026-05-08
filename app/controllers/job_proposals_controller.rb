@@ -14,17 +14,27 @@ class JobProposalsController < ApplicationController
   def index
     scope = JobProposal
       .accessible_by(current_ability)
-      .includes(:organization, :job_type, :owner, :created_by_user)
+      .includes(:location, :job_type, :owner, :created_by_user)
 
     @status_options = scope.distinct.pluck(:status).compact.sort
     user_ids = (scope.distinct.pluck(:owner_id) + scope.distinct.pluck(:created_by_user_id)).uniq
     @user_options = User.where(id: user_ids).order(:email)
+
+    @show_location_controls = !current_user.scoped_to_location?
+    @location_options = current_user.tenant&.locations&.order(:display_name) || Location.none
 
     @selected_status = params[:status].presence
     @selected_owner_id = params[:owner_id].presence
     @selected_creator_id = params[:creator_id].presence
     @search = params[:q].to_s.strip
     @needs_attention_only = params[:filter] == "needs_attention"
+
+    if current_user.scoped_to_location?
+      scope = scope.where(location_id: current_user.location_id)
+    else
+      @selected_location_id = params[:location_id].presence
+      scope = scope.where(location_id: @selected_location_id) if @selected_location_id
+    end
 
     scope = scope.needs_attention if @needs_attention_only
     scope = scope.where(status: @selected_status) if @selected_status
@@ -52,15 +62,14 @@ class JobProposalsController < ApplicationController
       render :new, status: :unprocessable_content and return
     end
 
-    organization = current_user.organizations.first
-    if current_user.tenant.blank? || organization.blank?
-      flash.now[:alert] = "Your account isn't yet assigned to a tenant and organization."
+    if current_user.tenant.blank?
+      flash.now[:alert] = "Your account isn't yet assigned to a tenant."
       render :new, status: :unprocessable_content and return
     end
 
     proposal = JobProposal.new(
       tenant: current_user.tenant,
-      organization: organization,
+      location: current_user.location,
       owner: current_user,
       created_by_user: current_user
     )
@@ -263,14 +272,25 @@ class JobProposalsController < ApplicationController
   end
 
   def set_form_options
-    @owner_options = @job_proposal.organization.users.order(:email)
     tenant = @job_proposal.tenant
+    @owner_options = tenant.users.order(:email)
     @job_type_options = tenant.activated_job_types.order(:name)
     @scenario_options = tenant.activated_scenarios.includes(:job_type).order("job_types.name", :short_name)
+    @location_editable = !current_user.scoped_to_location?
+    @location_options = @location_editable ? tenant.locations.order(:display_name) : Location.none
   end
 
   def proposal_params
-    params.require(:job_proposal).permit(*EDITABLE_PARAMS)
+    permitted = EDITABLE_PARAMS.dup
+    permitted << :location_id unless current_user.scoped_to_location?
+    attrs = params.require(:job_proposal).permit(*permitted)
+    # Defense in depth: even when location_id is permitted, drop it unless
+    # the picked location belongs to this proposal's tenant.
+    if attrs[:location_id].present? &&
+       !@job_proposal.tenant.locations.exists?(id: attrs[:location_id])
+      attrs = attrs.except(:location_id)
+    end
+    attrs
   end
 
   def launch_notice(result)

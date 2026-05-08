@@ -1,10 +1,11 @@
 class Invitation < ApplicationRecord
   belongs_to :tenant
-  belongs_to :organization
+  belongs_to :location, optional: true
   belongs_to :invited_by_user, class_name: "User"
 
   validates :email, presence: true
   validates :token, presence: true, uniqueness: true
+  validate :location_must_belong_to_tenant
 
   before_validation :assign_token, on: :create
   before_validation :assign_expiration, on: :create
@@ -42,7 +43,7 @@ class Invitation < ApplicationRecord
   def accept!(user)
     transaction do
       user.update!(tenant: tenant) if user.tenant_id.nil?
-      OrganizationalMember.find_or_create_by!(organization: organization, user: user) { |m| m.role = :member }
+      user.update!(location: location) if location_id.present? && user.location_id.nil?
       # users.is_pending defaults to true at insert; clearing it here is
       # the only place a real user transitions from "Pending" to "Active"
       # in the Users tables. Without this, an invited user keeps showing
@@ -60,5 +61,12 @@ class Invitation < ApplicationRecord
 
   def assign_expiration
     self.expires_at ||= 7.days.from_now
+  end
+
+  def location_must_belong_to_tenant
+    return if location.nil? || tenant_id.nil?
+    return if location.tenant_id == tenant_id
+
+    errors.add(:location, "must belong to the same tenant as the invitation")
   end
 end

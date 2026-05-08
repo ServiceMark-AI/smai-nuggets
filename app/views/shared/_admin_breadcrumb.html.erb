@@ -1,7 +1,7 @@
 <%
   # Admin-side breadcrumb. Pass the records explicitly:
-  #   render "shared/admin_breadcrumb", tenant: @tenant, organization: @organization, current: :organization
-  # current ∈ { :tenant, :organization, :location }. Segments without a record are skipped.
+  #   render "shared/admin_breadcrumb", tenant: @tenant, location: @location, current: :location
+  # current ∈ { :tenant, :location }. Segments without a record are skipped.
 
   segments = []
   if tenant
@@ -9,13 +9,6 @@
       label: tenant.name,
       href: current == :tenant ? nil : admin_tenant_path(tenant),
       active: current == :tenant
-    }
-  end
-  if organization
-    segments << {
-      label: organization.name,
-      href: current == :organization ? nil : admin_organization_path(organization),
-      active: current == :organization
     }
   end
   if local_assigns[:location]

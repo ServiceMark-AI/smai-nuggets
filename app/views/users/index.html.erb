@@ -1,8 +1,8 @@
-<% content_for :title, "Co-workers" %>
+<% content_for :title, "Team" %>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Co-workers</h1>
-  <% if @tenant %>
+  <h1 class="h3 mb-0">Team</h1>
+  <% if @tenant && current_user.can_invite_into_tenant? %>
     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#inviteUserModal">
       Invite user
     </button>
@@ -25,7 +25,8 @@
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Organizations</th>
+              <th>Role</th>
+              <th>Location</th>
               <th>Gmail</th>
               <th class="text-end">Status</th>
             </tr>
@@ -42,9 +43,15 @@
                 </td>
                 <td><%= user.email %></td>
                 <td>
-                  <% org_names = user.organizations.where(tenant_id: @tenant.id).pluck(:name) %>
-                  <% if org_names.any? %>
-                    <%= org_names.join(", ") %>
+                  <% if user.is_tenant_admin? %>
+                    <span class="badge text-bg-info">Admin</span>
+                  <% else %>
+                    <span class="badge text-bg-secondary">Originator</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if user.location %>
+                    <%= user.location.display_name %>
                   <% else %>
                     <span class="text-muted">—</span>
                   <% end %>
@@ -112,6 +119,7 @@
     </div>
   </div>
 
+  <% if current_user.can_invite_into_tenant? %>
   <div class="modal fade" id="inviteUserModal" tabindex="-1" aria-labelledby="inviteUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -139,9 +147,24 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div class="mb-0">
+            <div class="mb-3">
               <%= f.label :email, "Email address", class: "form-label" %>
               <%= f.email_field :email, class: "form-control", placeholder: "name@example.com", required: true %>
+            </div>
+            <div class="form-check mb-3">
+              <%= f.check_box :is_account_admin, class: "form-check-input", id: "invite-is-account-admin", data: { invite_admin_target: "checkbox" } %>
+              <%= f.label :is_account_admin, "Is Account Admin", class: "form-check-label", for: "invite-is-account-admin" %>
+              <div class="form-text">Account admins aren't tied to a single location.</div>
+            </div>
+            <div class="mb-0" id="invite-location-field" data-invite-admin-target="locationField">
+              <%= f.label :location_id, "Location", class: "form-label" %>
+              <%= f.select :location_id,
+                    @invite_locations.map { |loc| [loc.display_name, loc.id] },
+                    { include_blank: "Select a location" },
+                    { class: "form-select", id: "invite-location-select", required: true, data: { invite_admin_target: "select" } } %>
+              <% if @invite_locations.empty? %>
+                <div class="form-text text-warning">No active locations are configured for your tenant yet.</div>
+              <% end %>
             </div>
           </div>
           <div class="modal-footer">
@@ -153,4 +176,33 @@
       </div>
     </div>
   </div>
+  <% end %>
+
+  <script>
+    (function () {
+      function init() {
+        var checkbox = document.getElementById("invite-is-account-admin");
+        var field = document.getElementById("invite-location-field");
+        var select = document.getElementById("invite-location-select");
+        if (!checkbox || !field || !select) return;
+        function sync() {
+          if (checkbox.checked) {
+            field.style.display = "none";
+            select.required = false;
+            select.value = "";
+          } else {
+            field.style.display = "";
+            select.required = true;
+          }
+        }
+        checkbox.addEventListener("change", sync);
+        sync();
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
 <% end %>

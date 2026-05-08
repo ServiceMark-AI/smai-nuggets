@@ -16,7 +16,6 @@ admin.update!(first_name: "Avery", last_name: "Sloan") if admin.first_name.blank
 # --- Demo tenant + admin/owner membership ----------------------------------
 
 demo_tenant = Tenant.find_or_create_by!(name: "Demo Roofing Co.")
-demo_org = demo_tenant.organizations.find_or_create_by!(name: "HQ")
 
 demo_owner = User.find_or_create_by!(email: "owner@example.com") do |u|
   u.password = "Password1"
@@ -26,9 +25,23 @@ demo_owner = User.find_or_create_by!(email: "owner@example.com") do |u|
 end
 demo_owner.update!(tenant: demo_tenant) if demo_owner.tenant != demo_tenant
 demo_owner.update!(first_name: "Jordan", last_name: "Pierce") if demo_owner.first_name.blank? && demo_owner.last_name.blank?
-OrganizationalMember.find_or_create_by!(organization: demo_org, user: demo_owner) { |m| m.role = :admin }
 admin.update!(tenant: demo_tenant) if admin.tenant.nil?
-OrganizationalMember.find_or_create_by!(organization: demo_org, user: admin) { |m| m.role = :admin }
+
+# Two demo locations for the demo tenant. Proposals below are split across
+# them so the Job Proposals location filter has interesting data.
+DEMO_TENANT_LOCATIONS = [
+  { display_name: "Naperville HQ", address_line_1: "200 W Jefferson Ave",
+    city: "Naperville", state: "IL", postal_code: "60540", phone_number: "(630) 555-0140" },
+  { display_name: "Rockford Branch", address_line_1: "120 W State St",
+    city: "Rockford", state: "IL", postal_code: "61101", phone_number: "(815) 555-0118" }
+].freeze
+
+demo_locations = DEMO_TENANT_LOCATIONS.map do |attrs|
+  demo_tenant.locations.find_or_initialize_by(display_name: attrs[:display_name]).tap do |loc|
+    loc.assign_attributes(attrs.merge(is_active: true))
+    loc.save!
+  end
+end
 
 # Restoration job types and scenarios. Same code that powers the
 # `catalog:load` rake task used in production.
@@ -207,7 +220,7 @@ DEMO_PROPOSALS.each_with_index do |row, i|
 
   proposal = JobProposal.find_or_initialize_by(internal_reference: row[:ref])
   proposal.tenant = demo_tenant
-  proposal.organization = demo_org
+  proposal.location = demo_locations[i % demo_locations.size]
   proposal.owner = demo_owner
   proposal.created_by_user = (i.even? ? demo_owner : admin)
   proposal.job_type = scenario.job_type
@@ -223,7 +236,12 @@ DEMO_PROPOSALS.each_with_index do |row, i|
   proposal.customer_zip = row[:zip]
   proposal.proposal_value = row[:value]
   proposal.job_description = row[:description]
-  proposal.status = row[:status]
+  # The row's symbolic :status (:new/:open/:closed) is a demo-state marker
+  # used by the closed-branch logic below. The persisted JobProposal.status
+  # enum is drafting/approving/approved — every demo row is past the
+  # drafting/approving phase (all carry pipeline_stage in_campaign/won/lost),
+  # so they all persist as :approved.
+  proposal.status = :approved
   proposal.pipeline_stage = row[:stage]
   proposal.status_overlay = row[:overlay]
   proposal.status_details = row[:overlay]&.humanize
@@ -256,8 +274,7 @@ end
 
 # --- A dozen demo tenants with seeded users -------------------------------
 # Idempotent. Uses parameterized tenant names as the email domain so re-runs
-# don't collide. First user in each list becomes the org admin (within
-# OrganizationalMember); none get is_admin (that's reserved for SMAI staff).
+# don't collide. None get is_admin — that's reserved for SMAI staff.
 
 DEMO_TENANTS = [
   { name: "Pacific Coast Restoration",        users: [["Sarah", "Chen"], ["Marcus", "Reyes"], ["Nicole", "Park"], ["David", "O'Brien"]] },
@@ -276,10 +293,9 @@ DEMO_TENANTS = [
 
 DEMO_TENANTS.each do |entry|
   tenant = Tenant.find_or_create_by!(name: entry[:name])
-  org = tenant.organizations.find_or_create_by!(name: "HQ")
   domain = tenant.name.parameterize
 
-  entry[:users].each_with_index do |(first, last), i|
+  entry[:users].each do |(first, last)|
     slug = "#{first}.#{last}".downcase.gsub(/[^a-z.]/, "")
     email = "#{slug}@#{domain}.example.com"
     user = User.find_or_create_by!(email: email) do |u|
@@ -291,13 +307,10 @@ DEMO_TENANTS.each do |entry|
       u.tenant = tenant
     end
     user.update!(tenant: tenant) if user.tenant != tenant
-
-    role = (i == 0) ? :admin : :member
-    OrganizationalMember.find_or_create_by!(organization: org, user: user) { |m| m.role = role }
   end
 end
 
-# --- Demo locations for the dozen tenants' HQ orgs ------------------------
+# --- Demo locations for the dozen tenants ----------------------------------
 # Idempotent. Cities/states roughly fit the tenant's geographic flavor.
 
 DEMO_LOCATIONS = {
@@ -318,14 +331,11 @@ DEMO_LOCATIONS = {
 DEMO_LOCATIONS.each do |tenant_name, attrs|
   tenant = Tenant.find_by(name: tenant_name)
   next unless tenant
-  org = tenant.organizations.find_by(name: "HQ")
-  next unless org
-  next if org.location
 
   display_name = tenant_name.split.first(2).join(" ") # e.g. "Pacific Coast"
+  next if tenant.locations.where(display_name: display_name).exists?
 
-  Location.create!(
-    organization: org,
+  tenant.locations.create!(
     display_name: display_name,
     address_line_1: attrs[:street],
     city: attrs[:city],

@@ -1,6 +1,5 @@
 <aside class="col-md-3 col-lg-2 py-4 app-sidebar">
   <nav class="nav flex-column">
-    <%= link_to "Job Proposals", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals' && params[:filter] != 'needs_attention'}" %>
     <% needs_attention_n = needs_attention_count %>
     <%= link_to job_proposals_path(filter: "needs_attention"),
                 class: "nav-link d-flex align-items-center justify-content-between #{'active' if controller_name == 'job_proposals' && params[:filter] == 'needs_attention'}" do %>
@@ -9,11 +8,12 @@
         <span class="badge text-bg-danger rounded-pill"><%= needs_attention_n %></span>
       <% end %>
     <% end %>
-    <%= link_to "Co-workers", users_path, class: "nav-link #{'active' if controller_name == 'users'}" %>
+    <%= link_to "Jobs", job_proposals_path, class: "nav-link #{'active' if controller_name == 'job_proposals' && params[:filter] != 'needs_attention'}" %>
     <%= link_to "Analytics", analytics_path, class: "nav-link #{'active' if controller_path == 'analytics'}" %>
+    <%= link_to "Team", users_path, class: "nav-link #{'active' if controller_name == 'users'}" %>
 
     <% if current_user.is_admin %>
-      <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Admin</h6>
+      <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Platform Admin</h6>
       <%= link_to "Analytics", admin_analytics_path, class: "nav-link #{'active' if controller_path == 'admin/analytics'}" %>
       <%= link_to "Tenants", admin_tenants_path, class: "nav-link #{'active' if controller_name == 'tenants'}" %>
       <%= link_to "Job Types", admin_job_types_path, class: "nav-link #{'active' if controller_path == 'admin/job_types'}" %>
@@ -26,9 +26,7 @@
       <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">LLM</h6>
       <%= link_to "Chats", admin_chats_path, class: "nav-link #{'active' if controller_path == 'admin/chats'}" %>
       <%= link_to "Messages", admin_messages_path, class: "nav-link #{'active' if controller_path == 'admin/messages'}" %>
-      <%= link_to "Tool Calls", admin_tool_calls_path, class: "nav-link #{'active' if controller_path == 'admin/tool_calls'}" %>
-      <%= link_to "Models", admin_models_path, class: "nav-link #{'active' if controller_path == 'admin/models'}" %>
-      <%= link_to "PDF Revisions", admin_pdf_processing_revisions_path, class: "nav-link #{'active' if controller_path == 'admin/pdf_processing_revisions'}" %>
+      <%= link_to "Job Prompt", admin_pdf_processing_revisions_path, class: "nav-link #{'active' if controller_path == 'admin/pdf_processing_revisions'}" %>
     <% end %>
   </nav>
 </aside>

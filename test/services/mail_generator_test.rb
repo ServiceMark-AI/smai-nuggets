@@ -3,9 +3,7 @@ require "test_helper"
 class MailGeneratorTest < ActiveSupport::TestCase
   setup do
     @tenant = tenants(:one)
-    @organization = organizations(:two) # has no fixture-side location
-    @location = locations(:ne_dallas)   # belongs to organizations(:one)
-    @org_with_location = organizations(:one)
+    @location = locations(:ne_dallas)   # belongs to tenant :one
 
     @originator = User.create!(
       email: "jeff@servpro-nedallas.example.com",
@@ -19,7 +17,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
     @job = JobProposal.create!(
       tenant: @tenant,
-      organization: @org_with_location,
+      location: @location,
       owner: @originator,
       created_by_user: @originator,
       customer_first_name: "Sarah",
@@ -95,7 +93,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "—Jeff Stone\n(214) 555-5555", body_without_signature(out)
   end
 
-  test "substitutes location fields when the organization has a location" do
+  test "substitutes location fields when the proposal has a location" do
     out = MailGenerator.render(
       campaign_step: step(subject: "From {location_name}", body: "{location_address}\n{state}\n{company_phone}"),
       job_proposal: @job
@@ -104,12 +102,12 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "10280 Miller Rd, Dallas, TX, 75238\nTexas\n(214) 343-3973", body_without_signature(out)
   end
 
-  test "company_name renders the organization name" do
+  test "company_name renders the tenant name" do
     out = MailGenerator.render(
       campaign_step: step(subject: "X", body: "From {company_name}"),
       job_proposal: @job
     )
-    assert_equal "From #{@org_with_location.name}", body_without_signature(out)
+    assert_equal "From #{@tenant.name}", body_without_signature(out)
   end
 
   test "missing optional values substitute empty string without raising" do
@@ -126,7 +124,6 @@ class MailGeneratorTest < ActiveSupport::TestCase
   test "missing location yields empty location-derived fields" do
     job_no_loc = JobProposal.create!(
       tenant: @tenant,
-      organization: @organization, # no location attached
       owner: @originator,
       created_by_user: @originator,
       customer_first_name: "Bob",
@@ -233,7 +230,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert out.body.start_with?("Body text.\n\n-- \n"),
       "signature must be appended after RFC 3676 delimiter; got: #{out.body.inspect}"
     assert_match "Jeff Stone", out.body          # originator_name
-    assert_match @org_with_location.name, out.body  # company_name
+    assert_match @tenant.name, out.body          # company_name
     assert_match "(214) 555-5555", out.body      # originator_phone
     assert_match "jeff@servpro-nedallas.example.com", out.body  # originator_email
   end
@@ -261,7 +258,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   test "signature is omitted entirely when no pieces are available" do
     @originator.update!(first_name: nil, last_name: nil, phone_number: nil)
-    @job.update!(organization: @organization) # the no-location org; tenant has no name fallback worth speaking to here
+    @job.update!(location: nil)
 
     sig_line = "-- "
     out = MailGenerator.render(

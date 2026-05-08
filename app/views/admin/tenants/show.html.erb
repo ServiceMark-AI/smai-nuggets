@@ -11,23 +11,7 @@
 <div class="row g-3">
   <div class="col-lg-7">
     <div class="card shadow-sm mb-3">
-      <div class="card-body p-4">
-        <h2 class="h5 mb-3">Organizations</h2>
-        <% roots = @tenant.organizations.where(parent_id: nil).order(:name) %>
-        <% if roots.any? %>
-          <ul class="list-unstyled mb-0">
-            <% roots.each do |org| %>
-              <%= render "organization_node", organization: org %>
-            <% end %>
-          </ul>
-        <% else %>
-          <p class="text-muted mb-0">No organizations.</p>
-        <% end %>
-      </div>
-    </div>
-
-    <div class="card shadow-sm">
-      <div class="card-header">
+      <div class="card-header d-flex justify-content-between align-items-center">
         <h2 class="h5 mb-0">Users (<%= @users.size %>)</h2>
       </div>
       <div class="card-body p-0">
@@ -37,6 +21,7 @@
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Location</th>
                 <th class="text-end">Status</th>
               </tr>
             </thead>
@@ -51,6 +36,13 @@
                     <% end %>
                   </td>
                   <td><%= user.email %></td>
+                  <td>
+                    <% if user.location %>
+                      <%= user.location.display_name %>
+                    <% else %>
+                      <span class="text-muted">—</span>
+                    <% end %>
+                  </td>
                   <td class="text-end">
                     <% if user.is_admin %>
                       <span class="badge text-bg-dark me-1">Admin</span>
@@ -67,6 +59,45 @@
           </table>
         <% else %>
           <div class="p-3 text-center text-muted small">No users yet.</div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Locations (<%= @locations.size %>)</h2>
+        <%= link_to "Add location", new_admin_tenant_location_path(@tenant), class: "btn btn-sm btn-outline-primary" %>
+      </div>
+      <div class="card-body p-0">
+        <% if @locations.any? %>
+          <table class="table mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Display name</th>
+                <th>City, State</th>
+                <th>Phone</th>
+                <th class="text-end">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @locations.each do |loc| %>
+                <tr>
+                  <td><%= loc.display_name %></td>
+                  <td><%= [loc.city, loc.state].compact_blank.join(", ") %></td>
+                  <td><%= loc.phone_number %></td>
+                  <td class="text-end">
+                    <% if loc.is_active %>
+                      <span class="badge text-bg-success">Active</span>
+                    <% else %>
+                      <span class="badge text-bg-secondary">Inactive</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% else %>
+          <div class="p-3 text-center text-muted small">No locations yet.</div>
         <% end %>
       </div>
     </div>
