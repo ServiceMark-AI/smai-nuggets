@@ -93,6 +93,15 @@ module JobProposalsHelper
     content_tag(:span, cfg[:text], class: cfg[:klass])
   end
 
+  # Display label for a proposal's job type. Strips a trailing "Job type"
+  # from the JobType.name so labels like "Development Job Type" render as
+  # "Development" — the "Job type" suffix is redundant in context.
+  def proposal_job_type_label(jp)
+    name = jp.job_type&.name
+    return nil if name.blank?
+    name.sub(/\s+Job\s+type\z/i, "").presence
+  end
+
   # Single-line customer address: "house street, city ST zip".
   # Empty parts are dropped; returns nil when nothing to show.
   def proposal_full_address(jp)

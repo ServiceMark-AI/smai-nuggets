@@ -91,7 +91,7 @@
               <span class="text-muted me-2"><%= jp.location.display_name %></span>
               <span class="text-muted me-2">·</span>
             <% end %>
-            <span class="text-muted me-2"><%= jp.job_type&.name || "no job type" %></span>
+            <span class="text-muted me-2"><%= proposal_job_type_label(jp) || "no job type" %></span>
             <% if (overlay = proposal_overlay_label(jp)) %>
               <span class="text-muted me-2">·</span>
               <%= overlay %>
