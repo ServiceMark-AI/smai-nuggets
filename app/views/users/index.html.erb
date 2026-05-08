@@ -25,6 +25,7 @@
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Role</th>
               <th>Location</th>
               <th>Gmail</th>
               <th class="text-end">Status</th>
@@ -41,6 +42,13 @@
                   <% end %>
                 </td>
                 <td><%= user.email %></td>
+                <td>
+                  <% if user.is_tenant_admin? %>
+                    <span class="badge text-bg-info">Admin</span>
+                  <% else %>
+                    <span class="badge text-bg-secondary">Originator</span>
+                  <% end %>
+                </td>
                 <td>
                   <% if user.location %>
                     <%= user.location.display_name %>

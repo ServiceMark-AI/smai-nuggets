@@ -88,6 +88,22 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/Invite user/i, response.body)
   end
 
+  test "team table renders Role column with Admin for tenant admins and Originator for users with a location" do
+    location = @tenant.locations.create!(
+      display_name: "Main", address_line_1: "1 Main", city: "Dallas",
+      state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    User.create!(email: "originator@example.com", password: "Password1", is_pending: false, tenant: @tenant, location: location)
+
+    sign_in @user # @user has tenant: one, no location → tenant admin
+    get users_url
+    assert_response :success
+    assert_select "th", text: "Role"
+    # The team table contains both badge labels
+    assert_match "Admin", response.body
+    assert_match "Originator", response.body
+  end
+
   test "regular tenant user (with a location) does not see the Invite button or modal" do
     location = @tenant.locations.create!(
       display_name: "Main", address_line_1: "1 Main", city: "Dallas",
