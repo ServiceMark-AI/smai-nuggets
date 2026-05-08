@@ -281,7 +281,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/isn't part of your tenant/i, flash[:alert].to_s)
   end
 
-  test "create persists invitee first_name, last_name, and phone_number on the invitation" do
+  test "create persists invitee first_name, last_name, phone_number, and title on the invitation" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
     signed_in_inviter(email: "profile-inviter@example.com")
 
@@ -289,13 +289,14 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
       post invitations_path, params: { invitation: {
         email: "profiled@example.com", is_account_admin: "1",
         first_name: "Pat",  last_name: "Quinn",
-        phone_number: "(214) 555-1212"
+        phone_number: "(214) 555-1212", title: "Estimator"
       } }
     end
     inv = Invitation.where(email: "profiled@example.com").last
     assert_equal "Pat", inv.first_name
     assert_equal "Quinn", inv.last_name
     assert_equal "(214) 555-1212", inv.phone_number
+    assert_equal "Estimator", inv.title
   end
 
   test "is_account_admin checked allows the invite to go through with no location" do

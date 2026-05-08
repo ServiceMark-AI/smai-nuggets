@@ -50,12 +50,13 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
 
   test "update with valid params saves and redirects to show" do
     sign_in @user
-    patch profile_url, params: { user: { first_name: "Jane", last_name: "Doe", phone_number: "555-7777" } }
+    patch profile_url, params: { user: { first_name: "Jane", last_name: "Doe", phone_number: "555-7777", title: "Estimator" } }
     assert_redirected_to profile_path
     @user.reload
     assert_equal "Jane", @user.first_name
     assert_equal "Doe", @user.last_name
     assert_equal "555-7777", @user.phone_number
+    assert_equal "Estimator", @user.title
   end
 
   test "update ignores email even if submitted" do

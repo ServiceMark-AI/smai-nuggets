@@ -19,6 +19,9 @@
           <dt class="col-sm-4">Last name</dt>
           <dd class="col-sm-8"><%= @user.last_name.presence || content_tag(:span, "—", class: "text-muted") %></dd>
 
+          <dt class="col-sm-4">Title</dt>
+          <dd class="col-sm-8"><%= @user.title.presence || content_tag(:span, "—", class: "text-muted") %></dd>
+
           <dt class="col-sm-4">Phone number</dt>
           <dd class="col-sm-8"><%= @user.phone_number.presence || content_tag(:span, "—", class: "text-muted") %></dd>
 

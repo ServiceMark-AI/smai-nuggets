@@ -26,7 +26,7 @@ class MailGenerator
     property_address property_address_short
     proposal_value damage_description
     originator_name originator_first_name originator_last_name
-    originator_phone originator_email
+    originator_title originator_phone originator_email
     company_name company_phone
     location_name location_address state
   ].freeze
@@ -43,7 +43,7 @@ class MailGenerator
     "Proposal" => %w[proposal_value damage_description],
     "Originator (proposal owner)" => %w[
       originator_name originator_first_name originator_last_name
-      originator_phone originator_email
+      originator_title originator_phone originator_email
     ],
     "Company" => %w[company_name company_phone],
     "Location" => %w[location_name location_address state]
@@ -65,6 +65,7 @@ class MailGenerator
     "originator_name"        => "Pat Sample",
     "originator_first_name"  => "Pat",
     "originator_last_name"   => "Sample",
+    "originator_title"       => "Estimator",
     "originator_phone"       => "(555) 123-4567",
     "originator_email"       => "pat@example.com",
     "company_name"           => "Acme Restoration",
@@ -147,6 +148,7 @@ class MailGenerator
   def self.append_signature(body, values)
     pieces = []
     pieces << values["originator_name"]   if values["originator_name"].present?
+    pieces << values["originator_title"]  if values["originator_title"].present?
     pieces << values["company_name"]      if values["company_name"].present?
     contact = [values["originator_phone"], values["originator_email"]].compact_blank.join(" · ")
     pieces << contact                     if contact.present?
@@ -188,6 +190,7 @@ class MailGenerator
     when "originator_name"        then originator_name
     when "originator_first_name"  then originator&.first_name
     when "originator_last_name"   then originator&.last_name
+    when "originator_title"       then originator&.title
     when "originator_phone"       then originator&.phone_number
     when "originator_email"       then originator&.email
     when "company_name"           then tenant&.name

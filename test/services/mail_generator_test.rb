@@ -93,6 +93,39 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "—Jeff Stone\n(214) 555-5555", body_without_signature(out)
   end
 
+  test "substitutes originator_title from job owner" do
+    @originator.update!(title: "Senior Estimator")
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "{originator_name}, {originator_title}"),
+      job_proposal: @job
+    )
+    assert_equal "Jeff Stone, Senior Estimator", body_without_signature(out)
+  end
+
+  test "signature includes originator_title between name and company when set" do
+    @originator.update!(title: "Senior Estimator")
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "Body."),
+      job_proposal: @job
+    )
+    sig = out.body.split("-- \n").last
+    name_idx    = sig.index("Jeff Stone")
+    title_idx   = sig.index("Senior Estimator")
+    company_idx = sig.index(@tenant.name)
+    refute_nil title_idx
+    assert_operator name_idx,  :<, title_idx,  "title should appear after the originator name"
+    assert_operator title_idx, :<, company_idx, "title should appear before the company name"
+  end
+
+  test "signature drops originator_title when blank" do
+    @originator.update!(title: nil)
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "Body."),
+      job_proposal: @job
+    )
+    refute_match(/Senior Estimator/, out.body)
+  end
+
   test "substitutes location fields when the proposal has a location" do
     out = MailGenerator.render(
       campaign_step: step(subject: "From {location_name}", body: "{location_address}\n{state}\n{company_phone}"),
