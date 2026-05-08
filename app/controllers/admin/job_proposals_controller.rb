@@ -1,6 +1,6 @@
 class Admin::JobProposalsController < Admin::BaseController
   CREATE_PARAMS = %i[
-    organization_id owner_id
+    tenant_id location_id owner_id
     customer_title customer_first_name customer_last_name customer_email
     customer_house_number customer_street customer_city customer_state customer_zip
     internal_reference loss_notes loss_reason
@@ -14,7 +14,6 @@ class Admin::JobProposalsController < Admin::BaseController
 
   def create
     @job_proposal = JobProposal.new(create_params)
-    @job_proposal.tenant = @job_proposal.organization&.tenant
     @job_proposal.created_by_user = current_user
 
     if @job_proposal.save
@@ -29,9 +28,10 @@ class Admin::JobProposalsController < Admin::BaseController
   private
 
   def set_form_options
-    @organization_options = Organization.includes(:tenant).joins(:tenant).order("tenants.name", :name)
-    org = @job_proposal.organization || @organization_options.first
-    @owner_options = org ? org.users.order(:email) : User.none
+    @tenant_options = Tenant.order(:name)
+    tenant = @job_proposal.tenant || @tenant_options.first
+    @location_options = tenant ? tenant.locations.order(:display_name) : Location.none
+    @owner_options = tenant ? tenant.users.order(:email) : User.none
     @job_type_options = JobType.order(:name)
     @scenario_options = Scenario.includes(:job_type).order("job_types.name", :short_name)
   end

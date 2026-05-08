@@ -5,14 +5,18 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @tenant = Tenant.create!(name: "InviteCo")
-    @org = @tenant.organizations.create!(name: "InviteCo")
     @inviter = users(:admin)
     @invitation = Invitation.create!(
       tenant: @tenant,
-      organization: @org,
       invited_by_user: @inviter,
       email: "newperson@example.com"
     )
+  end
+
+  def signed_in_inviter(email:, **overrides)
+    inviter = User.create!(email: email, password: "Password1", is_pending: false, tenant: @tenant, **overrides)
+    sign_in inviter
+    inviter
   end
 
   test "expired or unknown tokens redirect to root with an alert" do
@@ -21,7 +25,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/not found or expired/i, flash[:alert].to_s)
   end
 
-  test "signed-in user accepting an invitation joins the tenant and org" do
+  test "signed-in user accepting an invitation joins the tenant" do
     accepter = User.create!(email: "joiner@example.com", password: "Password1", is_pending: false)
     sign_in accepter
 
@@ -30,7 +34,6 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     accepter.reload
     assert_equal @tenant, accepter.tenant
-    assert accepter.organizations.include?(@org)
     assert_not_nil @invitation.reload.accepted_at
   end
 
@@ -52,7 +55,6 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     end
     user = User.find_by!(email: @invitation.email)
     assert_equal @tenant, user.tenant
-    assert_includes user.organizations, @org
     assert_not_nil @invitation.reload.accepted_at
   end
 
@@ -77,9 +79,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "without an application mailbox the invitation is refused with a clear blocker message" do
-    inviter = User.create!(email: "inviter@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "inviter@example.com")
 
     GmailSender.reset_deliveries!
     assert_no_difference "Invitation.count" do
@@ -93,9 +93,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "without APP_HOST the invitation is refused with a clear blocker message" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "inviter-noapphost@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "inviter-noapphost@example.com")
 
     prior = ENV.delete("APP_HOST")
     begin
@@ -109,10 +107,8 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "invites send via the application mailbox when one is connected" do
-    inviter = User.create!(email: "inviter2@example.com", password: "Password1", is_pending: false, tenant: @tenant, first_name: "Inga", last_name: "Vega")
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
-    sign_in inviter
+    signed_in_inviter(email: "inviter2@example.com", first_name: "Inga", last_name: "Vega")
 
     GmailSender.reset_deliveries!
     assert_difference "Invitation.count", 1 do
@@ -126,17 +122,13 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match @tenant.name, delivery[:subject]
     invitation = Invitation.where(email: "newhire@example.com").last
     assert_equal @tenant, invitation.tenant
-    assert_equal @org, invitation.organization
-    assert_equal inviter, invitation.invited_by_user
     assert_match invitation.token, delivery[:body]
     assert_match(/Inga Vega/, delivery[:body])
   end
 
   test "create with blank email is rejected" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "inviter3@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "inviter3@example.com")
 
     assert_no_difference "Invitation.count" do
       post invitations_path, params: { invitation: { email: "", is_account_admin: "1" } }
@@ -145,70 +137,43 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/email can/i, flash[:alert].to_s)
   end
 
-  test "create attaches the invite to the tenant's root org when both root and child orgs exist" do
-    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    child = @tenant.organizations.create!(name: "InviteCo Branch", parent: @org)
-    inviter = User.create!(email: "inviter4@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: child, user: inviter, role: :admin)
-    sign_in inviter
-
-    post invitations_path, params: { invitation: { email: "rootinvite@example.com", is_account_admin: "1" } }
-    invitation = Invitation.where(email: "rootinvite@example.com").last
-    assert_equal @org, invitation.organization
-  end
-
   # --- existing-user disposition ------------------------------------------
 
-  test "inviting an email that matches a user in the same tenant adds them to the org without sending an invite" do
+  test "inviting an existing tenant-less user adopts them into the tenant without sending mail" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "inviter-existing@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "adopter@example.com")
 
-    other_org = @tenant.organizations.create!(name: "Branch")
-    existing_user = User.create!(email: "teammate@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: other_org, user: existing_user, role: :member)
+    existing_user = User.create!(email: "tenantless@example.com", password: "Password1", is_pending: false)
 
     GmailSender.reset_deliveries!
     assert_no_difference "Invitation.count" do
-      assert_difference "OrganizationalMember.count", 1 do
-        post invitations_path, params: { invitation: { email: "teammate@example.com", is_account_admin: "1" } }
-      end
+      post invitations_path, params: { invitation: { email: "tenantless@example.com", is_account_admin: "1" } }
     end
     assert_empty GmailSender.deliveries
-    assert_includes existing_user.reload.organizations, @org
-    assert_match(/Added teammate@example.com/i, flash[:notice].to_s)
+    assert_equal @tenant, existing_user.reload.tenant
+    assert_match(/Added tenantless@example.com/i, flash[:notice].to_s)
   end
 
-  test "inviting an email already in the target org is rejected with a friendly message" do
+  test "inviting an email already in the same tenant is rejected with a friendly message" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "inviter-already@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "inviter-already@example.com")
 
-    same_org_user = User.create!(email: "alreadyhere@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: same_org_user, role: :member)
+    User.create!(email: "alreadyhere@example.com", password: "Password1", is_pending: false, tenant: @tenant)
 
     assert_no_difference "Invitation.count" do
-      assert_no_difference "OrganizationalMember.count" do
-        post invitations_path, params: { invitation: { email: "alreadyhere@example.com", is_account_admin: "1" } }
-      end
+      post invitations_path, params: { invitation: { email: "alreadyhere@example.com", is_account_admin: "1" } }
     end
-    assert_match(/already a member/i, flash[:alert].to_s)
+    assert_match(/already in #{Regexp.escape(@tenant.name)}/i, flash[:alert].to_s)
   end
 
   test "inviting an email belonging to a different tenant is rejected" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "inviter-cross@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "inviter-cross@example.com")
 
     other_tenant = Tenant.create!(name: "OtherTenant")
-    other_org = other_tenant.organizations.create!(name: "Other HQ")
-    cross_user = User.create!(email: "elsewhere@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
-    OrganizationalMember.create!(organization: other_org, user: cross_user, role: :member)
+    User.create!(email: "elsewhere@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
 
-    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+    assert_no_difference "Invitation.count" do
       post invitations_path, params: { invitation: { email: "elsewhere@example.com", is_account_admin: "1" } }
     end
     assert_match(/another tenant/i, flash[:alert].to_s)
@@ -216,11 +181,9 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "inviting an email belonging to a system admin is rejected" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "inviter-adminemail@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "inviter-adminemail@example.com")
 
-    assert_no_difference ["Invitation.count", "OrganizationalMember.count"] do
+    assert_no_difference "Invitation.count" do
       post invitations_path, params: { invitation: { email: users(:admin).email, is_account_admin: "1" } }
     end
     assert_match(/system admin/i, flash[:alert].to_s)
@@ -234,9 +197,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "tenant user can revoke a pending invitation in their tenant" do
-    inviter = User.create!(email: "revoker@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "revoker@example.com")
 
     assert_difference "Invitation.count", -1 do
       delete invitation_path(@invitation)
@@ -247,9 +208,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "user from another tenant cannot revoke a foreign invitation" do
     other_tenant = Tenant.create!(name: "OtherCo")
-    other_org = other_tenant.organizations.create!(name: "HQ")
     outsider = User.create!(email: "outsider@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
-    OrganizationalMember.create!(organization: other_org, user: outsider, role: :admin)
     sign_in outsider
 
     assert_no_difference "Invitation.count" do
@@ -271,9 +230,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "destroy refuses to revoke an already-accepted invitation" do
     @invitation.update!(accepted_at: Time.current)
-    inviter = User.create!(email: "revoker2@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "revoker2@example.com")
 
     assert_no_difference "Invitation.count" do
       delete invitation_path(@invitation)
@@ -285,12 +242,10 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "create rejects when neither admin nor location is provided" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "needs-loc@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "needs-loc@example.com")
 
     assert_no_difference "Invitation.count" do
-      post invitations_path, params: { invitation: { email: "newperson@example.com" } }
+      post invitations_path, params: { invitation: { email: "newhire1@example.com" } }
     end
     assert_redirected_to users_path
     assert_match(/Pick a location, or check Is Account Admin/i, flash[:alert].to_s)
@@ -298,14 +253,11 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "create persists location_id on the invitation when one is chosen" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "with-loc@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    branch_org = @tenant.organizations.create!(name: "Branch")
-    location = Location.create!(
-      organization: branch_org, display_name: "Dallas", address_line_1: "1 Main",
+    signed_in_inviter(email: "with-loc@example.com")
+    location = @tenant.locations.create!(
+      display_name: "Dallas", address_line_1: "1 Main",
       city: "Dallas", state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
     )
-    sign_in inviter
 
     assert_difference "Invitation.count", 1 do
       post invitations_path, params: { invitation: { email: "loc-person@example.com", location_id: location.id } }
@@ -316,15 +268,12 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "create rejects a location that belongs to a different tenant" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
-    inviter = User.create!(email: "cross-loc@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
+    signed_in_inviter(email: "cross-loc@example.com")
     other_tenant = Tenant.create!(name: "OtherCo2")
-    other_org = other_tenant.organizations.create!(name: "Other HQ")
-    foreign_location = Location.create!(
-      organization: other_org, display_name: "Reno", address_line_1: "9 Foreign",
+    foreign_location = other_tenant.locations.create!(
+      display_name: "Reno", address_line_1: "9 Foreign",
       city: "Reno", state: "NV", postal_code: "89501", phone_number: "(775) 555-0101", is_active: true
     )
-    sign_in inviter
 
     assert_no_difference "Invitation.count" do
       post invitations_path, params: { invitation: { email: "leak@example.com", location_id: foreign_location.id } }
@@ -334,9 +283,7 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
 
   test "is_account_admin checked allows the invite to go through with no location" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
-    inviter = User.create!(email: "admin-invite@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: inviter, role: :admin)
-    sign_in inviter
+    signed_in_inviter(email: "admin-invite@example.com")
 
     assert_difference "Invitation.count", 1 do
       post invitations_path, params: { invitation: { email: "another-admin@example.com", is_account_admin: "1" } }

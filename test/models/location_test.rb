@@ -2,12 +2,12 @@ require "test_helper"
 
 class LocationTest < ActiveSupport::TestCase
   setup do
-    @organization = organizations(:two)
+    @tenant = tenants(:two)
   end
 
   def valid_attrs(overrides = {})
     {
-      organization: @organization,
+      tenant: @tenant,
       display_name: "NE Dallas",
       address_line_1: "10280 Miller Rd",
       city: "Dallas",
@@ -21,8 +21,8 @@ class LocationTest < ActiveSupport::TestCase
     assert Location.new(valid_attrs).valid?
   end
 
-  test "requires organization" do
-    refute Location.new(valid_attrs(organization: nil)).valid?
+  test "requires tenant" do
+    refute Location.new(valid_attrs(tenant: nil)).valid?
   end
 
   test "requires display_name" do
@@ -70,22 +70,15 @@ class LocationTest < ActiveSupport::TestCase
 
   test "active scope returns only active locations" do
     inactive = Location.create!(valid_attrs)
-    other_org = organizations(:three)
-    active = Location.create!(valid_attrs(organization: other_org, is_active: true))
+    active = Location.create!(valid_attrs(display_name: "Boise", is_active: true))
     assert_includes Location.active, active
     refute_includes Location.active, inactive
   end
 
-  test "one location per organization (1:1 constraint)" do
-    Location.create!(valid_attrs)
-    duplicate = Location.new(valid_attrs)
-    refute duplicate.valid?
-    assert_includes duplicate.errors[:organization_id], "has already been taken"
-  end
-
-  test "different organizations may each have a location" do
-    Location.create!(valid_attrs)
-    other = Location.new(valid_attrs(organization: organizations(:three)))
-    assert other.valid?
+  test "a tenant may have multiple locations" do
+    first = Location.create!(valid_attrs)
+    second = Location.new(valid_attrs(display_name: "South Dallas"))
+    assert second.valid?
+    assert_equal first.tenant_id, second.tenant_id
   end
 end

@@ -3,11 +3,9 @@ require "test_helper"
 class InvitationTest < ActiveSupport::TestCase
   setup do
     @tenant = Tenant.create!(name: "InvCo")
-    @org = @tenant.organizations.create!(name: "HQ")
     @inviter = users(:admin)
     @invitation = Invitation.create!(
       tenant: @tenant,
-      organization: @org,
       invited_by_user: @inviter,
       email: "joiner@example.com"
     )
@@ -19,12 +17,11 @@ class InvitationTest < ActiveSupport::TestCase
     assert_equal @tenant, user.reload.tenant
   end
 
-  test "accept! creates the OrganizationalMember row" do
+  test "accept! attaches the user to the tenant (no location when invite has none)" do
     user = User.create!(email: "joiner@example.com", password: "Password1")
-    assert_difference "OrganizationalMember.count", 1 do
-      @invitation.accept!(user)
-    end
-    assert_includes user.organizations, @org
+    @invitation.accept!(user)
+    assert_equal @tenant, user.reload.tenant
+    assert_nil user.location_id
   end
 
   test "accept! flips is_pending to false on the joining user" do
@@ -75,11 +72,11 @@ class InvitationTest < ActiveSupport::TestCase
 
   test "accept! sets user.location when the invitation has a location" do
     location = Location.create!(
-      organization: @org, display_name: "Dallas", address_line_1: "1 Main",
+      tenant: @tenant, display_name: "Dallas", address_line_1: "1 Main",
       city: "Dallas", state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
     )
     invitation = Invitation.create!(
-      tenant: @tenant, organization: @org, location: location,
+      tenant: @tenant, location: location,
       invited_by_user: @inviter, email: "loc-joiner@example.com"
     )
     user = User.create!(email: "loc-joiner@example.com", password: "Password1")
@@ -96,14 +93,13 @@ class InvitationTest < ActiveSupport::TestCase
 
   test "invitation is invalid when location belongs to a different tenant" do
     other_tenant = Tenant.create!(name: "OtherInvCo")
-    other_org = other_tenant.organizations.create!(name: "Other HQ")
     foreign_location = Location.create!(
-      organization: other_org, display_name: "Reno", address_line_1: "9 Foreign",
+      tenant: other_tenant, display_name: "Reno", address_line_1: "9 Foreign",
       city: "Reno", state: "NV", postal_code: "89501", phone_number: "(775) 555-0101", is_active: true
     )
 
     invitation = Invitation.new(
-      tenant: @tenant, organization: @org, location: foreign_location,
+      tenant: @tenant, location: foreign_location,
       invited_by_user: @inviter, email: "leak@example.com"
     )
     refute invitation.valid?

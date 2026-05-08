@@ -250,8 +250,14 @@
   </div>
   <div class="card-body">
     <dl class="row mb-0">
-      <dt class="col-sm-3">Organization</dt>
-      <dd class="col-sm-9"><%= @job_proposal.organization.name %></dd>
+      <dt class="col-sm-3">Location</dt>
+      <dd class="col-sm-9">
+        <% if @job_proposal.location %>
+          <%= @job_proposal.location.display_name %>
+        <% else %>
+          <span class="text-muted">—</span>
+        <% end %>
+      </dd>
 
       <dt class="col-sm-3">Owner</dt>
       <dd class="col-sm-9"><%= @job_proposal.owner.display_name %></dd>

@@ -31,12 +31,6 @@ class InvitationsController < ApplicationController
       return
     end
 
-    organization = tenant.organizations.where(parent_id: nil).first || tenant.organizations.first
-    if organization.nil?
-      redirect_to users_path, alert: "Your tenant has no organization to attach the invite to."
-      return
-    end
-
     is_account_admin = ActiveModel::Type::Boolean.new.cast(params.dig(:invitation, :is_account_admin))
     location_id = params.dig(:invitation, :location_id).presence
 
@@ -47,7 +41,7 @@ class InvitationsController < ApplicationController
 
     location = nil
     if location_id.present?
-      location = Location.joins(:organization).where(organizations: { tenant_id: tenant.id }).find_by(id: location_id)
+      location = tenant.locations.find_by(id: location_id)
       if location.nil?
         redirect_to users_path, alert: "That location isn't part of your tenant."
         return
@@ -57,12 +51,11 @@ class InvitationsController < ApplicationController
     email = params.dig(:invitation, :email).to_s.strip
     existing = email.blank? ? nil : User.find_by(email: email.downcase)
     if existing
-      result = handle_existing_user_invite(existing, tenant: tenant, organization: organization, location: location)
+      result = handle_existing_user_invite(existing, tenant: tenant, location: location)
       redirect_to users_path, **result and return
     end
 
     invitation = tenant.invitations.build(
-      organization: organization,
       location: location,
       invited_by_user: current_user,
       email: email
@@ -108,26 +101,24 @@ class InvitationsController < ApplicationController
   # for redirect_to **result (either { notice: ... } or { alert: ... }):
   #   - admin user: rejected (admins aren't tenant-scoped)
   #   - belongs to a different tenant: rejected
-  #   - already in this organization: rejected with a friendly note
-  #   - exists, no tenant or same tenant, not in this org: silently added
-  #     to the org (and tenant set if previously nil); no email sent
-  def handle_existing_user_invite(user, tenant:, organization:, location: nil)
+  #   - already in this tenant: rejected with a friendly note
+  #   - tenantless: adopted (tenant set, location set if provided); no email sent
+  def handle_existing_user_invite(user, tenant:, location: nil)
     if user.is_admin
       return { alert: "#{user.email} is a system admin — admins aren't added through tenant invites." }
     end
     if user.tenant && user.tenant_id != tenant.id
       return { alert: "#{user.email} already belongs to another tenant; can't add them here." }
     end
-    if user.organizations.include?(organization)
-      return { alert: "#{user.email} is already a member of #{organization.name}." }
+    if user.tenant_id == tenant.id
+      return { alert: "#{user.email} is already in #{tenant.name}." }
     end
 
     User.transaction do
-      user.update!(tenant: tenant) if user.tenant.nil?
-      user.update!(location: location) if location && user.location_id.nil?
-      OrganizationalMember.create!(user: user, organization: organization, role: :member)
+      user.update!(tenant: tenant)
+      user.update!(location: location) if location
     end
-    { notice: "Added #{user.email} to #{organization.name}." }
+    { notice: "Added #{user.email} to #{tenant.name}." }
   end
 
 end

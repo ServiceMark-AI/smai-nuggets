@@ -6,8 +6,7 @@ class Admin::LocationsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @admin = users(:admin)
     @user = users(:one)
-    @org_with_location = organizations(:one)         # has fixture location :ne_dallas
-    @org_without_location = organizations(:two)
+    @tenant = tenants(:one)
   end
 
   def valid_params(overrides = {})
@@ -25,32 +24,26 @@ class Admin::LocationsControllerTest < ActionDispatch::IntegrationTest
 
   test "non-admin users are turned away" do
     sign_in @user
-    get new_admin_organization_location_url(@org_without_location)
+    get new_admin_tenant_location_url(@tenant)
     assert_redirected_to root_path
   end
 
-  test "new renders for an org without a location" do
+  test "new renders for a tenant" do
     sign_in @admin
-    get new_admin_organization_location_url(@org_without_location)
+    get new_admin_tenant_location_url(@tenant)
     assert_response :success
-    assert_match "New Location for #{@org_without_location.name}", response.body
+    assert_match "New Location for #{@tenant.name}", response.body
     assert_select "form"
   end
 
-  test "new redirects when the org already has a location" do
-    sign_in @admin
-    get new_admin_organization_location_url(@org_with_location)
-    assert_redirected_to admin_organization_path(@org_with_location)
-  end
-
-  test "create persists a location and stamps created_by" do
+  test "create persists a location under the tenant and stamps created_by" do
     sign_in @admin
     assert_difference -> { Location.count }, 1 do
-      post admin_organization_locations_url(@org_without_location), params: valid_params
+      post admin_tenant_locations_url(@tenant), params: valid_params
     end
-    assert_redirected_to admin_organization_path(@org_without_location)
-    location = @org_without_location.reload.location
-    assert_equal "Boise", location.display_name
+    assert_redirected_to admin_tenant_path(@tenant)
+    location = @tenant.locations.find_by(display_name: "Boise")
+    refute_nil location
     assert_equal "ID", location.state
     assert_equal @admin, location.created_by_user
   end
@@ -58,16 +51,8 @@ class Admin::LocationsControllerTest < ActionDispatch::IntegrationTest
   test "create rejects invalid input without saving" do
     sign_in @admin
     assert_no_difference -> { Location.count } do
-      post admin_organization_locations_url(@org_without_location), params: valid_params(display_name: "")
+      post admin_tenant_locations_url(@tenant), params: valid_params(display_name: "")
     end
     assert_response :unprocessable_content
-  end
-
-  test "create refuses when the org already has a location" do
-    sign_in @admin
-    assert_no_difference -> { Location.count } do
-      post admin_organization_locations_url(@org_with_location), params: valid_params
-    end
-    assert_redirected_to admin_organization_path(@org_with_location)
   end
 end

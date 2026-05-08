@@ -18,7 +18,6 @@
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><%= link_to "Profile", profile_path, class: "dropdown-item" %></li>
-            <li><%= link_to "My organization", my_organization_path, class: "dropdown-item" %></li>
             <li><%= link_to "Change password", change_password_path, class: "dropdown-item" %></li>
             <li><hr class="dropdown-divider"></li>
             <li><%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "dropdown-item", form: { class: "m-0" } %></li>

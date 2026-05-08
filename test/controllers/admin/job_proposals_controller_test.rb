@@ -6,7 +6,7 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @admin = users(:admin)
     @non_admin = users(:one)
-    @org = organizations(:one)
+    @tenant = tenants(:one)
     @owner = users(:one)
   end
 
@@ -27,17 +27,18 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     get new_admin_job_proposal_url
     assert_response :success
-    assert_select "form select[name='job_proposal[organization_id]']"
+    assert_select "form select[name='job_proposal[tenant_id]']"
+    assert_select "form select[name='job_proposal[location_id]']"
     assert_select "form input[name='job_proposal[customer_first_name]']"
     assert_select "form select[name='job_proposal[owner_id]']"
   end
 
-  test "admin create with valid params persists, infers tenant, sets created_by" do
+  test "admin create with valid params persists and sets created_by" do
     sign_in @admin
     assert_difference "JobProposal.count", 1 do
       post admin_job_proposals_url, params: {
         job_proposal: {
-          organization_id: @org.id,
+          tenant_id: @tenant.id,
           owner_id: @owner.id,
           customer_first_name: "Manual",
           customer_last_name: "Entry",
@@ -49,8 +50,7 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
     end
     jp = JobProposal.order(:id).last
     assert_redirected_to job_proposal_path(jp)
-    assert_equal @org, jp.organization
-    assert_equal @org.tenant, jp.tenant
+    assert_equal @tenant, jp.tenant
     assert_equal @admin, jp.created_by_user
     assert_equal @owner, jp.owner
     assert_equal "Manual", jp.customer_first_name
@@ -61,7 +61,7 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference "JobProposal.count" do
       post admin_job_proposals_url, params: {
         job_proposal: {
-          organization_id: "",
+          tenant_id: "",
           owner_id: ""
         }
       }
@@ -74,7 +74,7 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @non_admin
     assert_no_difference "JobProposal.count" do
       post admin_job_proposals_url, params: {
-        job_proposal: { organization_id: @org.id, owner_id: @owner.id }
+        job_proposal: { tenant_id: @tenant.id, owner_id: @owner.id }
       }
     end
     assert_redirected_to root_path

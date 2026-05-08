@@ -45,7 +45,6 @@ class CampaignInstanceTest < ActiveSupport::TestCase
   test "deleting the host job proposal destroys its campaign instances" do
     proposal = JobProposal.create!(
       tenant: tenants(:one),
-      organization: organizations(:one),
       owner: users(:one),
       created_by_user: users(:one)
     )

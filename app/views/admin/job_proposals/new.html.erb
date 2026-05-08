@@ -17,15 +17,21 @@
   <% end %>
 
   <div class="card shadow-sm mb-4">
-    <div class="card-header"><h2 class="h5 mb-0">Organization</h2></div>
+    <div class="card-header"><h2 class="h5 mb-0">Tenant &amp; Location</h2></div>
     <div class="card-body">
       <div class="row g-3">
-        <div class="col-md-12">
-          <%= f.label :organization_id, "Organization", class: "form-label" %>
-          <%= f.collection_select :organization_id, @organization_options, :id, ->(o) { "#{o.tenant.name} — #{o.name}" },
-                { include_blank: "— Select an organization —" },
+        <div class="col-md-6">
+          <%= f.label :tenant_id, "Tenant", class: "form-label" %>
+          <%= f.collection_select :tenant_id, @tenant_options, :id, :name,
+                { include_blank: "— Select a tenant —" },
                 class: "form-select" %>
-          <div class="form-text">Tenant is inferred from the organization.</div>
+        </div>
+        <div class="col-md-6">
+          <%= f.label :location_id, "Location (optional)", class: "form-label" %>
+          <%= f.collection_select :location_id, @location_options, :id, :display_name,
+                { include_blank: "— None —" },
+                class: "form-select" %>
+          <div class="form-text">Save and edit if the list doesn't yet match the chosen tenant.</div>
         </div>
       </div>
     </div>
@@ -130,7 +136,7 @@
           <%= f.collection_select :owner_id, @owner_options, :id, :email,
                 { include_blank: "— Select an owner —" },
                 class: "form-select" %>
-          <div class="form-text">Pick a user belonging to the chosen organization. Save and edit if the list looks wrong for the org.</div>
+          <div class="form-text">Pick a user belonging to the chosen tenant. Save and edit if the list doesn't yet match.</div>
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 ne_dallas:
-  organization: one
+  tenant: one
   display_name: NE Dallas
   address_line_1: 10280 Miller Rd
   city: Dallas

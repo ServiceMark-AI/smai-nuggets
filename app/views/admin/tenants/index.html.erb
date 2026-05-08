@@ -12,7 +12,7 @@
         <thead class="table-light">
           <tr>
             <th>Name</th>
-            <th class="text-end">Organizations</th>
+            <th class="text-end">Locations</th>
             <th class="text-end">Users</th>
           </tr>
         </thead>
@@ -20,7 +20,7 @@
           <% @tenants.each do |tenant| %>
             <tr>
               <td><%= link_to tenant.name, admin_tenant_path(tenant) %></td>
-              <td class="text-end"><%= tenant.organizations.count %></td>
+              <td class="text-end"><%= tenant.locations.count %></td>
               <td class="text-end"><%= tenant.users.count %></td>
             </tr>
           <% end %>

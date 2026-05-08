@@ -1,6 +1,6 @@
 class JobProposal < ApplicationRecord
   belongs_to :tenant
-  belongs_to :organization
+  belongs_to :location, optional: true
   belongs_to :owner, class_name: "User"
   belongs_to :created_by_user, class_name: "User"
   belongs_to :closed_by_user, class_name: "User", optional: true

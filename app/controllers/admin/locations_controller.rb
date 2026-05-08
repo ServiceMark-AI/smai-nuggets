@@ -1,22 +1,14 @@
 class Admin::LocationsController < Admin::BaseController
-  before_action :load_organization
+  before_action :load_tenant
 
   def new
-    if @organization.location
-      redirect_to admin_organization_path(@organization),
-        alert: "#{@organization.name} already has a location." and return
-    end
-    @location = @organization.build_location
+    @location = @tenant.locations.build
   end
 
   def create
-    if @organization.location
-      redirect_to admin_organization_path(@organization),
-        alert: "#{@organization.name} already has a location." and return
-    end
-    @location = @organization.build_location(location_params.merge(created_by_user: current_user))
+    @location = @tenant.locations.build(location_params.merge(created_by_user: current_user))
     if @location.save
-      redirect_to admin_organization_path(@organization), notice: "Location added."
+      redirect_to admin_tenant_path(@tenant), notice: "Location added."
     else
       render :new, status: :unprocessable_content
     end
@@ -24,8 +16,8 @@ class Admin::LocationsController < Admin::BaseController
 
   private
 
-  def load_organization
-    @organization = Organization.find(params[:organization_id])
+  def load_tenant
+    @tenant = Tenant.find(params[:tenant_id])
   end
 
   def location_params

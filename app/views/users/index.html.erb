@@ -25,7 +25,7 @@
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Organizations</th>
+              <th>Location</th>
               <th>Gmail</th>
               <th class="text-end">Status</th>
             </tr>
@@ -42,9 +42,8 @@
                 </td>
                 <td><%= user.email %></td>
                 <td>
-                  <% org_names = user.organizations.where(tenant_id: @tenant.id).pluck(:name) %>
-                  <% if org_names.any? %>
-                    <%= org_names.join(", ") %>
+                  <% if user.location %>
+                    <%= user.location.display_name %>
                   <% else %>
                     <span class="text-muted">—</span>
                   <% end %>

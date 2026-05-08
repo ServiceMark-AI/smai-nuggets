@@ -5,7 +5,6 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   setup do
     @tenant = Tenant.create!(name: "TenantCo")
-    @org = @tenant.organizations.create!(name: "TenantCo HQ")
     @user = User.create!(
       email: "leader@example.com",
       password: "Password1",
@@ -14,7 +13,6 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       first_name: "Tina",
       last_name: "Lee"
     )
-    OrganizationalMember.create!(organization: @org, user: @user, role: :admin)
   end
 
   test "redirects to sign-in when unauthenticated" do
@@ -24,7 +22,6 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   test "lists members of the current user's tenant and shows the invite button" do
     other = User.create!(email: "second@example.com", password: "Password1", is_pending: false, tenant: @tenant)
-    OrganizationalMember.create!(organization: @org, user: other, role: :member)
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
 
     sign_in @user
@@ -38,9 +35,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   test "scopes member list to the current user's tenant" do
     other_tenant = Tenant.create!(name: "OtherCo")
-    other_org = other_tenant.organizations.create!(name: "OtherCo HQ")
     outsider = User.create!(email: "outsider@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
-    OrganizationalMember.create!(organization: other_org, user: outsider, role: :member)
 
     sign_in @user
     get users_url
@@ -51,7 +46,6 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   test "shows pending invitations for the tenant" do
     Invitation.create!(
       tenant: @tenant,
-      organization: @org,
       invited_by_user: @user,
       email: "pending@example.com"
     )

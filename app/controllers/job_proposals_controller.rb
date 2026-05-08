@@ -14,7 +14,7 @@ class JobProposalsController < ApplicationController
   def index
     scope = JobProposal
       .accessible_by(current_ability)
-      .includes(:organization, :job_type, :owner, :created_by_user)
+      .includes(:location, :job_type, :owner, :created_by_user)
 
     @status_options = scope.distinct.pluck(:status).compact.sort
     user_ids = (scope.distinct.pluck(:owner_id) + scope.distinct.pluck(:created_by_user_id)).uniq
@@ -52,15 +52,14 @@ class JobProposalsController < ApplicationController
       render :new, status: :unprocessable_content and return
     end
 
-    organization = current_user.organizations.first
-    if current_user.tenant.blank? || organization.blank?
-      flash.now[:alert] = "Your account isn't yet assigned to a tenant and organization."
+    if current_user.tenant.blank?
+      flash.now[:alert] = "Your account isn't yet assigned to a tenant."
       render :new, status: :unprocessable_content and return
     end
 
     proposal = JobProposal.new(
       tenant: current_user.tenant,
-      organization: organization,
+      location: current_user.location,
       owner: current_user,
       created_by_user: current_user
     )
@@ -263,8 +262,8 @@ class JobProposalsController < ApplicationController
   end
 
   def set_form_options
-    @owner_options = @job_proposal.organization.users.order(:email)
     tenant = @job_proposal.tenant
+    @owner_options = tenant.users.order(:email)
     @job_type_options = tenant.activated_job_types.order(:name)
     @scenario_options = tenant.activated_scenarios.includes(:job_type).order("job_types.name", :short_name)
   end

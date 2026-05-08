@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_08_015039) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -151,13 +151,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
     t.datetime "expires_at", null: false
     t.bigint "invited_by_user_id", null: false
     t.bigint "location_id"
-    t.bigint "organization_id", null: false
     t.bigint "tenant_id", null: false
     t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["invited_by_user_id"], name: "index_invitations_on_invited_by_user_id"
     t.index ["location_id"], name: "index_invitations_on_location_id"
-    t.index ["organization_id"], name: "index_invitations_on_organization_id"
     t.index ["tenant_id"], name: "index_invitations_on_tenant_id"
     t.index ["token"], name: "index_invitations_on_token", unique: true
   end
@@ -189,9 +187,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
     t.text "job_description"
     t.bigint "job_type_id"
     t.jsonb "last_reply"
+    t.bigint "location_id"
     t.text "loss_notes"
     t.string "loss_reason"
-    t.bigint "organization_id", null: false
     t.bigint "owner_id", null: false
     t.string "pipeline_stage"
     t.decimal "proposal_value", precision: 12, scale: 2
@@ -205,7 +203,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
     t.index ["closed_by_user_id"], name: "index_job_proposals_on_closed_by_user_id"
     t.index ["created_by_user_id"], name: "index_job_proposals_on_created_by_user_id"
     t.index ["job_type_id"], name: "index_job_proposals_on_job_type_id"
-    t.index ["organization_id"], name: "index_job_proposals_on_organization_id"
+    t.index ["location_id"], name: "index_job_proposals_on_location_id"
     t.index ["owner_id"], name: "index_job_proposals_on_owner_id"
     t.index ["scenario_id"], name: "index_job_proposals_on_scenario_id"
     t.index ["tenant_id"], name: "index_job_proposals_on_tenant_id"
@@ -228,15 +226,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
     t.bigint "created_by_user_id"
     t.string "display_name", null: false
     t.boolean "is_active", default: false, null: false
-    t.bigint "organization_id", null: false
     t.string "phone_number", null: false
     t.string "postal_code", null: false
     t.string "state", limit: 2, null: false
+    t.bigint "tenant_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "updated_by_user_id"
     t.index ["created_by_user_id"], name: "index_locations_on_created_by_user_id"
     t.index ["is_active"], name: "index_locations_on_is_active"
-    t.index ["organization_id"], name: "index_locations_on_organization_id", unique: true
+    t.index ["tenant_id"], name: "index_locations_on_tenant_id"
     t.index ["updated_by_user_id"], name: "index_locations_on_updated_by_user_id"
   end
 
@@ -282,27 +280,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
     t.index ["modalities"], name: "index_models_on_modalities", using: :gin
     t.index ["provider", "model_id"], name: "index_models_on_provider_and_model_id", unique: true
     t.index ["provider"], name: "index_models_on_provider"
-  end
-
-  create_table "organizational_members", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "organization_id", null: false
-    t.integer "role", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["organization_id", "user_id"], name: "index_organizational_members_on_organization_id_and_user_id", unique: true
-    t.index ["organization_id"], name: "index_organizational_members_on_organization_id"
-    t.index ["user_id"], name: "index_organizational_members_on_user_id"
-  end
-
-  create_table "organizations", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.bigint "parent_id"
-    t.bigint "tenant_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["parent_id"], name: "index_organizations_on_parent_id"
-    t.index ["tenant_id"], name: "index_organizations_on_tenant_id"
   end
 
   create_table "pdf_processing_revisions", force: :cascade do |t|
@@ -407,28 +384,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_014049) do
   add_foreign_key "chats", "models"
   add_foreign_key "email_delegations", "users"
   add_foreign_key "invitations", "locations"
-  add_foreign_key "invitations", "organizations"
   add_foreign_key "invitations", "tenants"
   add_foreign_key "invitations", "users", column: "invited_by_user_id"
   add_foreign_key "job_proposal_attachments", "job_proposals"
   add_foreign_key "job_proposal_attachments", "users", column: "uploaded_by_user_id"
   add_foreign_key "job_proposals", "job_types"
-  add_foreign_key "job_proposals", "organizations"
+  add_foreign_key "job_proposals", "locations"
   add_foreign_key "job_proposals", "scenarios"
   add_foreign_key "job_proposals", "tenants"
   add_foreign_key "job_proposals", "users", column: "closed_by_user_id"
   add_foreign_key "job_proposals", "users", column: "created_by_user_id"
   add_foreign_key "job_proposals", "users", column: "owner_id"
-  add_foreign_key "locations", "organizations"
+  add_foreign_key "locations", "tenants"
   add_foreign_key "locations", "users", column: "created_by_user_id"
   add_foreign_key "locations", "users", column: "updated_by_user_id"
   add_foreign_key "messages", "chats"
   add_foreign_key "messages", "models"
   add_foreign_key "messages", "tool_calls"
-  add_foreign_key "organizational_members", "organizations"
-  add_foreign_key "organizational_members", "users"
-  add_foreign_key "organizations", "organizations", column: "parent_id"
-  add_foreign_key "organizations", "tenants"
   add_foreign_key "pdf_processing_revisions", "models"
   add_foreign_key "scenarios", "campaigns"
   add_foreign_key "scenarios", "job_types"

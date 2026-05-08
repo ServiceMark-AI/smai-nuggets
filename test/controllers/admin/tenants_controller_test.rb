@@ -21,17 +21,13 @@ class Admin::TenantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form input[name='tenant[name]']"
   end
 
-  test "create makes a tenant and a top-level organization with the same name" do
+  test "create makes a tenant" do
     sign_in @admin
     assert_difference "Tenant.count", 1 do
-      assert_difference "Organization.count", 1 do
-        post admin_tenants_url, params: { tenant: { name: "Acme Roofing" } }
-      end
+      post admin_tenants_url, params: { tenant: { name: "Acme Roofing" } }
     end
 
     tenant = Tenant.find_by!(name: "Acme Roofing")
-    org = tenant.organizations.find_by!(name: "Acme Roofing")
-    assert_nil org.parent_id
     assert_redirected_to admin_tenant_path(tenant)
   end
 

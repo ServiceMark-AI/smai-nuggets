@@ -4,8 +4,8 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
   include Devise::Test::IntegrationHelpers
 
   setup do
-    @user = users(:one)               # tenant: one, member of org one
-    @other_tenant_user = users(:two)  # tenant: two, member of org three
+    @user = users(:one)               # tenant: one
+    @other_tenant_user = users(:two)  # tenant: two
     @admin = users(:admin)            # is_admin
   end
 
@@ -14,18 +14,12 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
-  test "user sees proposals in their tenant and orgs they are a member of" do
+  test "user sees all proposals in their tenant" do
     sign_in @user
     get job_proposals_url
     assert_response :success
-    assert_match "Alice", response.body  # in_users_org: tenant=one, org=one ✓
-  end
-
-  test "user does not see proposals from orgs they are not in, even in same tenant" do
-    sign_in @user
-    get job_proposals_url
-    assert_response :success
-    assert_no_match "Bob", response.body  # same_tenant_other_org: tenant=one, org=two ✗ (user not in org two)
+    assert_match "Alice", response.body  # in_users_org: tenant=one ✓
+    assert_match "Bob", response.body    # same_tenant_other_org: tenant=one ✓
   end
 
   test "user does not see proposals from other tenants" do
@@ -44,9 +38,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob", response.body
   end
 
-  test "user with no organization memberships sees empty state" do
-    lonely = User.create!(email: "lonely@example.com", password: "Password1", tenant: tenants(:one))
-    sign_in lonely
+  test "user with no tenant sees empty state" do
+    orphan = User.create!(email: "orphan-jp@example.com", password: "Password1")
+    sign_in orphan
     get job_proposals_url
     assert_response :success
     assert_no_match "Alice", response.body
@@ -165,16 +159,16 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert proposal.internal_reference.to_s.start_with?("STUB-")
   end
 
-  test "create fails when user has no organization" do
-    lonely = User.create!(email: "lonely2@example.com", password: "Password1", tenant: tenants(:one))
-    sign_in lonely
+  test "create fails when user has no tenant" do
+    orphan = User.create!(email: "orphan-jp-create@example.com", password: "Password1")
+    sign_in orphan
     file = Rack::Test::UploadedFile.new(StringIO.new("x"), "text/plain", original_filename: "x.txt")
 
     assert_no_difference "JobProposal.count" do
       post job_proposals_url, params: { file: file }
     end
     assert_response :unprocessable_content
-    assert_match(/tenant and organization/i, response.body)
+    assert_match(/tenant/i, response.body)
   end
 
   # --- show action ---
@@ -423,7 +417,6 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     jp = job_proposals(:in_users_org)
     other_owner = User.create!(email: "assistant@example.com", password: "Password1", tenant: jp.tenant)
-    OrganizationalMember.create!(user: other_owner, organization: jp.organization, role: "member")
 
     assert_difference "CampaignInstance.count", 1 do
       assert_difference "CampaignStepInstance.count", 2 do  # approved_campaign has 2 steps
