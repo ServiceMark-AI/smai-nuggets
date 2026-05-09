@@ -32,11 +32,15 @@ class MailGeneratorTest < ActiveSupport::TestCase
     )
   end
 
-  # The signature appended by MailGenerator is tested separately. Tests
-  # that pin the substituted body content compare the part *before* the
-  # signature delimiter so the substitution behavior stays the focus.
-  def body_without_signature(out)
-    out.body.split("\n\n-- \n").first
+  # The salutation prepended and signature appended by MailGenerator are
+  # tested separately. Tests that pin the substituted body content strip
+  # both wrappers so the substitution behavior stays the focus. Pass
+  # `first_name:` for tests that render a different customer (e.g. preview
+  # uses SAMPLE_VALUES → "Jane,").
+  def body_inner(out, first_name: "Sarah")
+    body = out.body.to_s
+    body = body.split("\n\n-- \n").first || body
+    body.sub(/\A#{Regexp.escape(first_name)},(\n\n|\z)/, "")
   end
 
   def step(subject:, body:)
@@ -55,7 +59,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "Hello", out.subject
-    assert_equal "Body without tokens.", body_without_signature(out)
+    assert_equal "Body without tokens.", body_inner(out)
   end
 
   test "substitutes customer name fields" do
@@ -64,7 +68,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "Sarah", out.subject
-    assert_equal "Hi Sarah Mitchell, ...", body_without_signature(out)
+    assert_equal "Hi Sarah Mitchell, ...", body_inner(out)
   end
 
   test "substitutes property address fields" do
@@ -73,7 +77,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "About 1247 Oak Ridge Drive", out.subject
-    assert_equal "At 1247 Oak Ridge Drive, Plano, TX, 75024.", body_without_signature(out)
+    assert_equal "At 1247 Oak Ridge Drive, Plano, TX, 75024.", body_inner(out)
   end
 
   test "substitutes proposal_value as currency" do
@@ -81,7 +85,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "Estimate: {proposal_value}"),
       job_proposal: @job
     )
-    assert_equal "Estimate: $12,400.00", body_without_signature(out)
+    assert_equal "Estimate: $12,400.00", body_inner(out)
   end
 
   test "substitutes originator fields from job owner" do
@@ -90,7 +94,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "From Jeff", out.subject
-    assert_equal "—Jeff Stone\n(214) 555-5555", body_without_signature(out)
+    assert_equal "—Jeff Stone\n(214) 555-5555", body_inner(out)
   end
 
   test "substitutes originator_title from job owner" do
@@ -99,7 +103,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "{originator_name}, {originator_title}"),
       job_proposal: @job
     )
-    assert_equal "Jeff Stone, Senior Estimator", body_without_signature(out)
+    assert_equal "Jeff Stone, Senior Estimator", body_inner(out)
   end
 
   test "signature includes originator_title between name and company when set" do
@@ -132,7 +136,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "From NE Dallas", out.subject
-    assert_equal "10280 Miller Rd, Dallas, TX, 75238\nTexas\n(214) 343-3973", body_without_signature(out)
+    assert_equal "10280 Miller Rd, Dallas, TX, 75238\nTexas\n(214) 343-3973", body_inner(out)
   end
 
   test "company_name renders tenant.company_name when set" do
@@ -141,7 +145,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "From {company_name}"),
       job_proposal: @job
     )
-    assert_equal "From Servpro of NE Dallas", body_without_signature(out)
+    assert_equal "From Servpro of NE Dallas", body_inner(out)
   end
 
   test "company_name falls back to tenant.name when company_name is blank" do
@@ -150,7 +154,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "From {company_name}"),
       job_proposal: @job
     )
-    assert_equal "From #{@tenant.name}", body_without_signature(out)
+    assert_equal "From #{@tenant.name}", body_inner(out)
   end
 
   test "missing optional values substitute empty string without raising" do
@@ -161,7 +165,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
     )
     # rstripped before the signature delimiter is appended, so trailing
     # whitespace produced by an empty substitution doesn't get pinned in.
-    assert_equal "Cell:", body_without_signature(out)
+    assert_equal "Cell:", body_inner(out)
   end
 
   # The "missing location yields empty location-derived fields" test was
@@ -196,7 +200,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "", out.subject
-    assert_equal "", body_without_signature(out)
+    assert_equal "", body_inner(out)
   end
 
   test "repeated placeholders in a single field are all substituted" do
@@ -204,7 +208,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "{customer_first_name}, {customer_first_name}, {customer_first_name}"),
       job_proposal: @job
     )
-    assert_equal "Sarah, Sarah, Sarah", body_without_signature(out)
+    assert_equal "Sarah, Sarah, Sarah", body_inner(out)
   end
 
   test "subject and body are substituted independently" do
@@ -213,7 +217,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       job_proposal: @job
     )
     assert_equal "Re: Sarah Mitchell", out.subject
-    assert_equal "Jeff Stone", body_without_signature(out)
+    assert_equal "Jeff Stone", body_inner(out)
   end
 
   test "state full-name lookup expands two-letter codes" do
@@ -221,7 +225,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "{state}"),
       job_proposal: @job
     )
-    assert_equal "Texas", body_without_signature(out)
+    assert_equal "Texas", body_inner(out)
   end
 
   # --- preview (sample values, no JobProposal) ---
@@ -234,14 +238,14 @@ class MailGeneratorTest < ActiveSupport::TestCase
       )
     )
     assert_equal "Hi Jane about 123 Main Street", out.subject
-    assert_equal "From Pat Sample at Acme Restoration. Total: $10,260.00.", body_without_signature(out)
+    assert_equal "From Pat Sample at Acme Restoration. Total: $10,260.00.", body_inner(out, first_name: "Jane")
   end
 
   test "preview leaves unknown placeholders in place rather than raising" do
     out = MailGenerator.preview(
       campaign_step: step(subject: "X", body: "Hi {bogus_field}!")
     )
-    assert_equal "Hi {bogus_field}!", body_without_signature(out)
+    assert_equal "Hi {bogus_field}!", body_inner(out, first_name: "Jane")
   end
 
   test "preview tolerates blank subject or body" do
@@ -251,6 +255,49 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "", out.subject
     # Empty body still gets the signature appended (sample values).
     assert_match "-- \nPat Sample", out.body
+  end
+
+  # --- salutation ---
+
+  test "render prepends '<first_name>,' salutation above the body" do
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "Body text."),
+      job_proposal: @job
+    )
+    assert out.body.start_with?("Sarah,\n\nBody text."),
+      "salutation must be prepended above the body; got: #{out.body.inspect}"
+  end
+
+  test "salutation is omitted when customer first name is blank" do
+    @job.update!(customer_first_name: nil)
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "Body text."),
+      job_proposal: @job
+    )
+    assert out.body.start_with?("Body text."),
+      "with no first name resolved, body should launch straight into prose; got: #{out.body.inspect}"
+  end
+
+  test "salutation subject is unaffected" do
+    out = MailGenerator.render(
+      campaign_step: step(subject: "Just the subject", body: "x"),
+      job_proposal: @job
+    )
+    assert_equal "Just the subject", out.subject
+  end
+
+  test "render_safely also prepends the salutation" do
+    out = MailGenerator.render_safely(
+      campaign_step: step(subject: "X", body: "Hi {bogus_field}."),
+      job_proposal: @job
+    )
+    assert out.body.start_with?("Sarah,\n\n"), "render_safely should prepend the salutation"
+  end
+
+  test "preview salutation renders with SAMPLE_VALUES first name" do
+    out = MailGenerator.preview(campaign_step: step(subject: "X", body: "Hi."))
+    assert out.body.start_with?("Jane,\n\nHi."),
+      "preview should prepend SAMPLE_VALUES customer_first_name; got: #{out.body.inspect}"
   end
 
   # --- signature ---
@@ -289,7 +336,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       campaign_step: step(subject: "X", body: "Body text."),
       job_proposal: @job
     )
-    assert out.body.start_with?("Body text.\n\n-- \n"),
+    assert_includes out.body, "Body text.\n\n-- \n",
       "signature must be appended after RFC 3676 delimiter; got: #{out.body.inspect}"
     assert_match "Jeff Stone", out.body          # originator_name
     assert_match @tenant.name, out.body          # company_name
@@ -341,7 +388,7 @@ class MailGeneratorTest < ActiveSupport::TestCase
       # email-only signature: `-- \n<email>` (no name, no company, contact = email alone)
       assert_match "jeff@servpro-nedallas.example.com", out.body.split("-- ").last
     else
-      assert_equal "Body.", body_without_signature(out)
+      assert_equal "Body.", body_inner(out)
     end
   end
 

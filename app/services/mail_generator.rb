@@ -5,7 +5,11 @@
 # Usage:
 #   result = MailGenerator.render(campaign_step:, job_proposal:)
 #   result.subject  # => "Following up on 123 Oak Ridge"
-#   result.body     # => "Hi Sarah, …"
+#   result.body     # => "Sarah,\n\nThe proposal …\n\n-- \n<sign-off>"
+#
+# Every rendered body is wrapped with a salutation ("<first_name>,") at
+# the top and a sign-off block at the bottom — campaign templates author
+# the middle prose only.
 #
 # Returns a MailGenerator::Output value object. Raises
 # MailGenerator::UnresolvedMergeFieldError if any `{token}`-shaped placeholder
@@ -109,7 +113,7 @@ class MailGenerator
     values   = KNOWN_KEYS.to_h { |k| [k, instance.send(:resolve, k)] }
     Output.new(
       subject: substitute(campaign_step.template_subject, values),
-      body:    append_signature(substitute(campaign_step.template_body, values), values)
+      body:    wrap_body(substitute(campaign_step.template_body, values), values)
     )
   end
 
@@ -121,7 +125,7 @@ class MailGenerator
   def self.preview(campaign_step:)
     Output.new(
       subject: substitute(campaign_step.template_subject, SAMPLE_VALUES),
-      body:    append_signature(substitute(campaign_step.template_body, SAMPLE_VALUES), SAMPLE_VALUES)
+      body:    wrap_body(substitute(campaign_step.template_body, SAMPLE_VALUES), SAMPLE_VALUES)
     )
   end
 
@@ -145,6 +149,25 @@ class MailGenerator
     "#{prefix} #{subject}".strip
   end
 
+  # Wraps a substituted template body with the salutation on top and the
+  # sign-off block on the bottom. Templates author the middle prose only;
+  # this is where the surrounding boilerplate gets stitched on. Used by
+  # .render (via #call), .render_safely, and .preview — change the
+  # wrapping everywhere by editing this one method.
+  def self.wrap_body(body, values)
+    append_signature(prepend_salutation(body, values), values)
+  end
+
+  # Prepends a customer salutation ("<first_name>,") to every email body
+  # so individual campaign templates don't have to repeat (and drift on)
+  # the greeting line. If the customer's first name doesn't resolve, no
+  # salutation is prepended — the body launches straight into prose.
+  def self.prepend_salutation(body, values)
+    first_name = values["customer_first_name"]
+    return body.to_s if first_name.blank?
+    "#{first_name},\n\n#{body.to_s.lstrip}"
+  end
+
   # Appends a standard sign-off block to every email body so individual
   # campaign templates don't have to repeat (and drift on) the
   # "name / phone / email / org" pattern. Built from already-resolved
@@ -153,9 +176,6 @@ class MailGenerator
   #
   # Output is preceded by the RFC 3676 signature delimiter ("\n-- \n")
   # which most mail clients use to fold the signature on reply.
-  #
-  # Used by .render (via #call), .render_safely, and .preview — touch
-  # this one method to change the sign-off everywhere.
   def self.append_signature(body, values)
     pieces = []
     pieces << values["originator_name"]   if values["originator_name"].present?
@@ -184,7 +204,7 @@ class MailGenerator
     end
 
     subject = self.class.prefix_dash_job_number(subject, @job_proposal.dash_job_number)
-    body = self.class.append_signature(body, values)
+    body = self.class.wrap_body(body, values)
     Output.new(subject:, body:)
   end
 

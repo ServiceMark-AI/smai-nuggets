@@ -58,10 +58,11 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal "sent", step_instance.email_delivery_status
     assert_equal @step_one.template_subject, step_instance.final_subject
     # final_body is template_body rendered through MailGenerator, which
-    # now appends a signature block. Assert the substituted prefix
-    # matches; the signature is verified by MailGenerator's own tests.
-    assert step_instance.final_body.start_with?(@step_one.template_body),
-      "final_body should start with the rendered template; got: #{step_instance.final_body.inspect}"
+    # also prepends a salutation and appends a signature block. Assert
+    # the substituted body content appears between the wrappers; the
+    # salutation/signature are verified by MailGenerator's own tests.
+    assert_includes step_instance.final_body, @step_one.template_body,
+      "final_body should contain the rendered template; got: #{step_instance.final_body.inspect}"
 
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
@@ -308,10 +309,11 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal "sent", step_instance.reload.email_delivery_status
     assert_equal @step_one.template_subject, step_instance.final_subject
     # final_body is template_body rendered through MailGenerator, which
-    # now appends a signature block. Assert the substituted prefix
-    # matches; the signature is verified by MailGenerator's own tests.
-    assert step_instance.final_body.start_with?(@step_one.template_body),
-      "final_body should start with the rendered template; got: #{step_instance.final_body.inspect}"
+    # also prepends a salutation and appends a signature block. Assert
+    # the substituted body content appears between the wrappers; the
+    # salutation/signature are verified by MailGenerator's own tests.
+    assert_includes step_instance.final_body, @step_one.template_body,
+      "final_body should contain the rendered template; got: #{step_instance.final_body.inspect}"
     # Crucially: no real GmailSender call happened. The dev fake-send
     # path bypasses the sender entirely.
     assert_empty GmailSender.deliveries
