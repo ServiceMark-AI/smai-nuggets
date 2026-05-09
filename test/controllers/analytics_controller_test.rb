@@ -51,4 +51,43 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     get analytics_url
     assert_match @user_one.tenant.name, response.body
   end
+
+  # --- SPEC-06 v1.0 by-location breakdown -------------------------------
+
+  test "tenant admin sees the By location toggle and per-location rows" do
+    tenant = tenants(:one)
+    location_a = locations(:ne_dallas)
+    location_b = tenant.locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: location_a)
+    job_proposals(:same_tenant_other_org).update!(location: location_b)
+
+    # @user_one has tenant: one with no location → tenant admin
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_match "By location", response.body
+    assert_match location_a.display_name, response.body
+    assert_match location_b.display_name, response.body
+  end
+
+  test "regular tenant user (scoped to a location) does not see the By location toggle" do
+    @user_one.update!(location: locations(:ne_dallas))
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_no_match "By location", response.body
+  end
+
+  test "tenant admin in a single-location tenant does not see the toggle (nothing to compare)" do
+    # tenant two has globex_main fixture; ensure their proposal lives there
+    job_proposals(:other_tenant).update!(location: locations(:globex_main))
+
+    sign_in @user_two
+    get analytics_url
+    assert_response :success
+    assert_no_match "By location", response.body
+  end
 end
