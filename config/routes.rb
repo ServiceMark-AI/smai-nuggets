@@ -11,7 +11,7 @@ Rails.application.routes.draw do
     mount Sidekiq::Web => "/sidekiq"
   end
   resources :invitations, only: [:show, :create, :destroy]
-  resources :users, only: [:index]
+  resources :users, only: [:index, :edit, :update]
   get "profile" => "profiles#show", as: :profile
   get "profile/edit" => "profiles#edit", as: :edit_profile
   patch "profile" => "profiles#update"
@@ -50,6 +50,7 @@ Rails.application.routes.draw do
     resources :tenants, only: [:index, :show, :new, :create, :edit, :update] do
       resources :invitations, only: [:create, :destroy]
       resources :locations, only: [:new, :create]
+      resources :users, only: [:edit, :update]
       resource :activations, only: [:show], controller: "activations"
       resources :job_type_activations, only: [:create, :destroy] do
         member { post :activate_all_scenarios }

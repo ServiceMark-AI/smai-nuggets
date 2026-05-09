@@ -29,6 +29,9 @@
               <th>Location</th>
               <th>Gmail</th>
               <th class="text-end">Status</th>
+              <% if current_user.can_invite_into_tenant? %>
+                <th class="text-end" style="width: 1%;"></th>
+              <% end %>
             </tr>
           </thead>
           <tbody>
@@ -75,6 +78,11 @@
                     <span class="badge text-bg-success">Active</span>
                   <% end %>
                 </td>
+                <% if current_user.can_invite_into_tenant? %>
+                  <td class="text-end">
+                    <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-primary" %>
+                  </td>
+                <% end %>
               </tr>
             <% end %>
           </tbody>
@@ -85,39 +93,41 @@
     </div>
   </div>
 
-  <div class="card shadow-sm">
-    <div class="card-header">
-      <h3 class="h6 mb-0">Pending invitations</h3>
-    </div>
-    <div class="card-body p-0">
-      <% if @pending_invitations.any? %>
-        <ul class="list-group list-group-flush mb-0">
-          <% @pending_invitations.each do |inv| %>
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-              <div>
-                <div class="fw-semibold"><%= inv.email %></div>
-                <div class="small text-muted">
-                  Invited by <%= inv.invited_by_user.display_name %> ·
-                  sent <%= time_ago_in_words(inv.created_at) %> ago ·
-                  <% if inv.expired? %>
-                    <span class="text-danger">expired</span>
-                  <% else %>
-                    expires <%= time_ago_in_words(inv.expires_at) %> from now
-                  <% end %>
+  <% if current_user.can_invite_into_tenant? %>
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h3 class="h6 mb-0">Pending invitations</h3>
+      </div>
+      <div class="card-body p-0">
+        <% if @pending_invitations.any? %>
+          <ul class="list-group list-group-flush mb-0">
+            <% @pending_invitations.each do |inv| %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold"><%= inv.email %></div>
+                  <div class="small text-muted">
+                    Invited by <%= inv.invited_by_user.display_name %> ·
+                    sent <%= time_ago_in_words(inv.created_at) %> ago ·
+                    <% if inv.expired? %>
+                      <span class="text-danger">expired</span>
+                    <% else %>
+                      expires <%= time_ago_in_words(inv.expires_at) %> from now
+                    <% end %>
+                  </div>
                 </div>
-              </div>
-              <%= button_to "Revoke", invitation_path(inv),
-                    method: :delete,
-                    class: "btn btn-sm btn-outline-danger",
-                    form: { class: "m-0", data: { turbo_confirm: "Revoke the pending invitation for #{inv.email}?" } } %>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <div class="p-3 text-center text-muted small">No pending invitations.</div>
-      <% end %>
+                <%= button_to "Revoke", invitation_path(inv),
+                      method: :delete,
+                      class: "btn btn-sm btn-outline-danger",
+                      form: { class: "m-0", data: { turbo_confirm: "Revoke the pending invitation for #{inv.email}?" } } %>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <div class="p-3 text-center text-muted small">No pending invitations.</div>
+        <% end %>
+      </div>
     </div>
-  </div>
+  <% end %>
 
   <% if current_user.can_invite_into_tenant? %>
   <div class="modal fade" id="inviteUserModal" tabindex="-1" aria-labelledby="inviteUserModalLabel" aria-hidden="true">

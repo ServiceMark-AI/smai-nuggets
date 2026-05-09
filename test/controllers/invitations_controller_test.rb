@@ -228,6 +228,21 @@ class InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/not found/i, flash[:alert].to_s)
   end
 
+  test "regular tenant user can't revoke an invitation in their tenant" do
+    location = @tenant.locations.create!(
+      display_name: "Main", address_line_1: "1 Main", city: "Dallas",
+      state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    regular = User.create!(email: "regular-revoke@example.com", password: "Password1", is_pending: false, tenant: @tenant, location: location)
+    sign_in regular
+
+    assert_no_difference "Invitation.count" do
+      delete invitation_path(@invitation)
+    end
+    assert_redirected_to users_path
+    assert_match(/Only account admins/i, flash[:alert].to_s)
+  end
+
   test "destroy refuses to revoke an already-accepted invitation" do
     @invitation.update!(accepted_at: Time.current)
     signed_in_inviter(email: "revoker2@example.com")
