@@ -13,6 +13,21 @@
         <div class="display-6 fw-semibold mb-1">
           <%= analytics.conversion_rate_pct.nil? ? "—" : "#{analytics.conversion_rate_pct}%" %>
         </div>
+        <%# SPEC-05 v1.0: MTD / YTD dual display inside the Conversion Rate tile. %>
+        <div class="d-flex gap-3 small mt-2 mb-2">
+          <div>
+            <span class="text-muted">MTD</span>
+            <span class="fw-semibold ms-1">
+              <%= analytics.conversion_rate_mtd_pct.nil? ? "—" : "#{analytics.conversion_rate_mtd_pct}%" %>
+            </span>
+          </div>
+          <div>
+            <span class="text-muted">YTD</span>
+            <span class="fw-semibold ms-1">
+              <%= analytics.conversion_rate_ytd_pct.nil? ? "—" : "#{analytics.conversion_rate_ytd_pct}%" %>
+            </span>
+          </div>
+        </div>
         <div class="small text-muted">Won jobs as a % of activated proposals</div>
       </div>
     </div>
