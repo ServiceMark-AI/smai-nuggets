@@ -30,4 +30,26 @@ class TenantTest < ActiveSupport::TestCase
     assert_equal [], tenant.activated_job_types.to_a
     assert_equal [], tenant.activated_scenarios.to_a
   end
+
+  # --- logo resolution ---------------------------------------------------
+
+  test "logo_image_url returns the manual logo_url when no file is attached" do
+    tenant = tenants(:one)
+    tenant.update!(logo_url: "https://example.com/logo.png")
+    assert_equal "https://example.com/logo.png", tenant.logo_image_url
+  end
+
+  test "logo_image_url returns nil when neither attachment nor manual URL is set" do
+    tenant = tenants(:one)
+    tenant.update!(logo_url: nil)
+    assert_nil tenant.logo_image_url
+  end
+
+  test "logo_image_url prefers an attached blob over the manual URL" do
+    tenant = tenants(:one)
+    tenant.update!(logo_url: "https://example.com/manual.png")
+    tenant.logo.attach(io: StringIO.new("fake image"), filename: "uploaded.png", content_type: "image/png")
+    assert_match(/rails\/active_storage\/blobs/, tenant.logo_image_url)
+    refute_match(/manual.png/, tenant.logo_image_url)
+  end
 end

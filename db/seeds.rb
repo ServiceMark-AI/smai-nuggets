@@ -70,10 +70,9 @@ end
 
 # --- Demo job proposals -----------------------------------------------------
 # Wired to the restoration job types and the scenario codes seeded above.
-# `scenario_key` matches Scenario#code (per SPEC-07 / SPEC-11). Pipeline
-# stages and overlays follow PRD-01 v1.4.1 §10: in_campaign + optional
-# overlay (paused, customer_waiting, delivery_issue) for active jobs;
-# won / lost for terminal jobs.
+# Pipeline stages and overlays follow PRD-01 v1.4.1 §10: in_campaign +
+# optional overlay (paused, customer_waiting, delivery_issue) for active
+# jobs; won / lost for terminal jobs.
 
 DEMO_PROPOSALS = [
   # --- Water mitigation -----------------------------------------------------
@@ -225,7 +224,6 @@ DEMO_PROPOSALS.each_with_index do |row, i|
   proposal.created_by_user = (i.even? ? demo_owner : admin)
   proposal.job_type = scenario.job_type
   proposal.scenario = scenario
-  proposal.scenario_key = scenario.code
   proposal.customer_first_name = row[:first]
   proposal.customer_last_name = row[:last]
   proposal.customer_title = row[:title]

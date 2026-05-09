@@ -1,6 +1,6 @@
 class JobProposal < ApplicationRecord
   belongs_to :tenant
-  belongs_to :location, optional: true
+  belongs_to :location
   belongs_to :owner, class_name: "User"
   belongs_to :created_by_user, class_name: "User"
   belongs_to :closed_by_user, class_name: "User", optional: true
@@ -14,6 +14,12 @@ class JobProposal < ApplicationRecord
   enum :pipeline_stage,
        { in_campaign: "in_campaign", won: "won", lost: "lost" },
        prefix: true
+
+  # When the proposal's tenant requires a DASH-style job reference (per
+  # PRD-02 v1.5 §5 / PRD-10 v1.3.1 §7.5), require it before approving the
+  # proposal — but allow drafting and approving states to persist without
+  # one so the operator can fill it in on the edit form.
+  validate :dash_job_number_required_when_approved
 
   # Operator hasn't done their part yet on this proposal — it sits in
   # one of: drafting (not finished), approving (campaign drafted but
@@ -98,5 +104,14 @@ class JobProposal < ApplicationRecord
     parts = [customer_house_number, customer_street].map { |p| p.to_s.strip }
     joined = parts.reject(&:empty?).join(" ")
     joined.presence
+  end
+
+  private
+
+  def dash_job_number_required_when_approved
+    return unless tenant&.job_reference_required
+    return if dash_job_number.present?
+    return if status_drafting? || status_approving?
+    errors.add(:dash_job_number, "is required before this job can be approved")
   end
 end

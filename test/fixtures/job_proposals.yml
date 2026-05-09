@@ -3,6 +3,7 @@
 # In tenant one — visible to user :one (same tenant).
 in_users_org:
   tenant: one
+  location: ne_dallas
   owner: one
   created_by_user: one
   job_type: one
@@ -14,6 +15,7 @@ in_users_org:
 # Also in tenant one — visible to user :one.
 same_tenant_other_org:
   tenant: one
+  location: ne_dallas
   owner: one
   created_by_user: one
   customer_first_name: Bob
@@ -24,6 +26,7 @@ same_tenant_other_org:
 # In tenant two — visible to user :two only.
 other_tenant:
   tenant: two
+  location: globex_main
   owner: two
   created_by_user: two
   customer_first_name: Carol

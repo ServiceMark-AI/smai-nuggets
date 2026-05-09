@@ -135,7 +135,17 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "10280 Miller Rd, Dallas, TX, 75238\nTexas\n(214) 343-3973", body_without_signature(out)
   end
 
-  test "company_name renders the tenant name" do
+  test "company_name renders tenant.company_name when set" do
+    @tenant.update!(company_name: "Servpro of NE Dallas")
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "From {company_name}"),
+      job_proposal: @job
+    )
+    assert_equal "From Servpro of NE Dallas", body_without_signature(out)
+  end
+
+  test "company_name falls back to tenant.name when company_name is blank" do
+    @tenant.update!(company_name: nil)
     out = MailGenerator.render(
       campaign_step: step(subject: "X", body: "From {company_name}"),
       job_proposal: @job
@@ -154,21 +164,11 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "Cell:", body_without_signature(out)
   end
 
-  test "missing location yields empty location-derived fields" do
-    job_no_loc = JobProposal.create!(
-      tenant: @tenant,
-      owner: @originator,
-      created_by_user: @originator,
-      customer_first_name: "Bob",
-      customer_last_name: "Smith",
-      proposal_value: 5000
-    )
-    out = MailGenerator.render(
-      campaign_step: step(subject: "X", body: "Loc: {location_name}|{state}|{company_phone}"),
-      job_proposal: job_no_loc
-    )
-    assert_equal "Loc: ||", body_without_signature(out)
-  end
+  # The "missing location yields empty location-derived fields" test was
+  # removed: job_proposals.location_id is NOT NULL post PRD-01 §8.1
+  # reconciliation, so the case can't occur at the DB level. Optional
+  # fields within a Location (e.g. address_line_2) are still tested
+  # implicitly in the address-rendering tests above.
 
   test "unknown placeholder raises UnresolvedMergeFieldError" do
     err = assert_raises(MailGenerator::UnresolvedMergeFieldError) do
@@ -255,6 +255,35 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   # --- signature ---
 
+  # --- DASH subject prefix -----------------------------------------------
+
+  test "subject is prefixed with [DASH-NNN] when the proposal has a dash_job_number" do
+    @job.update!(dash_job_number: "12345")
+    out = MailGenerator.render(
+      campaign_step: step(subject: "Following up on {property_address_short}", body: "Body."),
+      job_proposal: @job
+    )
+    assert_equal "[DASH-12345] Following up on 1247 Oak Ridge Drive", out.subject
+  end
+
+  test "subject is unchanged when dash_job_number is blank" do
+    @job.update!(dash_job_number: nil)
+    out = MailGenerator.render(
+      campaign_step: step(subject: "Hello", body: "Body."),
+      job_proposal: @job
+    )
+    assert_equal "Hello", out.subject
+  end
+
+  test "DASH prefix is idempotent — subject already prefixed isn't doubled" do
+    @job.update!(dash_job_number: "12345")
+    out = MailGenerator.render(
+      campaign_step: step(subject: "[DASH-12345] Already prefixed", body: "Body."),
+      job_proposal: @job
+    )
+    assert_equal "[DASH-12345] Already prefixed", out.subject
+  end
+
   test "render appends the signature with originator + company info" do
     out = MailGenerator.render(
       campaign_step: step(subject: "X", body: "Body text."),
@@ -290,8 +319,13 @@ class MailGeneratorTest < ActiveSupport::TestCase
   end
 
   test "signature is omitted entirely when no pieces are available" do
+    # Build a tenant with no name fallback (name is required so we use a
+    # placeholder) and strip every signature-bearing field on the originator.
     @originator.update!(first_name: nil, last_name: nil, phone_number: nil)
-    @job.update!(location: nil)
+    # location is NOT NULL on job_proposals post PRD-01 §8.1, so we can't
+    # null it out; stub the proposal's location method to nil for this test
+    # to exercise the "no signature pieces" branch.
+    def @job.location; nil; end
 
     sig_line = "-- "
     out = MailGenerator.render(

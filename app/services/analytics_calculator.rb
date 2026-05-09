@@ -42,6 +42,52 @@ class AnalyticsCalculator
 
     conversion_rate_pct = activated_count.positive? ? ((won_count.to_f / activated_count) * 100).round : nil
 
+    # MTD/YTD breakdown for the Conversion Rate hero tile per SPEC-05 v1.0.
+    # Activated count is bucketed by the campaign instance's created_at;
+    # won count is bucketed by the proposal's closed_at (set when the
+    # pipeline_stage flipped to won or lost).
+    now = Time.current
+    mtd_start = now.beginning_of_month
+    ytd_start = now.beginning_of_year
+
+    mtd_activated = @proposals
+      .joins(:campaign_instances)
+      .where("campaign_instances.created_at >= ?", mtd_start)
+      .distinct.count
+    ytd_activated = @proposals
+      .joins(:campaign_instances)
+      .where("campaign_instances.created_at >= ?", ytd_start)
+      .distinct.count
+    mtd_won = @proposals.where(pipeline_stage: :won).where("closed_at >= ?", mtd_start).count
+    ytd_won = @proposals.where(pipeline_stage: :won).where("closed_at >= ?", ytd_start).count
+
+    conversion_rate_mtd_pct = mtd_activated.positive? ? ((mtd_won.to_f / mtd_activated) * 100).round : nil
+    conversion_rate_ytd_pct = ytd_activated.positive? ? ((ytd_won.to_f / ytd_activated) * 100).round : nil
+
+    # SPEC-06 v1.0 — per-location Conversion Rate breakdown for the
+    # tile expand-toggle. Computed from the same proposals_scope so it
+    # respects whatever filter the caller applied. Empty array means
+    # don't render the toggle at all.
+    by_location = @proposals.where.not(location_id: nil)
+      .joins(:location)
+      .group("locations.id", "locations.display_name")
+      .pluck("locations.id", "locations.display_name", Arel.sql("COUNT(*)"))
+      .map do |loc_id, loc_name, total_in_loc|
+        loc_proposals = @proposals.where(location_id: loc_id)
+        activated = loc_proposals.joins(:campaign_instances).distinct.count
+        won = loc_proposals.where(pipeline_stage: :won).count
+        rate = activated.positive? ? ((won.to_f / activated) * 100).round : nil
+        {
+          location_id: loc_id,
+          location_display_name: loc_name,
+          activated_count: activated,
+          won_count: won,
+          conversion_rate_pct: rate,
+          total_proposals: total_in_loc
+        }
+      end
+      .sort_by { |row| row[:location_display_name].to_s }
+
     owner_ids = @proposals.distinct.pluck(:owner_id)
     originators = User.where(id: owner_ids).includes(:tenant).map do |user|
       user_proposals = @proposals.where(owner_id: user.id)
@@ -74,6 +120,9 @@ class AnalyticsCalculator
       lost_count:               lost_count,
       in_campaign_count:        in_campaign_count,
       conversion_rate_pct:      conversion_rate_pct,
+      conversion_rate_mtd_pct:  conversion_rate_mtd_pct,
+      conversion_rate_ytd_pct:  conversion_rate_ytd_pct,
+      conversion_rate_by_location: by_location,
       closed_revenue:           closed_revenue,
       active_pipeline_value:    active_pipeline_value,
       follow_ups_sent:          follow_ups_sent,

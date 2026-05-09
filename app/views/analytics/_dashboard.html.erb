@@ -13,7 +13,59 @@
         <div class="display-6 fw-semibold mb-1">
           <%= analytics.conversion_rate_pct.nil? ? "—" : "#{analytics.conversion_rate_pct}%" %>
         </div>
+        <%# SPEC-05 v1.0: MTD / YTD dual display inside the Conversion Rate tile. %>
+        <div class="d-flex gap-3 small mt-2 mb-2">
+          <div>
+            <span class="text-muted">MTD</span>
+            <span class="fw-semibold ms-1">
+              <%= analytics.conversion_rate_mtd_pct.nil? ? "—" : "#{analytics.conversion_rate_mtd_pct}%" %>
+            </span>
+          </div>
+          <div>
+            <span class="text-muted">YTD</span>
+            <span class="fw-semibold ms-1">
+              <%= analytics.conversion_rate_ytd_pct.nil? ? "—" : "#{analytics.conversion_rate_ytd_pct}%" %>
+            </span>
+          </div>
+        </div>
         <div class="small text-muted">Won jobs as a % of activated proposals</div>
+
+        <%# SPEC-06 v1.0: by-location breakdown.
+            Visible only to tenant admins / SMAI staff (operators scoped to
+            a single location see their own number above and don't need a
+            "by location" expansion). Hidden when the scope has 0 or 1
+            locations because there's nothing to compare. %>
+        <% if !current_user.scoped_to_location? && analytics.conversion_rate_by_location.size > 1 %>
+          <button class="btn btn-sm btn-link p-0 mt-2" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#cr-by-location"
+                  aria-expanded="false" aria-controls="cr-by-location">
+            By location ›
+          </button>
+          <div class="collapse mt-2" id="cr-by-location">
+            <table class="table table-sm mb-0 small">
+              <thead class="table-light">
+                <tr>
+                  <th>Location</th>
+                  <th class="text-end">Won</th>
+                  <th class="text-end">Activated</th>
+                  <th class="text-end">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% analytics.conversion_rate_by_location.each do |row| %>
+                  <tr>
+                    <td><%= row[:location_display_name] %></td>
+                    <td class="text-end"><%= row[:won_count] %></td>
+                    <td class="text-end"><%= row[:activated_count] %></td>
+                    <td class="text-end fw-semibold">
+                      <%= row[:conversion_rate_pct].nil? ? "—" : "#{row[:conversion_rate_pct]}%" %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

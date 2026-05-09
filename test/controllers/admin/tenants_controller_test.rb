@@ -48,6 +48,61 @@ class Admin::TenantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='invitation[email]']"
   end
 
+  test "edit renders the form" do
+    sign_in @admin
+    get edit_admin_tenant_url(tenants(:one))
+    assert_response :success
+    assert_select "input[name='tenant[name]']"
+    assert_select "input[name='tenant[company_name]']"
+    assert_select "input[name='tenant[logo_url]']"
+    assert_select "input[name='tenant[job_reference_required]']"
+  end
+
+  test "update writes an audit log entry capturing the change" do
+    sign_in @admin
+    tenant = tenants(:one)
+    assert_difference "AuditLog.count", 1 do
+      patch admin_tenant_url(tenant), params: { tenant: {
+        name: tenant.name,
+        company_name: "Servpro of NE Dallas",
+        logo_url: "https://example.com/logo.png",
+        job_reference_required: "1"
+      } }
+    end
+    assert_redirected_to admin_tenant_path(tenant)
+    tenant.reload
+    assert_equal "Servpro of NE Dallas", tenant.company_name
+    assert tenant.job_reference_required
+    log = AuditLog.where(target_type: "Tenant", target_id: tenant.id, action: "tenant.update").last
+    assert_equal @admin, log.actor_user
+    assert_equal "Servpro of NE Dallas", log.payload["after"]["company_name"]
+  end
+
+  test "update accepts a logo file upload via Active Storage" do
+    sign_in @admin
+    tenant = tenants(:one)
+    file = Rack::Test::UploadedFile.new(StringIO.new("fake image bytes"), "image/png", original_filename: "logo.png")
+
+    assert_difference "ActiveStorage::Attachment.count", 1 do
+      patch admin_tenant_url(tenant), params: { tenant: { name: tenant.name, logo: file } }
+    end
+    assert_redirected_to admin_tenant_path(tenant)
+    tenant.reload
+    assert tenant.logo.attached?
+    assert_equal "logo.png", tenant.logo.filename.to_s
+  end
+
+  test "non-admin can't edit or update a tenant" do
+    sign_in @non_admin
+    get edit_admin_tenant_url(tenants(:one))
+    assert_redirected_to root_path
+
+    assert_no_difference "AuditLog.count" do
+      patch admin_tenant_url(tenants(:one)), params: { tenant: { name: "Hacked" } }
+    end
+    assert_redirected_to root_path
+  end
+
   test "show replaces the invitation form with a warning when the mailbox isn't connected" do
     sign_in @admin
     get admin_tenant_url(tenants(:one))
