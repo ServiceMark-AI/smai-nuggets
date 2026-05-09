@@ -1,5 +1,5 @@
 class Admin::TenantsController < Admin::BaseController
-  TENANT_PARAMS = %i[name company_name logo_url job_reference_required].freeze
+  TENANT_PARAMS = %i[name company_name logo_url logo job_reference_required].freeze
 
   before_action :set_tenant, only: [:show, :edit, :update]
 
@@ -60,6 +60,9 @@ class Admin::TenantsController < Admin::BaseController
   end
 
   def tenant_audit_snapshot(tenant)
-    tenant.slice(:name, :company_name, :logo_url, :job_reference_required)
+    tenant.slice(:name, :company_name, :logo_url, :job_reference_required).merge(
+      logo_attached: tenant.logo.attached?,
+      logo_filename: tenant.logo.attached? ? tenant.logo.filename.to_s : nil
+    )
   end
 end

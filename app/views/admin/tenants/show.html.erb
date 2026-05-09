@@ -19,9 +19,16 @@
 
       <dt class="col-sm-3">Logo</dt>
       <dd class="col-sm-9">
-        <% if @tenant.logo_url.present? %>
-          <%= image_tag @tenant.logo_url, alt: "Logo", style: "max-height: 48px;" %>
-          <div class="text-muted small mt-1"><%= @tenant.logo_url %></div>
+        <% logo_src = @tenant.logo_image_url %>
+        <% if logo_src.present? %>
+          <%= image_tag logo_src, alt: "Logo", style: "max-height: 48px;" %>
+          <div class="text-muted small mt-1">
+            <% if @tenant.logo.attached? %>
+              Uploaded · <%= @tenant.logo.filename %>
+            <% else %>
+              <%= @tenant.logo_url %>
+            <% end %>
+          </div>
         <% else %>
           <span class="text-muted">— Not set</span>
         <% end %>
