@@ -67,11 +67,24 @@ class JobProposalsController < ApplicationController
       render :new, status: :unprocessable_content and return
     end
 
+    # location_id is NOT NULL and scenario_id is required for campaign
+    # readiness. Pre-populate sane defaults so the create succeeds; the
+    # operator can correct both on the edit form before approving.
+    default_location = current_user.location || current_user.tenant.locations.active.order(:id).first
+    default_scenario = current_user.tenant.activated_scenarios.includes(:job_type).order(:id).first ||
+                       Scenario.includes(:job_type).order(:id).first
+    if default_scenario.nil? || default_location.nil?
+      flash.now[:alert] = "Your tenant needs at least one active location and one activated scenario before a proposal can be created."
+      render :new, status: :unprocessable_content and return
+    end
+
     proposal = JobProposal.new(
       tenant: current_user.tenant,
-      location: current_user.location,
+      location: default_location,
       owner: current_user,
-      created_by_user: current_user
+      created_by_user: current_user,
+      job_type: default_scenario.job_type,
+      scenario: default_scenario
     )
     attachment = proposal.attachments.build(uploaded_by_user: current_user)
     attachment.file.attach(file)
