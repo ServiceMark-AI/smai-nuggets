@@ -6,6 +6,7 @@ ENV["OPENAI_API_KEY"] ||= "test-openai-key"
 ENV["APP_HOST"] ||= "test.example"
 require_relative "../config/environment"
 require "rails/test_help"
+require_relative "support/email_helpers"
 
 OmniAuth.config.test_mode = true
 OmniAuth.config.logger = Rails.logger
