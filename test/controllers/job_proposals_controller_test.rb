@@ -519,7 +519,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get edit_job_proposal_url(jp)
     assert_response :success
     assert_no_match(/Loss notes/, response.body)
-    assert_select "input[name='job_proposal[loss_reason]']", count: 0
+    assert_select "select[name='job_proposal[loss_reason_id]']", count: 0
   end
 
   test "edit shows the Loss notes section once the proposal is past drafting" do
@@ -529,7 +529,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get edit_job_proposal_url(jp)
     assert_response :success
     assert_match(/Loss notes/, response.body)
-    assert_select "input[name='job_proposal[loss_reason]']"
+    assert_select "select[name='job_proposal[loss_reason_id]']"
   end
 
   test "edit job_type select only includes job types this tenant has activated" do
@@ -587,7 +587,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
           customer_email: "edited@example.com",
           customer_house_number: "100",
           customer_street: "Test Street",
-          loss_reason: "Price",
+          loss_reason_id: loss_reasons(:price_too_high).id,
           loss_notes: "Customer chose competitor.",
           internal_reference: "REF-123",
           owner_id: other_owner.id,
@@ -605,7 +605,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal "Edited", jp.customer_first_name
     assert_equal "edited@example.com", jp.customer_email
-    assert_equal "Price", jp.loss_reason
+    assert_equal loss_reasons(:price_too_high), jp.loss_reason
     assert_equal "Customer chose competitor.", jp.loss_notes
     assert_equal "REF-123", jp.internal_reference
     assert_equal other_owner, jp.owner
@@ -858,22 +858,32 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     jp = job_proposals(:in_users_org)
     patch mark_lost_job_proposal_url(jp), params: {
-      loss_reason: "Price",
-      loss_notes:  "Picked the lower bid."
+      loss_reason_id: loss_reasons(:price_too_high).id,
+      loss_notes:     "Picked the lower bid."
     }
     assert_redirected_to job_proposal_path(jp)
     assert_match(/lost/i, flash[:notice])
     jp.reload
     assert_equal "lost", jp.pipeline_stage
-    assert_equal "Price", jp.loss_reason
+    assert_equal loss_reasons(:price_too_high), jp.loss_reason
     assert_equal "Picked the lower bid.", jp.loss_notes
   end
 
-  test "mark_lost rejects when loss_reason is blank" do
+  test "mark_lost rejects when loss_reason_id is blank" do
     sign_in @user
     jp = job_proposals(:in_users_org)
     jp.update!(pipeline_stage: nil)
-    patch mark_lost_job_proposal_url(jp), params: { loss_reason: "", loss_notes: "Notes." }
+    patch mark_lost_job_proposal_url(jp), params: { loss_reason_id: "", loss_notes: "Notes." }
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/required/i, flash[:alert])
+    assert_nil jp.reload.pipeline_stage
+  end
+
+  test "mark_lost rejects when loss_reason_id refers to an unknown row" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: nil)
+    patch mark_lost_job_proposal_url(jp), params: { loss_reason_id: 0, loss_notes: "Notes." }
     assert_redirected_to job_proposal_path(jp)
     assert_match(/required/i, flash[:alert])
     assert_nil jp.reload.pipeline_stage
@@ -883,7 +893,7 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     sign_in @user
     jp = job_proposals(:in_users_org)
     jp.update!(pipeline_stage: nil)
-    patch mark_lost_job_proposal_url(jp), params: { loss_reason: "Price", loss_notes: "" }
+    patch mark_lost_job_proposal_url(jp), params: { loss_reason_id: loss_reasons(:price_too_high).id, loss_notes: "" }
     assert_redirected_to job_proposal_path(jp)
     assert_match(/required/i, flash[:alert])
     assert_nil jp.reload.pipeline_stage

@@ -81,7 +81,7 @@ Open the job's detail page. Two buttons sit in the top action bar next to the pa
 
 - **Mark Won** — single click. The job's pipeline stage flips to *Won* and the campaign stops if it was still running.
 - **Mark Lost** — opens a small dialog. Both fields are required:
-  - **Loss reason** — a short label (e.g. *Price*, *Timing*, *No response*).
+  - **Loss reason** — pick one from a fixed dropdown: *Price too high*, *Went with competitor*, *Insurance issue*, *No response from customer*, *Timing / scheduling conflict*, or *Other*. The fixed list keeps loss data clean enough to slice in Analytics.
   - **Loss notes** — any context worth recording about why the deal didn't move forward.
   Click **Mark Lost** in the dialog to confirm.
 

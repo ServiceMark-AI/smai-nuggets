@@ -102,7 +102,7 @@ DEMO_PROPOSALS = [
     house: "318", street: "Chestnut Ave", city: "Joliet", state: "IL", zip: "60435",
     value: 6_320.00, status: :closed, stage: "lost", overlay: nil,
     description: "Water heater tank failure overnight; water across utility room and into hallway. Cat 1.",
-    loss_reason: "Price",
+    loss_reason: "price_too_high",
     loss_notes: "Customer's plumber referred a competitor at lower bid; chose them after 24h." },
 
   { ref: "DEMO-WM-006", scenario: "gray_water", first: "Lacey", last: "Burke", title: "Ms.",
@@ -163,7 +163,7 @@ DEMO_PROPOSALS = [
     house: "722", street: "Woodland Heights", city: "Bloomington", state: "IL", zip: "61704",
     value: 5_980.00, status: :closed, stage: "lost", overlay: nil,
     description: "Deep clean follow-up after gray water event. Customer attempted DIY cleanup before estimate.",
-    loss_reason: "No response",
+    loss_reason: "no_response_from_customer",
     loss_notes: "Customer went silent after Day 5 follow-up; assumed self-handled." },
 
   # --- General cleaning -----------------------------------------------------
@@ -191,7 +191,7 @@ DEMO_PROPOSALS = [
     house: "16", street: "Heatherfield Court", city: "Champaign", state: "IL", zip: "61820",
     value: 2_080.00, status: :closed, stage: "lost", overlay: nil,
     description: "Estate sale prep clean before listing.",
-    loss_reason: "Timing",
+    loss_reason: "timing_scheduling_conflict",
     loss_notes: "Customer needed crew within 48 hours; we couldn't accommodate before her open-house deadline." },
 
   { ref: "DEMO-GC-006", scenario: "odor_remediation", first: "Devin", last: "Ramos", title: "Mr.",
@@ -212,6 +212,7 @@ DEMO_PROPOSALS = [
 ].freeze
 
 scenario_lookup = Scenario.includes(:job_type).index_by(&:code)
+loss_reason_lookup = LossReason.all.index_by(&:code)
 
 DEMO_PROPOSALS.each_with_index do |row, i|
   scenario = scenario_lookup[row[:scenario]]
@@ -258,7 +259,7 @@ DEMO_PROPOSALS.each_with_index do |row, i|
   if row[:status] == :closed
     proposal.closed_at = ((i % 14) + 1).days.ago
     proposal.closed_by_user = demo_owner
-    proposal.loss_reason = row[:stage] == "lost" ? row[:loss_reason] : nil
+    proposal.loss_reason = row[:stage] == "lost" ? loss_reason_lookup.fetch(row[:loss_reason]) : nil
     proposal.loss_notes = row[:stage] == "lost" ? row[:loss_notes] : nil
   else
     proposal.closed_at = nil

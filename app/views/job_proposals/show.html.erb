@@ -314,9 +314,12 @@
               Capture why the customer didn't move forward. Both fields are required.
             </p>
             <div class="mb-3">
-              <%= label_tag :loss_reason, "Loss reason", class: "form-label" %>
-              <%= text_field_tag :loss_reason, @job_proposal.loss_reason, class: "form-control", required: true,
-                    placeholder: "e.g. Price, Timing, No response" %>
+              <%= label_tag :loss_reason_id, "Loss reason", class: "form-label" %>
+              <%= select_tag :loss_reason_id,
+                    options_from_collection_for_select(@loss_reason_options, :id, :display_name, @job_proposal.loss_reason_id),
+                    include_blank: "Select a reason",
+                    required: true,
+                    class: "form-select" %>
             </div>
             <div class="mb-0">
               <%= label_tag :loss_notes, "Loss notes", class: "form-label" %>
