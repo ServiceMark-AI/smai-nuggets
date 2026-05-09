@@ -61,6 +61,7 @@
                 <th>Email</th>
                 <th>Location</th>
                 <th class="text-end">Status</th>
+                <th class="text-end" style="width: 1%;"></th>
               </tr>
             </thead>
             <tbody>
@@ -90,6 +91,9 @@
                     <% else %>
                       <span class="badge text-bg-success">Active</span>
                     <% end %>
+                  </td>
+                  <td class="text-end">
+                    <%= link_to "Edit", edit_admin_tenant_user_path(@tenant, user), class: "btn btn-sm btn-outline-primary" %>
                   </td>
                 </tr>
               <% end %>
