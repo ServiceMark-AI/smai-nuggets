@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_08_112320) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -155,6 +155,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_112320) do
     t.bigint "location_id"
     t.string "phone_number"
     t.bigint "tenant_id", null: false
+    t.string "title"
     t.string "token", null: false
     t.datetime "updated_at", null: false
     t.index ["invited_by_user_id"], name: "index_invitations_on_invited_by_user_id"
@@ -369,6 +370,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_112320) do
     t.integer "sign_in_count", default: 0, null: false
     t.bigint "tenant_id"
     t.string "time_zone", default: "Central Time (US & Canada)", null: false
+    t.string "title"
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["location_id"], name: "index_users_on_location_id"
