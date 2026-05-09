@@ -46,9 +46,9 @@ class CampaignSweepJob < ApplicationJob
   end
 
   def perform
-    mailbox = ApplicationMailbox.current
+    has_any_mailbox = ApplicationMailbox.connected?
 
-    if mailbox
+    if has_any_mailbox
       # Real-send path: still gate non-prod behind TEST_TO_EMAIL so we
       # don't accidentally email customers from a dev/staging box.
       unless self.class.production_environment? || self.class.test_to_email_override
@@ -64,7 +64,11 @@ class CampaignSweepJob < ApplicationJob
       return
     end
 
-    due_step_instance_ids(Time.current).each { |id| process(id, mailbox) }
+    # Per PRD-09 §5, the per-location mailbox sends for that location's
+    # proposals; the legacy no-location mailbox is the fallback. Resolve
+    # per step instance so a tenant with mixed location coverage can
+    # still send from the right address.
+    due_step_instance_ids(Time.current).each { |id| process(id) }
   end
 
   private
@@ -85,10 +89,12 @@ class CampaignSweepJob < ApplicationJob
       .pluck("campaign_step_instances.id")
   end
 
-  def process(step_instance_id, mailbox)
+  def process(step_instance_id)
     return unless claim(step_instance_id)
 
     step_instance = CampaignStepInstance.find(step_instance_id)
+    host = step_instance.campaign_instance.host
+    mailbox = host.is_a?(JobProposal) ? ApplicationMailbox.for_proposal(host) : ApplicationMailbox.current
     deliver(step_instance, mailbox)
   end
 

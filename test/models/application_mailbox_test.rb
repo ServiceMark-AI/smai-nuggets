@@ -21,11 +21,46 @@ class ApplicationMailboxTest < ActiveSupport::TestCase
     refute ApplicationMailbox.new(valid_attrs(access_token: nil)).valid?
   end
 
-  test "only one mailbox can exist at a time" do
+  test "only one no-location mailbox can exist at a time" do
     ApplicationMailbox.create!(valid_attrs)
     second = ApplicationMailbox.new(valid_attrs(email: "another@app.example.com"))
     refute second.valid?
     assert_match(/already configured/i, second.errors[:base].join)
+  end
+
+  test "per-location mailboxes coexist alongside the no-location singleton" do
+    ApplicationMailbox.create!(valid_attrs(email: "global@app.example.com"))
+    loc_a = locations(:ne_dallas)
+    loc_b = tenants(:two).locations.create!(
+      display_name: "Globex West", address_line_1: "1 W", city: "X",
+      state: "CA", postal_code: "90001", phone_number: "(213) 555-0101"
+    )
+    ApplicationMailbox.create!(valid_attrs(email: "ne-dallas@app.example.com", location: loc_a))
+    ApplicationMailbox.create!(valid_attrs(email: "globex-west@app.example.com", location: loc_b))
+    assert_equal 3, ApplicationMailbox.count
+  end
+
+  test "for_location returns the per-location mailbox when present" do
+    loc = locations(:ne_dallas)
+    location_specific = ApplicationMailbox.create!(valid_attrs(email: "ne-dallas@app.example.com", location: loc))
+    ApplicationMailbox.create!(valid_attrs(email: "global@app.example.com"))
+    assert_equal location_specific, ApplicationMailbox.for_location(loc)
+  end
+
+  test "for_location falls back to the no-location singleton when no per-location mailbox exists" do
+    loc = locations(:ne_dallas)
+    legacy = ApplicationMailbox.create!(valid_attrs(email: "global@app.example.com"))
+    assert_equal legacy, ApplicationMailbox.for_location(loc)
+  end
+
+  test "for_location returns nil when nothing is configured" do
+    assert_nil ApplicationMailbox.for_location(locations(:ne_dallas))
+  end
+
+  test "for_proposal resolves via the proposal's location" do
+    jp = job_proposals(:in_users_org)
+    location_specific = ApplicationMailbox.create!(valid_attrs(email: "loc@app.example.com", location: jp.location))
+    assert_equal location_specific, ApplicationMailbox.for_proposal(jp)
   end
 
   test "expired? is false when expires_at is in the future" do

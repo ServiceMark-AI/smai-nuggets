@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_09_000505) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_09_000841) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,10 +47,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_000505) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "expires_at"
+    t.bigint "location_id"
     t.string "provider", default: "google", null: false
     t.text "refresh_token"
     t.text "scopes"
     t.datetime "updated_at", null: false
+    t.index ["location_id"], name: "index_application_mailboxes_on_location_id", unique: true, where: "(location_id IS NOT NULL)"
   end
 
   create_table "campaign_instances", force: :cascade do |t|
@@ -383,6 +385,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_000505) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "application_mailboxes", "locations"
   add_foreign_key "campaign_instances", "campaigns"
   add_foreign_key "campaign_step_instances", "campaign_instances"
   add_foreign_key "campaign_step_instances", "campaign_steps"
