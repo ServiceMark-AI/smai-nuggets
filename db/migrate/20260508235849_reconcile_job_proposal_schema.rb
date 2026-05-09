@@ -4,8 +4,9 @@ class ReconcileJobProposalSchema < ActiveRecord::Migration[8.1]
     # String for now — there's no template_versions table yet (separate PR).
     add_column :campaigns, :template_version_id, :string
 
-    # Backfill nil location_id with the proposal's tenant's first active
-    # location. Then lock NOT NULL.
+    # Backfill nil location_id in three passes, then lock NOT NULL.
+    #
+    # Pass 1: prefer the tenant's first ACTIVE location.
     execute <<~SQL
       UPDATE job_proposals AS jp
          SET location_id = sub.id
@@ -16,6 +17,48 @@ class ReconcileJobProposalSchema < ActiveRecord::Migration[8.1]
            ORDER BY tenant_id, id
         ) AS sub
        WHERE jp.tenant_id = sub.tenant_id
+         AND jp.location_id IS NULL
+    SQL
+
+    # Pass 2: tenants without any active location fall back to any
+    # location they own (active or not). This handles accounts that
+    # have created locations but never flipped them to is_active.
+    execute <<~SQL
+      UPDATE job_proposals AS jp
+         SET location_id = sub.id
+        FROM (
+          SELECT DISTINCT ON (tenant_id) id, tenant_id
+            FROM locations
+           ORDER BY tenant_id, id
+        ) AS sub
+       WHERE jp.tenant_id = sub.tenant_id
+         AND jp.location_id IS NULL
+    SQL
+
+    # Pass 3: tenants that still have nil-location proposals own no
+    # locations at all. Synthesize a placeholder so the migration can
+    # complete cleanly. Operators see it in their tenant locations
+    # list (with an obvious "placeholder" label) and can edit/replace
+    # via the admin tenant page. is_active defaults to false so the
+    # placeholder doesn't immediately become a default for anything else.
+    placeholder_label = "(Default — placeholder, please update)"
+    execute <<~SQL
+      WITH new_locations AS (
+        INSERT INTO locations
+          (tenant_id, display_name, address_line_1, city, state,
+           postal_code, phone_number, is_active, created_at, updated_at)
+        SELECT DISTINCT jp.tenant_id, #{connection.quote(placeholder_label)},
+               'Address pending', 'Pending', 'TX',
+               '00000', '(000) 000-0000', false,
+               NOW(), NOW()
+          FROM job_proposals jp
+         WHERE jp.location_id IS NULL
+        RETURNING id, tenant_id
+      )
+      UPDATE job_proposals AS jp
+         SET location_id = nl.id
+        FROM new_locations nl
+       WHERE jp.tenant_id = nl.tenant_id
          AND jp.location_id IS NULL
     SQL
 

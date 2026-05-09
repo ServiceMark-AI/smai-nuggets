@@ -4,7 +4,7 @@
       tenant: @tenant,
       current: :tenant %>
 
-<h1 class="h3 mb-3">Edit Tenant: <%= @tenant.name %></h1>
+<h1 class="h3 mb-3">Edit Tenant — <%= @tenant.name %></h1>
 
 <%= form_with model: @tenant, url: admin_tenant_path(@tenant), method: :patch, local: true, html: { multipart: true } do |f| %>
   <% if @tenant.errors.any? %>
