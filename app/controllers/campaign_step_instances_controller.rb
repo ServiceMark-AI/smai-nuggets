@@ -47,7 +47,7 @@ class CampaignStepInstancesController < ApplicationController
       end
     end
 
-    @from_address = ApplicationMailbox.current&.email
+    @from_address = ApplicationMailbox.for_proposal(@job_proposal)&.email
     @to_address   = @job_proposal.customer_email.presence
   end
 

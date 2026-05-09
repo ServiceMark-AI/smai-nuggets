@@ -41,15 +41,20 @@ class GmailReplyPollJob < ApplicationJob
   POLLING_CUTOFF = 6.months
 
   def perform
-    mailbox = ApplicationMailbox.current
-    if mailbox.nil?
+    unless ApplicationMailbox.connected?
       Rails.logger.warn "[GmailReplyPollJob] no application mailbox connected; skipping poll"
       return
     end
 
-    sender = GmailSender.new(mailbox)
+    # Resolve a sender per step instance using its proposal's location
+    # so per-location mailboxes (PRD-09 §5) poll their own threads.
     pollable_step_instance_ids(Time.current).each do |id|
-      process(id, mailbox, sender)
+      step_instance = CampaignStepInstance.find(id)
+      host = step_instance.campaign_instance.host
+      mailbox = host.is_a?(JobProposal) ? ApplicationMailbox.for_proposal(host) : ApplicationMailbox.current
+      next if mailbox.nil?
+      sender = GmailSender.new(mailbox)
+      process(id, mailbox, sender, prefetched_step_instance: step_instance)
     end
   end
 
@@ -79,8 +84,8 @@ class GmailReplyPollJob < ApplicationJob
       .pluck("campaign_step_instances.id")
   end
 
-  def process(step_instance_id, mailbox, sender)
-    step_instance = CampaignStepInstance.find_by(id: step_instance_id)
+  def process(step_instance_id, mailbox, sender, prefetched_step_instance: nil)
+    step_instance = prefetched_step_instance || CampaignStepInstance.find_by(id: step_instance_id)
     return unless step_instance
 
     thread = sender.fetch_thread(step_instance.gmail_thread_id)
