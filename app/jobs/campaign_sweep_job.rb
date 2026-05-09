@@ -197,13 +197,13 @@ class CampaignSweepJob < ApplicationJob
     )
   end
 
-  # True iff this step is the first one in its campaign by
-  # sequence_number. Computed by comparing against the campaign's
-  # minimum sequence_number, so it remains correct if step 1 is
-  # later renumbered or removed.
+  # True iff this step is the first one in its revision by
+  # sequence_number. Scoped to the step's campaign_revision so a later
+  # revision with a renumbered step 1 doesn't change what counts as
+  # "first" for an in-flight instance still on an older revision.
   def first_step?(step_instance)
-    campaign_id = step_instance.campaign_step.campaign_id
-    first_seq = CampaignStep.where(campaign_id: campaign_id).minimum(:sequence_number)
+    revision_id = step_instance.campaign_step.campaign_revision_id
+    first_seq = CampaignStep.where(campaign_revision_id: revision_id).minimum(:sequence_number)
     step_instance.campaign_step.sequence_number == first_seq
   end
 

@@ -42,13 +42,15 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_match users(:admin).display_name, response.body
   end
 
-  test "admin show renders the campaign with its steps" do
+  test "admin show renders the active-revision steps and a Create new revision affordance" do
     sign_in @admin
     get admin_campaign_url(@campaign)
     assert_response :success
     assert_match @campaign.name, response.body
-    assert_match "Welcome", response.body  # subject of approved_step_one fixture
-    assert_match "Add step", response.body
+    assert_match "Welcome", response.body              # subject of approved_step_one fixture
+    assert_match "Active steps", response.body
+    assert_match "Revisions", response.body
+    assert_select "form[action=?] button", admin_campaign_revisions_path(@campaign), text: "Create new revision"
   end
 
   test "non-admin show is denied" do
@@ -115,13 +117,12 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form input[name='campaign[name]'][value=?]", @campaign.name
   end
 
-  test "admin edit page lists steps and links to add step" do
+  test "admin edit page no longer lists steps — those live on revisions now" do
     sign_in @admin
     get edit_admin_campaign_url(@campaign)
     assert_response :success
-    assert_match "Welcome", response.body  # subject of approved_step_one fixture
-    assert_match "Following up", response.body  # subject of approved_step_two
-    assert_select "a[href=?]", new_admin_campaign_step_path(@campaign), text: "Add step"
+    assert_no_match(/Welcome/, response.body)
+    assert_match(/create a new draft revision/i, response.body)
   end
 
   test "admin update with valid params changes the record and redirects to the show page" do
@@ -198,8 +199,11 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
     get admin_campaign_url(campaigns(:draft_campaign))
     assert_response :success
-    assert_no_match(/Approved by/, response.body)
-    assert_no_match(/Paused by/, response.body)
+    # The Revisions table has its own "Approved by" column header, so
+    # assert specifically on the campaign-level audit dt rather than a
+    # bare /Approved by/ match against the whole response.
+    assert_select "dt", text: "Approved by", count: 0
+    assert_select "dt", text: "Paused by",   count: 0
   end
 
   test "approve sets status, approved_by_user, and approved_at" do

@@ -1,0 +1,200 @@
+<% content_for :title, "#{@campaign.name} — Revision ##{@revision.revision_number}" %>
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><%= link_to "Campaigns", admin_campaigns_path %></li>
+    <li class="breadcrumb-item"><%= link_to @campaign.name, admin_campaign_path(@campaign) %></li>
+    <li class="breadcrumb-item active" aria-current="page">Revision ##{@revision.revision_number}</li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h3 mb-0">Revision #<%= @revision.revision_number %></h1>
+    <div class="text-muted small">in <%= link_to @campaign.name, admin_campaign_path(@campaign) %></div>
+  </div>
+  <div class="d-flex gap-2">
+    <% if @revision.status_drafting? %>
+      <%= button_to "Approve revision",
+            approve_admin_campaign_revision_path(@campaign, @revision),
+            method: :patch,
+            class: "btn btn-sm btn-success",
+            form: { class: "m-0", data: { turbo_confirm: "Make this the active revision and retire the current one?" } } %>
+    <% end %>
+    <%= link_to "All revisions", admin_campaign_path(@campaign, anchor: "revisions"), class: "btn btn-sm btn-outline-secondary" %>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <% status_class = case @revision.status when "active" then "text-bg-success" when "drafting" then "text-bg-secondary" else "text-bg-dark" end %>
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Status</dt>
+      <dd class="col-sm-9"><span class="badge <%= status_class %>"><%= @revision.status %></span></dd>
+
+      <dt class="col-sm-3">Created by</dt>
+      <dd class="col-sm-9">
+        <%= @revision.created_by_user.display_name %>
+        <span class="text-muted small">on <%= @revision.created_at.to_fs(:long) %></span>
+      </dd>
+
+      <% if @revision.approved_by_user %>
+        <dt class="col-sm-3">Approved by</dt>
+        <dd class="col-sm-9">
+          <%= @revision.approved_by_user.display_name %>
+          <% if @revision.approved_at %>
+            <span class="text-muted small">on <%= @revision.approved_at.to_fs(:long) %></span>
+          <% end %>
+        </dd>
+      <% end %>
+    </dl>
+  </div>
+</div>
+
+<%
+  reorder_url = reorder_admin_campaign_revision_steps_path(@campaign, @revision)
+  table_id = "campaign-steps-#{@revision.id}"
+  editable = @revision.status_drafting?
+%>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-start">
+    <div>
+      <h2 class="h5 mb-0">Steps</h2>
+      <% if editable && @revision.steps.any? %>
+        <div class="small text-muted mt-1">
+          Click and drag the <span class="text-muted">⠿</span> handle on the left of any row to re-order the steps. The numbering updates automatically.
+        </div>
+      <% elsif !editable %>
+        <div class="small text-muted mt-1">
+          This revision is <%= @revision.status %> — steps can't be edited. Create a new draft revision from the campaign page to make changes.
+        </div>
+      <% end %>
+    </div>
+    <% if editable %>
+      <%= link_to "Add step", new_admin_campaign_revision_step_path(@campaign, @revision), class: "btn btn-primary btn-sm" %>
+    <% end %>
+  </div>
+  <div class="card-body p-0">
+    <% if @revision.steps.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <% if editable %><th style="width: 32px;"></th><% end %>
+            <th style="width: 48px;">#</th>
+            <th>Step</th>
+            <th class="text-end" style="width: 180px;">Offset</th>
+            <% if editable %><th class="text-end" style="width: 160px;"></th><% end %>
+          </tr>
+        </thead>
+        <tbody id="<%= table_id %>" data-reorder-url="<%= reorder_url %>">
+          <% @revision.steps.each do |step| %>
+            <tr data-id="<%= step.id %>">
+              <% if editable %>
+                <td class="text-center text-muted drag-handle" style="cursor: grab;" title="Drag to reorder">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                  </svg>
+                </td>
+              <% end %>
+              <td class="sequence-number"><%= step.sequence_number %></td>
+              <td>
+                <% rendered = MailGenerator.preview(campaign_step: step) %>
+                <div class="fw-semibold"><%= rendered.subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></div>
+                <% if rendered.body.present? %>
+                  <div class="text-muted small mt-1" style="white-space: pre-wrap;"><%= rendered.body %></div>
+                <% else %>
+                  <div class="text-muted small fst-italic mt-1">(no body)</div>
+                <% end %>
+              </td>
+              <td class="text-end"><%= humanize_offset_minutes(step.offset_min) %></td>
+              <% if editable %>
+                <td class="text-end">
+                  <%= link_to "Edit", edit_admin_campaign_revision_step_path(@campaign, @revision, step), class: "btn btn-sm btn-outline-primary" %>
+                  <%= button_to "Delete", admin_campaign_revision_step_path(@campaign, @revision, step), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "d-inline m-0", data: { turbo_confirm: "Delete this step?" } } %>
+                </td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No steps yet.</div>
+    <% end %>
+  </div>
+</div>
+
+<% if editable && @revision.steps.any? %>
+  <script>
+    (function() {
+      function init() {
+        var tbody = document.getElementById("<%= j table_id %>");
+        if (!tbody || typeof Sortable === "undefined" || tbody.dataset.sortableInitialized) return;
+        tbody.dataset.sortableInitialized = "1";
+
+        var token = document.querySelector('meta[name="csrf-token"]');
+        var csrf = token ? token.content : "";
+
+        Sortable.create(tbody, {
+          handle: ".drag-handle",
+          animation: 150,
+          onEnd: function() {
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr[data-id]"));
+            var ids = rows.map(function(r) { return r.dataset.id; });
+
+            fetch(tbody.dataset.reorderUrl, {
+              method: "PATCH",
+              credentials: "same-origin",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+                "Accept": "application/json"
+              },
+              body: JSON.stringify({ ids: ids })
+            }).then(function(resp) {
+              if (resp.ok) {
+                rows.forEach(function(r, i) {
+                  var cell = r.querySelector(".sequence-number");
+                  if (cell) cell.textContent = i + 1;
+                });
+              }
+            });
+          }
+        });
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+<% end %>
+
+<div class="card shadow-sm mt-3">
+  <div class="card-header">
+    <h2 class="h6 mb-0">Preview values</h2>
+  </div>
+  <div class="card-body p-0">
+    <p class="px-3 pt-3 mb-2 small text-muted">
+      Each step's subject and body above is rendered with these fake values substituted in for the merge fields. Real customer data is filled in when a job proposal is matched to this campaign.
+    </p>
+    <table class="table table-sm mb-0 small">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 240px;">Merge field</th>
+          <th>Sample value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% MailGenerator::KNOWN_KEYS.each do |key| %>
+          <tr>
+            <td><code>{<%= key %>}</code></td>
+            <td><%= MailGenerator::SAMPLE_VALUES[key] || content_tag(:span, "—", class: "text-muted") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

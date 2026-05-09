@@ -37,11 +37,15 @@ class CampaignLauncher
     campaign = @job_proposal.scenario.campaign
     return Result.new(reason: :no_campaign) unless campaign
 
+    revision = campaign.active_revision
+    return Result.new(reason: :no_campaign) unless revision
+
     instance = nil
     CampaignInstance.transaction do
       instance = CampaignInstance.create!(
         host: @job_proposal,
         campaign: campaign,
+        campaign_revision: revision,
         status: :active
       )
 
@@ -49,7 +53,7 @@ class CampaignLauncher
       # the campaign yet, so the start time is unknown. JobProposalsController#approve
       # stamps started_at and computes each step's planned_delivery_at = started_at + offset_min,
       # per PRD-03 §6.4 (timing relative to campaign_started_at).
-      campaign.steps.order(:sequence_number).each do |step|
+      revision.steps.order(:sequence_number).each do |step|
         CampaignStepInstance.create!(
           campaign_instance: instance,
           campaign_step: step,

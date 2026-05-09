@@ -67,4 +67,121 @@
   </div>
 </div>
 
-<%= render "steps", campaign: @campaign %>
+<%# --- Active revision (read-only step list) -------------------------------- %>
+<%
+  active_revision = @campaign.active_revision
+  drafting_revision = @campaign.revisions.find_by(status: :drafting)
+%>
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="h5 mb-0">Active steps</h2>
+      <% if active_revision %>
+        <div class="small text-muted mt-1">
+          From <%= link_to "Revision ##{active_revision.revision_number}", admin_campaign_revision_path(@campaign, active_revision) %>.
+          To make changes, create a new draft revision below.
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <% if active_revision&.steps&.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 48px;">#</th>
+            <th>Step</th>
+            <th class="text-end" style="width: 180px;">Offset</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% active_revision.steps.each do |step| %>
+            <tr>
+              <td><%= step.sequence_number %></td>
+              <td>
+                <% rendered = MailGenerator.preview(campaign_step: step) %>
+                <div class="fw-semibold"><%= rendered.subject.presence || content_tag(:span, "(no subject)", class: "text-muted fst-italic") %></div>
+                <% if rendered.body.present? %>
+                  <div class="text-muted small mt-1" style="white-space: pre-wrap;"><%= rendered.body %></div>
+                <% else %>
+                  <div class="text-muted small fst-italic mt-1">(no body)</div>
+                <% end %>
+              </td>
+              <td class="text-end"><%= humanize_offset_minutes(step.offset_min) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% elsif active_revision %>
+      <div class="p-4 text-center text-muted">No steps in the active revision yet.</div>
+    <% else %>
+      <div class="p-4 text-center text-muted">No active revision.</div>
+    <% end %>
+  </div>
+</div>
+
+<%# --- Revisions ----------------------------------------------------------- %>
+<div class="card shadow-sm mb-4" id="revisions">
+  <div class="card-header d-flex justify-content-between align-items-start">
+    <div>
+      <h2 class="h5 mb-0">Revisions</h2>
+      <div class="small text-muted mt-1">
+        Each edit to the campaign content lives in its own revision. The active revision is what new customer sequences will use.
+      </div>
+    </div>
+    <% if drafting_revision %>
+      <%= link_to "Continue draft ##{drafting_revision.revision_number}",
+            admin_campaign_revision_path(@campaign, drafting_revision),
+            class: "btn btn-primary btn-sm" %>
+    <% else %>
+      <%= button_to "Create new revision",
+            admin_campaign_revisions_path(@campaign),
+            method: :post,
+            class: "btn btn-primary btn-sm",
+            form: { class: "m-0" } %>
+    <% end %>
+  </div>
+  <div class="card-body p-0">
+    <% if @campaign.revisions.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Revision</th>
+            <th>Status</th>
+            <th>Created by</th>
+            <th>Approved by</th>
+            <th class="text-end">Steps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @campaign.revisions.includes(:created_by_user, :approved_by_user, :steps).order(revision_number: :desc).each do |rev| %>
+            <% rev_status_class = case rev.status when "active" then "text-bg-success" when "drafting" then "text-bg-secondary" else "text-bg-dark" end %>
+            <tr>
+              <td>
+                <%= link_to "Revision ##{rev.revision_number}", admin_campaign_revision_path(@campaign, rev) %>
+              </td>
+              <td><span class="badge <%= rev_status_class %>"><%= rev.status %></span></td>
+              <td>
+                <%= rev.created_by_user.display_name %>
+                <div class="text-muted small"><%= rev.created_at.to_fs(:long) %></div>
+              </td>
+              <td>
+                <% if rev.approved_by_user %>
+                  <%= rev.approved_by_user.display_name %>
+                  <% if rev.approved_at %>
+                    <div class="text-muted small"><%= rev.approved_at.to_fs(:long) %></div>
+                  <% end %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td class="text-end"><%= rev.steps.size %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No revisions yet.</div>
+    <% end %>
+  </div>
+</div>

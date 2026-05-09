@@ -12,4 +12,7 @@
   </div>
 </div>
 
-<%= render "steps", campaign: @campaign %>
+<p class="text-muted">
+  To change the email content or cadence, head to the campaign page and create a new draft revision.
+  <%= link_to "Back to #{@campaign.name}", admin_campaign_path(@campaign), class: "btn btn-sm btn-outline-secondary ms-2" %>
+</p>
