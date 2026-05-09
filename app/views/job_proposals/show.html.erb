@@ -140,6 +140,20 @@
       <dl class="row mb-0 px-3 pt-3">
         <dt class="col-sm-3">Campaign</dt>
         <dd class="col-sm-9"><%= link_to campaign_instance.campaign.name, job_proposal_campaign_instance_path(@job_proposal, campaign_instance) %></dd>
+
+        <dt class="col-sm-3">Template version</dt>
+        <dd class="col-sm-9">
+          <% template_version = campaign_instance.campaign.template_version_id %>
+          <% if template_version.present? %>
+            <code><%= template_version %></code>
+          <% else %>
+            <span class="text-muted">—</span>
+            <div class="form-text">No template version recorded yet — campaigns get a version once SPEC-11 v2.0 template_versions land.</div>
+          <% end %>
+          <% if campaign_instance.campaign.approved_at %>
+            <div class="text-muted small">approved <%= campaign_instance.campaign.approved_at.to_date.to_fs(:long) %></div>
+          <% end %>
+        </dd>
       </dl>
 
       <% step_instances = campaign_instance.step_instances

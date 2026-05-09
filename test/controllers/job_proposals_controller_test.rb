@@ -219,6 +219,32 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Job Proposal ##{jp.id}", response.body
   end
 
+  test "show page surfaces the resolved campaign and template version under the Campaign card" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    campaign = campaigns(:approved_campaign)
+    campaign.update!(template_version_id: "v1.2-water-mitigation-001")
+    CampaignInstance.create!(host: jp, campaign: campaign, status: :active)
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match "Template version", response.body
+    assert_match "v1.2-water-mitigation-001", response.body
+  end
+
+  test "show page renders an em-dash placeholder when template_version_id is blank" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    campaign = campaigns(:approved_campaign)
+    campaign.update!(template_version_id: nil)
+    CampaignInstance.create!(host: jp, campaign: campaign, status: :active)
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match "Template version", response.body
+    assert_match "No template version recorded yet", response.body
+  end
+
   test "show step table includes a Thread column linking to the Gmail conversation when present" do
     sign_in @user
     jp = job_proposals(:in_users_org)
