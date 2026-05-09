@@ -9,3 +9,13 @@ ne_dallas:
   postal_code: "75238"
   phone_number: "(214) 343-3973"
   is_active: true
+
+globex_main:
+  tenant: two
+  display_name: Globex Main
+  address_line_1: 1 Globex Way
+  city: Springfield
+  state: IL
+  postal_code: "62701"
+  phone_number: "(217) 555-0100"
+  is_active: true

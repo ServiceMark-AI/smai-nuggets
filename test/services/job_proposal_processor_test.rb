@@ -4,7 +4,7 @@ class JobProposalProcessorTest < ActiveSupport::TestCase
   setup do
     tenant = tenants(:one)
     @proposal = JobProposal.create!(
-      tenant: tenant,
+      tenant: tenant, location: locations(:ne_dallas),
       owner: users(:one), created_by_user: users(:one)
     )
     att = @proposal.attachments.build(uploaded_by_user: users(:one))

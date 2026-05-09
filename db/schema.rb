@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_09_001343) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,10 +47,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "expires_at"
+    t.bigint "location_id"
     t.string "provider", default: "google", null: false
     t.text "refresh_token"
     t.text "scopes"
     t.datetime "updated_at", null: false
+    t.index ["location_id"], name: "index_application_mailboxes_on_location_id", unique: true, where: "(location_id IS NOT NULL)"
+  end
+
+  create_table "audit_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.bigint "actor_user_id"
+    t.datetime "created_at", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.bigint "target_id", null: false
+    t.string "target_type", null: false
+    t.bigint "tenant_id", null: false
+    t.index ["action"], name: "index_audit_logs_on_action"
+    t.index ["actor_user_id"], name: "index_audit_logs_on_actor_user_id"
+    t.index ["created_at"], name: "index_audit_logs_on_created_at"
+    t.index ["target_type", "target_id"], name: "index_audit_logs_on_target_type_and_target_id"
+    t.index ["tenant_id"], name: "index_audit_logs_on_tenant_id"
   end
 
   create_table "campaign_instances", force: :cascade do |t|
@@ -106,6 +123,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
     t.datetime "paused_at"
     t.bigint "paused_by_user_id"
     t.integer "status", default: 0, null: false
+    t.string "template_version_id"
     t.datetime "updated_at", null: false
     t.index ["approved_by_user_id"], name: "index_campaigns_on_approved_by_user_id"
     t.index ["attributed_to_type", "attributed_to_id"], name: "index_campaigns_on_attributed_to"
@@ -187,18 +205,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
     t.string "customer_street"
     t.string "customer_title"
     t.string "customer_zip"
+    t.string "dash_job_number"
     t.string "internal_reference"
     t.text "job_description"
     t.bigint "job_type_id"
     t.jsonb "last_reply"
-    t.bigint "location_id"
+    t.bigint "location_id", null: false
     t.text "loss_notes"
     t.string "loss_reason"
     t.bigint "owner_id", null: false
     t.string "pipeline_stage"
     t.decimal "proposal_value", precision: 12, scale: 2
     t.bigint "scenario_id"
-    t.string "scenario_key"
     t.integer "status", default: 0, null: false
     t.string "status_details"
     t.string "status_overlay"
@@ -206,6 +224,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
     t.datetime "updated_at", null: false
     t.index ["closed_by_user_id"], name: "index_job_proposals_on_closed_by_user_id"
     t.index ["created_by_user_id"], name: "index_job_proposals_on_created_by_user_id"
+    t.index ["dash_job_number"], name: "index_job_proposals_on_dash_job_number"
     t.index ["job_type_id"], name: "index_job_proposals_on_job_type_id"
     t.index ["location_id"], name: "index_job_proposals_on_location_id"
     t.index ["owner_id"], name: "index_job_proposals_on_owner_id"
@@ -332,7 +351,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
   end
 
   create_table "tenants", force: :cascade do |t|
+    t.string "company_name"
     t.datetime "created_at", null: false
+    t.boolean "job_reference_required", default: false, null: false
+    t.string "logo_url"
     t.string "name", null: false
     t.datetime "updated_at", null: false
   end
@@ -380,6 +402,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_08_234028) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "application_mailboxes", "locations"
+  add_foreign_key "audit_logs", "tenants"
+  add_foreign_key "audit_logs", "users", column: "actor_user_id"
   add_foreign_key "campaign_instances", "campaigns"
   add_foreign_key "campaign_step_instances", "campaign_instances"
   add_foreign_key "campaign_step_instances", "campaign_steps"

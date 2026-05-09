@@ -39,6 +39,8 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
       post admin_job_proposals_url, params: {
         job_proposal: {
           tenant_id: @tenant.id,
+          location_id: locations(:ne_dallas).id,
+          scenario_id: scenarios(:sewage_backup).id,
           owner_id: @owner.id,
           customer_first_name: "Manual",
           customer_last_name: "Entry",
@@ -54,6 +56,7 @@ class Admin::JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @admin, jp.created_by_user
     assert_equal @owner, jp.owner
     assert_equal "Manual", jp.customer_first_name
+    assert_equal scenarios(:sewage_backup), jp.scenario
   end
 
   test "admin create re-renders the form when validations fail" do

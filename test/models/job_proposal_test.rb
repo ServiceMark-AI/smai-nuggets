@@ -216,4 +216,15 @@ class JobProposalTest < ActiveSupport::TestCase
 
     assert_equal "NEW-thread", @jp.gmail_thread_id
   end
+
+  # --- PRD-01 §8.1 schema reconciliation ---------------------------------
+
+  test "location is required (PRD-01 §8.1)" do
+    jp = JobProposal.new(
+      tenant: tenants(:one),
+      owner: users(:one), created_by_user: users(:one)
+    )
+    refute jp.valid?
+    assert_includes jp.errors[:location], "must exist"
+  end
 end
