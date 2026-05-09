@@ -78,6 +78,20 @@ class Admin::TenantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Servpro of NE Dallas", log.payload["after"]["company_name"]
   end
 
+  test "update accepts a logo file upload via Active Storage" do
+    sign_in @admin
+    tenant = tenants(:one)
+    file = Rack::Test::UploadedFile.new(StringIO.new("fake image bytes"), "image/png", original_filename: "logo.png")
+
+    assert_difference "ActiveStorage::Attachment.count", 1 do
+      patch admin_tenant_url(tenant), params: { tenant: { name: tenant.name, logo: file } }
+    end
+    assert_redirected_to admin_tenant_path(tenant)
+    tenant.reload
+    assert tenant.logo.attached?
+    assert_equal "logo.png", tenant.logo.filename.to_s
+  end
+
   test "non-admin can't edit or update a tenant" do
     sign_in @non_admin
     get edit_admin_tenant_url(tenants(:one))

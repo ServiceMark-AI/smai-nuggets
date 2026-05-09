@@ -6,7 +6,7 @@
 
 <h1 class="h3 mb-3">Edit Tenant: <%= @tenant.name %></h1>
 
-<%= form_with model: @tenant, url: admin_tenant_path(@tenant), method: :patch, local: true do |f| %>
+<%= form_with model: @tenant, url: admin_tenant_path(@tenant), method: :patch, local: true, html: { multipart: true } do |f| %>
   <% if @tenant.errors.any? %>
     <div class="alert alert-danger">
       <strong>Please fix the following:</strong>
@@ -33,9 +33,21 @@
       </div>
 
       <div class="mb-3">
-        <%= f.label :logo_url, "Logo URL", class: "form-label" %>
+        <%= f.label :logo, "Logo (upload)", class: "form-label" %>
+        <% if @tenant.logo.attached? %>
+          <div class="mb-2">
+            <%= image_tag rails_blob_url(@tenant.logo, only_path: true), alt: "Current logo", style: "max-height: 64px;" %>
+            <div class="text-muted small mt-1"><%= @tenant.logo.filename %></div>
+          </div>
+        <% end %>
+        <%= f.file_field :logo, class: "form-control", accept: "image/*" %>
+        <div class="form-text">PNG, JPG, or SVG. Replaces any existing upload.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :logo_url, "Logo URL (manual override)", class: "form-label" %>
         <%= f.url_field :logo_url, class: "form-control", placeholder: "https://…" %>
-        <div class="form-text">Public URL of the logo. The upload pipeline lands separately.</div>
+        <div class="form-text">Used when no file is uploaded — link to a logo hosted elsewhere.</div>
       </div>
 
       <div class="form-check mb-0">

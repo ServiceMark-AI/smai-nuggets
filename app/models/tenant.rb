@@ -3,6 +3,13 @@ class Tenant < ApplicationRecord
   has_many :users, dependent: :nullify
   has_many :job_proposals, dependent: :destroy
   has_many :invitations, dependent: :destroy
+
+  # PRD-10 v1.3.1 §7 / SPEC-07 v1.4 §9 — every campaign email signature
+  # references the account's logo. Stored via Active Storage so SMAI staff
+  # (or eventually the operator UI) can upload via the admin portal. The
+  # string column `logo_url` is preserved as a manual override for tenants
+  # who'd rather link to a logo hosted elsewhere.
+  has_one_attached :logo
   has_many :tenant_job_types, dependent: :destroy
   has_many :tenant_scenarios, dependent: :destroy
 
@@ -21,4 +28,12 @@ class Tenant < ApplicationRecord
            source: :scenario
 
   validates :name, presence: true
+
+  # Resolves the right URL for templates / signatures: prefer the
+  # uploaded logo blob if attached, else the manual `logo_url` string,
+  # else nil. Callers handle the nil case.
+  def logo_image_url
+    return Rails.application.routes.url_helpers.rails_blob_url(logo, only_path: true) if logo.attached?
+    logo_url.presence
+  end
 end
