@@ -12,6 +12,7 @@ class Admin::TenantsController < Admin::BaseController
     @pending_invitations = @tenant.invitations.where(accepted_at: nil).order(created_at: :desc)
     @users = @tenant.users.includes(:location).order(:email)
     @locations = @tenant.locations.order(:display_name)
+    @invite_locations = @tenant.locations.active.order(:display_name)
   end
 
   def new

@@ -20,7 +20,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
   test "without an application mailbox the invitation is refused with a clear blocker message" do
     sign_in @admin
     assert_no_difference "Invitation.count" do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com" } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com", is_account_admin: "1" } }
     end
     assert_empty GmailSender.deliveries
     assert_redirected_to admin_tenant_path(@tenant)
@@ -35,7 +35,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     prior = ENV.delete("APP_HOST")
     begin
       assert_no_difference "Invitation.count" do
-        post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com" } }
+        post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com", is_account_admin: "1" } }
       end
       assert_match(/APP_HOST is not set/i, flash[:alert].to_s)
     ensure
@@ -49,7 +49,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     assert_difference "Invitation.count", 1 do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com" } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "lead@example.com", is_account_admin: "1" } }
     end
 
     assert_equal 1, GmailSender.deliveries.size
@@ -61,11 +61,58 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     assert_match invitation.token, delivery[:body]
   end
 
+  test "admin: invite is rejected when neither admin nor location is provided" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    sign_in @admin
+    assert_no_difference "Invitation.count" do
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "needs-loc@example.com" } }
+    end
+    assert_redirected_to admin_tenant_path(@tenant)
+    assert_match(/Pick a location, or check Is Account Admin/i, flash[:alert].to_s)
+  end
+
+  test "admin: invite persists location_id when one is chosen" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    location = @tenant.locations.create!(
+      display_name: "Dallas", address_line_1: "1 Main", city: "Dallas",
+      state: "TX", postal_code: "75001", phone_number: "(214) 555-0101", is_active: true
+    )
+    sign_in @admin
+
+    assert_difference "Invitation.count", 1 do
+      post admin_tenant_invitations_url(@tenant), params: { invitation: {
+        email: "loc-admin-invite@example.com", location_id: location.id,
+        first_name: "Pat", last_name: "Quinn", title: "Estimator", phone_number: "(214) 555-1212"
+      } }
+    end
+    inv = Invitation.where(email: "loc-admin-invite@example.com").last
+    assert_equal location, inv.location
+    assert_equal "Pat", inv.first_name
+    assert_equal "Estimator", inv.title
+  end
+
+  test "admin: invite rejects a location from a different tenant" do
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok", expires_at: 1.hour.from_now)
+    other_tenant = Tenant.create!(name: "OtherCo3")
+    foreign_location = other_tenant.locations.create!(
+      display_name: "Foreign", address_line_1: "9 Foreign", city: "Reno",
+      state: "NV", postal_code: "89501", phone_number: "(775) 555-0303", is_active: true
+    )
+    sign_in @admin
+
+    assert_no_difference "Invitation.count" do
+      post admin_tenant_invitations_url(@tenant), params: { invitation: {
+        email: "leak-admin@example.com", location_id: foreign_location.id
+      } }
+    end
+    assert_match(/isn't part of this tenant/i, flash[:alert].to_s)
+  end
+
   test "creating an invitation with a blank email is rejected" do
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
     sign_in @admin
     assert_no_difference "Invitation.count" do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "" } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "", is_account_admin: "1" } }
     end
     assert_redirected_to admin_tenant_path(@tenant)
     assert_match(/email can/i, flash[:alert].to_s)
@@ -80,7 +127,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
 
     GmailSender.reset_deliveries!
     assert_no_difference "Invitation.count" do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "tenantless2@example.com" } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "tenantless2@example.com", is_account_admin: "1" } }
     end
     assert_empty GmailSender.deliveries
     assert_equal @tenant, existing.reload.tenant
@@ -93,7 +140,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     assert_no_difference "Invitation.count" do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "alreadyhere2@example.com" } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "alreadyhere2@example.com", is_account_admin: "1" } }
     end
     assert_match(/already in #{Regexp.escape(@tenant.name)}/i, flash[:alert].to_s)
   end
@@ -105,7 +152,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     sign_in @admin
 
     assert_no_difference "Invitation.count" do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "elsewhere2@example.com" } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: "elsewhere2@example.com", is_account_admin: "1" } }
     end
     assert_match(/another tenant/i, flash[:alert].to_s)
   end
@@ -114,7 +161,7 @@ class Admin::InvitationsControllerTest < ActionDispatch::IntegrationTest
     ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
     sign_in @admin
     assert_no_difference "Invitation.count" do
-      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: @admin.email } }
+      post admin_tenant_invitations_url(@tenant), params: { invitation: { email: @admin.email, is_account_admin: "1" } }
     end
     assert_match(/system admin/i, flash[:alert].to_s)
   end
