@@ -135,7 +135,17 @@ class MailGeneratorTest < ActiveSupport::TestCase
     assert_equal "10280 Miller Rd, Dallas, TX, 75238\nTexas\n(214) 343-3973", body_without_signature(out)
   end
 
-  test "company_name renders the tenant name" do
+  test "company_name renders tenant.company_name when set" do
+    @tenant.update!(company_name: "Servpro of NE Dallas")
+    out = MailGenerator.render(
+      campaign_step: step(subject: "X", body: "From {company_name}"),
+      job_proposal: @job
+    )
+    assert_equal "From Servpro of NE Dallas", body_without_signature(out)
+  end
+
+  test "company_name falls back to tenant.name when company_name is blank" do
+    @tenant.update!(company_name: nil)
     out = MailGenerator.render(
       campaign_step: step(subject: "X", body: "From {company_name}"),
       job_proposal: @job

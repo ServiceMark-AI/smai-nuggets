@@ -205,7 +205,7 @@ class MailGenerator
     when "originator_title"       then originator&.title
     when "originator_phone"       then originator&.phone_number
     when "originator_email"       then originator&.email
-    when "company_name"           then tenant&.name
+    when "company_name"           then tenant&.company_name.presence || tenant&.name
     when "company_phone"          then location&.phone_number
     when "location_name"          then location&.display_name
     when "location_address"       then location_address

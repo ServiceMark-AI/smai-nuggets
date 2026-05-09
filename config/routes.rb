@@ -47,7 +47,7 @@ Rails.application.routes.draw do
     resources :integrations, only: [:index] do
       collection { post :check }
     end
-    resources :tenants, only: [:index, :show, :new, :create] do
+    resources :tenants, only: [:index, :show, :new, :create, :edit, :update] do
       resources :invitations, only: [:create, :destroy]
       resources :locations, only: [:new, :create]
       resource :activations, only: [:show], controller: "activations"

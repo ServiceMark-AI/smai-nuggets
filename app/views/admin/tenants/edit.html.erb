@@ -1,0 +1,53 @@
+<% content_for :title, "Edit Tenant: #{@tenant.name}" %>
+
+<%= render "shared/admin_breadcrumb",
+      tenant: @tenant,
+      current: :tenant %>
+
+<h1 class="h3 mb-3">Edit Tenant: <%= @tenant.name %></h1>
+
+<%= form_with model: @tenant, url: admin_tenant_path(@tenant), method: :patch, local: true do |f| %>
+  <% if @tenant.errors.any? %>
+    <div class="alert alert-danger">
+      <strong>Please fix the following:</strong>
+      <ul class="mb-0">
+        <% @tenant.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="mb-3">
+        <%= f.label :name, "Account name (internal)", class: "form-label" %>
+        <%= f.text_field :name, class: "form-control", required: true %>
+        <div class="form-text">Shown in SMAI admin only.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :company_name, "Company name (customer-facing)", class: "form-label" %>
+        <%= f.text_field :company_name, class: "form-control", placeholder: @tenant.name %>
+        <div class="form-text">Used in email signatures (<code>{company_name}</code>). Falls back to the account name when blank.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :logo_url, "Logo URL", class: "form-label" %>
+        <%= f.url_field :logo_url, class: "form-control", placeholder: "https://…" %>
+        <div class="form-text">Public URL of the logo. The upload pipeline lands separately.</div>
+      </div>
+
+      <div class="form-check mb-0">
+        <%= f.check_box :job_reference_required, class: "form-check-input", id: "tenant-job-ref-required" %>
+        <%= f.label :job_reference_required, "Require DASH job number", class: "form-check-label", for: "tenant-job-ref-required" %>
+        <div class="form-text">When on, every job in this account needs a DASH number before it can be approved.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit "Save", class: "btn btn-primary" %>
+    <%= link_to "Cancel", admin_tenant_path(@tenant), class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
