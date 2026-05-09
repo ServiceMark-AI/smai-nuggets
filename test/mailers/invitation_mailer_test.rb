@@ -23,7 +23,7 @@ class InvitationMailerTest < ActionMailer::TestCase
     mail = InvitationMailer.with(invitation: invitation).invite
 
     assert_equal ["newhire@example.com"], mail.to
-    assert_equal "Inga Vega invited you to AcmeCo on SMAI", mail.subject
+    assert_equal "Inga Vega invited you to AcmeCo on ServiceMark AI", mail.subject
     assert_equal ["Inga Vega"], mail[:from].display_names
     assert_match "Inga Vega has invited you to join AcmeCo", mail.text_part.body.to_s
     assert_match "Inga Vega", mail.html_part.body.to_s
@@ -31,7 +31,7 @@ class InvitationMailerTest < ActionMailer::TestCase
     assert_match invitation.token, mail.html_part.body.to_s
   end
 
-  test "invite from an admin uses generic SMAI Admin wording" do
+  test "invite from an admin uses generic ServiceMark AI Admin wording" do
     admin = User.create!(
       email: "ops@example.com",
       password: "Password1",
@@ -48,9 +48,9 @@ class InvitationMailerTest < ActionMailer::TestCase
 
     mail = InvitationMailer.with(invitation: invitation).invite
 
-    assert_equal "You've been invited to AcmeCo on SMAI", mail.subject
-    assert_equal ["SMAI Admin"], mail[:from].display_names
-    assert_match "A SMAI administrator has invited you to join AcmeCo", mail.text_part.body.to_s
+    assert_equal "You've been invited to AcmeCo on ServiceMark AI", mail.subject
+    assert_equal ["ServiceMark AI Admin"], mail[:from].display_names
+    assert_match "A ServiceMark AI administrator has invited you to join AcmeCo", mail.text_part.body.to_s
     assert_no_match(/Ops Person/, mail.text_part.body.to_s)
     assert_no_match(/Ops Person/, mail.html_part.body.to_s)
   end

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose exec -T web bundle exec rails test)",
+      "Bash(docker-compose exec -T web bundle exec rails test *)",
+      "Bash(docker-compose exec -T web bundle exec rails test:system)",
+      "Bash(docker-compose exec -T web bundle exec rails test:system *)",
+      "Bash(docker-compose exec -T web bundle exec rails db:test:prepare)",
+      "Bash(docker-compose exec -T web bundle exec rails db:test:prepare test)",
+      "Bash(docker-compose exec -T web bundle exec rails db:test:prepare test:system)"
+    ]
+  }
+}

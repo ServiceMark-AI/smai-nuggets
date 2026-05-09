@@ -34,3 +34,7 @@
 /.env
 /.env.*
 !/.env.example
+
+# Claude Code per-developer settings — .claude/settings.json is shared
+# (project allowlist for safe commands), .local.json is per-developer.
+/.claude/settings.local.json
