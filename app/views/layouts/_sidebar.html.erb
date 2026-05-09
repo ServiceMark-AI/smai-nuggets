@@ -28,5 +28,10 @@
       <%= link_to "Messages", admin_messages_path, class: "nav-link #{'active' if controller_path == 'admin/messages'}" %>
       <%= link_to "Job Prompt", admin_pdf_processing_revisions_path, class: "nav-link #{'active' if controller_path == 'admin/pdf_processing_revisions'}" %>
     <% end %>
+
+    <% if Rails.env.development? %>
+      <h6 class="text-uppercase text-muted small mt-3 mb-1 px-3">Dev</h6>
+      <%= link_to "Mail Inbox ↗", "/letter_opener", class: "nav-link", target: "_blank", rel: "noopener" %>
+    <% end %>
   </nav>
 </aside>
