@@ -1,6 +1,6 @@
 # User Guide
 
-This guide walks through the day-to-day operation of SMAI from two perspectives:
+This guide walks through the day-to-day operation of the product from two perspectives:
 
 - **System admin** — owns the job types, scenarios, and campaigns, and onboards tenants.
 - **Tenant user** — runs jobs, monitors the proposal status board, and handles customer replies.
@@ -19,15 +19,15 @@ The sections below are written in the order you would touch them when standing t
 | 3 | [User Onboarding & Account Maintenance](03-user-onboarding-and-account.md) | Tenant user |
 | 4 | [Campaign Maintenance](04-campaign-maintenance.md) | Tenant user |
 | | &nbsp;&nbsp;4a. [Upload a job to start a campaign](04-campaign-maintenance.md#4a-upload-a-job-to-start-a-campaign) | |
-| | &nbsp;&nbsp;4b. [The proposal status board](04-campaign-maintenance.md#4b-the-proposal-status-board) | |
+| | &nbsp;&nbsp;4b. [The Jobs board](04-campaign-maintenance.md#4b-the-jobs-board) | |
 | | &nbsp;&nbsp;4c. [Pausing & unpausing a campaign](04-campaign-maintenance.md#4c-pausing--unpausing-a-campaign) | |
 | | &nbsp;&nbsp;4d. [Customer responds](04-campaign-maintenance.md#4d-customer-responds) | |
-| | &nbsp;&nbsp;4e. [Marking a proposal as won / lost](04-campaign-maintenance.md#4e-marking-a-proposal-as-won--lost) (not yet built) | |
+| | &nbsp;&nbsp;4e. [Marking a job as won / lost](04-campaign-maintenance.md#4e-marking-a-job-as-won--lost) | |
 
 ## Conventions used in this guide
 
 - **Paths** like `/admin/tenants` refer to the URL after your hostname (e.g. `https://app.example.com/admin/tenants`).
-- **Admin-only** screens require a user with the system-admin flag set. Tenant users do not see the **Admin** group in the sidebar.
+- **Admin-only** screens require a user with the system-admin flag set. Tenant users do not see the **Platform Admin** group in the sidebar.
 - The seeded restoration job types (Water Mitigation, Mold Remediation, Structural Cleaning, General Cleaning, Trauma / Biohazard) are referenced by their `type_code` in templates and specs.
 
 ## Suggesting changes
