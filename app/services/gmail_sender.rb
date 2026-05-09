@@ -128,7 +128,7 @@ class GmailSender
   class SelfTestError < StandardError; end
 
   def send_self_test
-    subject = "[SMAI] Integration self-test #{Time.current.iso8601}"
+    subject = "[ServiceMark AI] Integration self-test #{Time.current.iso8601}"
     body    = "Automated connectivity check from the Integrations page. Safe to delete."
 
     if Rails.env.test?
