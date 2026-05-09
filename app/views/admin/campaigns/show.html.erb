@@ -154,7 +154,7 @@
           </tr>
         </thead>
         <tbody>
-          <% @campaign.revisions.includes(:created_by_user, :approved_by_user, :steps).order(revision_number: :desc).each do |rev| %>
+          <% @campaign.revisions.includes(:created_by_user, :approved_by_user, :steps).reorder(revision_number: :desc).each do |rev| %>
             <% rev_status_class = case rev.status when "active" then "text-bg-success" when "drafting" then "text-bg-secondary" else "text-bg-dark" end %>
             <tr>
               <td>

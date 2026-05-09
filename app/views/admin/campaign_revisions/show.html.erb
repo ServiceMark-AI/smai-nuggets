@@ -4,7 +4,7 @@
   <ol class="breadcrumb mb-0">
     <li class="breadcrumb-item"><%= link_to "Campaigns", admin_campaigns_path %></li>
     <li class="breadcrumb-item"><%= link_to @campaign.name, admin_campaign_path(@campaign) %></li>
-    <li class="breadcrumb-item active" aria-current="page">Revision ##{@revision.revision_number}</li>
+    <li class="breadcrumb-item active" aria-current="page">Revision #<%= @revision.revision_number %></li>
   </ol>
 </nav>
 
