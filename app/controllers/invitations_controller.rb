@@ -95,6 +95,9 @@ class InvitationsController < ApplicationController
     if invitation.nil?
       redirect_to users_path, alert: "Invitation not found." and return
     end
+    unless current_user.can_invite_into_tenant?
+      redirect_to users_path, alert: "Only account admins can revoke invitations." and return
+    end
     if invitation.accepted?
       redirect_to users_path, alert: "That invitation has already been accepted and can't be revoked." and return
     end
