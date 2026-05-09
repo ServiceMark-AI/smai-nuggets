@@ -15,24 +15,3 @@
 </div>
 
 <%= render "analytics/dashboard", analytics: @analytics %>
-
-<%# --- Pending data callout ------------------------------------------ %>
-<div class="card border-warning shadow-sm">
-  <div class="card-header bg-warning-subtle">
-    <h2 class="h6 mb-0">Pending data — what's needed to fully realize PRD-07</h2>
-  </div>
-  <ul class="list-group list-group-flush small">
-    <li class="list-group-item">
-      <strong>Inbound-message store.</strong> No table records customer replies today. Blocks: <em>Avg Time to First Reply</em> tile · <em>Customer Replied</em> funnel stage · <em>Operator Responded</em> funnel stage · <em>Reply Rate</em> originator column.
-    </li>
-    <li class="list-group-item">
-      <strong>Operator-reply tracking.</strong> Same inbound store, but for messages your team types in Gmail directly — needed to distinguish a system-sent follow-up from a hand-typed one.
-    </li>
-    <li class="list-group-item">
-      <strong>Date / location / job-type filter bar (PRD §6).</strong> Once the filter bar lands, this page will scope to whatever range you pick instead of all-time.
-    </li>
-    <li class="list-group-item">
-      <strong>Period-over-period deltas (PRD §7.1).</strong> Each tile will gain a "X% vs prior period" caption once date filtering is in.
-    </li>
-  </ul>
-</div>

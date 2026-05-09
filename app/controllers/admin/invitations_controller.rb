@@ -8,16 +8,34 @@ class Admin::InvitationsController < Admin::BaseController
         alert: "Can't send invitations yet: #{blockers.join(' ')}" and return
     end
 
+    is_account_admin = ActiveModel::Type::Boolean.new.cast(params.dig(:invitation, :is_account_admin))
+    location_id = params.dig(:invitation, :location_id).presence
+
+    if !is_account_admin && location_id.blank?
+      redirect_to admin_tenant_path(@tenant),
+        alert: "Pick a location, or check Is Account Admin." and return
+    end
+
+    location = nil
+    if location_id.present?
+      location = @tenant.locations.find_by(id: location_id)
+      if location.nil?
+        redirect_to admin_tenant_path(@tenant),
+          alert: "That location isn't part of this tenant." and return
+      end
+    end
+
     email = params.dig(:invitation, :email).to_s.strip
     existing = email.blank? ? nil : User.find_by(email: email.downcase)
     if existing
-      result = handle_existing_user_invite(existing, tenant: @tenant)
+      result = handle_existing_user_invite(existing, tenant: @tenant, location: location)
       redirect_to admin_tenant_path(@tenant), **result and return
     end
 
     invitation = @tenant.invitations.build(
       invited_by_user: current_user,
       email: email,
+      location: location,
       first_name: params.dig(:invitation, :first_name).to_s.strip.presence,
       last_name: params.dig(:invitation, :last_name).to_s.strip.presence,
       phone_number: params.dig(:invitation, :phone_number).to_s.strip.presence,
@@ -68,7 +86,7 @@ class Admin::InvitationsController < Admin::BaseController
   # Same shape as InvitationsController#handle_existing_user_invite —
   # see the comment there. Inlined rather than extracted because the
   # tenant resolution (current_user.tenant vs @tenant) differs.
-  def handle_existing_user_invite(user, tenant:)
+  def handle_existing_user_invite(user, tenant:, location: nil)
     if user.is_admin
       return { alert: "#{user.email} is a system admin — admins aren't added through tenant invites." }
     end
@@ -79,7 +97,10 @@ class Admin::InvitationsController < Admin::BaseController
       return { alert: "#{user.email} is already in #{tenant.name}." }
     end
 
-    user.update!(tenant: tenant)
+    User.transaction do
+      user.update!(tenant: tenant)
+      user.update!(location: location) if location && user.location_id.nil?
+    end
     { notice: "Added #{user.email} to #{tenant.name}." }
   end
 

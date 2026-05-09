@@ -1,0 +1,93 @@
+require "test_helper"
+
+class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+
+  setup do
+    @admin = users(:admin)
+    @non_admin = users(:one)
+    @tenant = tenants(:one)
+    @teammate = User.create!(email: "admin-edit-victim@example.com", password: "Password1", is_pending: false, tenant: @tenant)
+  end
+
+  test "non-admin cannot reach the admin user edit page" do
+    sign_in @non_admin
+    get edit_admin_tenant_user_url(@tenant, @teammate)
+    assert_redirected_to root_path
+  end
+
+  test "non-admin cannot update via the admin path" do
+    sign_in @non_admin
+    patch admin_tenant_user_url(@tenant, @teammate), params: { user: { first_name: "Hax" } }
+    assert_redirected_to root_path
+    assert_nil @teammate.reload.first_name
+  end
+
+  test "admin sees the edit form" do
+    sign_in @admin
+    get edit_admin_tenant_user_url(@tenant, @teammate)
+    assert_response :success
+    assert_select "form input[name='user[first_name]']"
+    assert_select "form input[name='user[last_name]']"
+    assert_select "form input[name='user[title]']"
+    assert_select "form input[name='user[phone_number]']"
+    assert_select "form select[name='user[location_id]']"
+  end
+
+  test "admin can update name, title, phone, and location with audit log" do
+    location = locations(:ne_dallas)
+    sign_in @admin
+
+    assert_difference "AuditLog.count", 1 do
+      patch admin_tenant_user_url(@tenant, @teammate), params: { user: {
+        first_name: "Pat", last_name: "Quinn",
+        title: "Estimator", phone_number: "(214) 555-1212",
+        location_id: location.id
+      } }
+    end
+    assert_redirected_to admin_tenant_path(@tenant)
+    @teammate.reload
+    assert_equal "Pat", @teammate.first_name
+    assert_equal "Quinn", @teammate.last_name
+    assert_equal "Estimator", @teammate.title
+    assert_equal "(214) 555-1212", @teammate.phone_number
+    assert_equal location, @teammate.location
+
+    log = AuditLog.where(target_type: "User", target_id: @teammate.id, action: "user.update").last
+    assert_equal @admin, log.actor_user
+    assert_equal "Pat", log.payload["after"]["first_name"]
+  end
+
+  test "admin update drops a tampered location_id from another tenant" do
+    other_tenant = Tenant.create!(name: "OtherCo-admin-edit")
+    foreign_location = other_tenant.locations.create!(
+      display_name: "Foreign", address_line_1: "9 Foreign", city: "Reno",
+      state: "NV", postal_code: "89501", phone_number: "(775) 555-0303", is_active: true
+    )
+    sign_in @admin
+
+    patch admin_tenant_user_url(@tenant, @teammate), params: { user: {
+      first_name: "Pat", location_id: foreign_location.id
+    } }
+    assert_redirected_to admin_tenant_path(@tenant)
+    @teammate.reload
+    assert_equal "Pat", @teammate.first_name
+    assert_nil @teammate.location_id, "cross-tenant location_id must be dropped"
+  end
+
+  test "admin gets a friendly redirect when the user isn't in the tenant" do
+    other_tenant = Tenant.create!(name: "OtherCo-edit-mismatch")
+    outsider = User.create!(email: "outsider-admin-edit@example.com", password: "Password1", is_pending: false, tenant: other_tenant)
+    sign_in @admin
+    get edit_admin_tenant_user_url(@tenant, outsider)
+    assert_redirected_to admin_tenant_path(@tenant)
+    assert_match(/not found in this tenant/i, flash[:alert].to_s)
+  end
+
+  test "admin tenant show renders an Edit link for each user" do
+    sign_in @admin
+    get admin_tenant_url(@tenant)
+    assert_response :success
+    assert_select "a[href=?]", edit_admin_tenant_user_path(@tenant, @teammate), text: "Edit"
+  end
+end
