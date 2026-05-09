@@ -56,9 +56,16 @@ Rails.application.configure do
   # Set localhost to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
-  # Outbound mail (Devise password resets, etc.) goes through the singleton
-  # ApplicationMailbox via Gmail OAuth. Connect one at /admin/application_mailbox.
-  config.action_mailer.delivery_method = :gmail_oauth
+  # ActionMailer in dev routes through letter_opener_web. Outbound mail
+  # (Devise password resets, Devise registration confirmations, etc.) is
+  # captured and viewable at http://localhost:3000/letter_opener with
+  # clickable links — no real sends, no OAuth credentials needed.
+  # Production still uses :gmail_oauth (see config/environments/production.rb).
+  #
+  # NOTE: GmailSender (used directly by InvitationsController and
+  # CampaignSweepJob, not through ActionMailer) bypasses this. Those have
+  # their own dev-mode FAKE-SEND path inside GmailSender.
+  config.action_mailer.delivery_method = :letter_opener_web
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

@@ -4,6 +4,13 @@ require "sidekiq/cron/web" # registers the Cron tab in the Sidekiq UI
 Rails.application.routes.draw do
   devise_for :users, controllers: { registrations: "users/registrations" }
 
+  # Browseable inbox of every email captured by ActionMailer in
+  # development. Mounted only in development so production can never
+  # serve this route.
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
   # Sidekiq's built-in web UI. Gated behind Devise sign-in + admin flag —
   # the constraint short-circuits with a 404 (not a redirect to sign in)
   # for unauthorized users so the path doesn't advertise itself.

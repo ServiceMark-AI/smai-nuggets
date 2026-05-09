@@ -84,6 +84,10 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+  # Capture outbound email in a browseable web inbox at /letter_opener so
+  # password-reset / invitation-accept links are clickable from local dev
+  # without sending real mail through Gmail.
+  gem "letter_opener_web"
 end
 
 group :test do
