@@ -71,6 +71,16 @@ class InvitationsController < ApplicationController
     )
 
     if invitation.save
+      if Rails.env.development?
+        # ActionMailer routes to :letter_opener_web in dev (config/environments/
+        # development.rb) — captured to /letter_opener so the accept link is
+        # clickable without OAuth or a real mailbox.
+        InvitationMailer.with(invitation: invitation).invite.deliver_now
+        redirect_to users_path,
+          notice: "Invitation sent to #{invitation.email}. Captured at /letter_opener in dev."
+        return
+      end
+
       mailbox = ApplicationMailbox.current
       if mailbox.nil?
         redirect_to users_path,

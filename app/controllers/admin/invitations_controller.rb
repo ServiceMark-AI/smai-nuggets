@@ -43,6 +43,13 @@ class Admin::InvitationsController < Admin::BaseController
     )
 
     if invitation.save
+      if Rails.env.development?
+        InvitationMailer.with(invitation: invitation).invite.deliver_now
+        redirect_to admin_tenant_path(@tenant),
+          notice: "Invitation sent to #{invitation.email}. Captured at /letter_opener in dev."
+        return
+      end
+
       mailbox = ApplicationMailbox.current
       if mailbox.nil?
         redirect_to admin_tenant_path(@tenant),
