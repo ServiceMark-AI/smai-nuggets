@@ -982,6 +982,30 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action=?]", revert_pipeline_stage_job_proposal_path(jp), count: 0
   end
 
+  test "show page renders the loss-details card with reason and notes when pipeline_stage is lost" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(
+      pipeline_stage: "lost",
+      loss_reason: loss_reasons(:went_with_competitor),
+      loss_notes: "Customer chose ABC Restoration after the second visit."
+    )
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match(/Why we lost this job/, response.body)
+    assert_match(/Went with competitor/, response.body)
+    assert_match(/Customer chose ABC Restoration/, response.body)
+  end
+
+  test "show page hides the loss-details card when pipeline_stage is not lost" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(pipeline_stage: "won")
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_no_match(/Why we lost this job/, response.body)
+  end
+
   # --- pause --------------------------------------------------------------
 
   test "pause redirects to sign-in when not signed in" do
