@@ -108,6 +108,15 @@
           <%= f.label :internal_reference, "Internal reference", class: "form-label" %>
           <%= f.text_field :internal_reference, class: "form-control", disabled: @campaign_in_flight %>
         </div>
+        <% if @job_proposal.tenant&.job_reference_required %>
+          <div class="col-md-6">
+            <%= f.label :dash_job_number, "DASH job number", class: "form-label" %>
+            <%= f.text_field :dash_job_number, class: "form-control", disabled: @campaign_in_flight,
+                  required: !@job_proposal.status_drafting?,
+                  placeholder: "e.g. 12345" %>
+            <div class="form-text">Required before this job can be approved. Prefixed onto every campaign email subject so the thread stays threaded in DASH.</div>
+          </div>
+        <% end %>
       </div>
     </div>
   </div>

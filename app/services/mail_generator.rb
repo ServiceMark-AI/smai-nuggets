@@ -134,6 +134,17 @@ class MailGenerator
     end
   end
 
+  # When the proposal carries a DASH job number, prefix it on the email
+  # subject so Jeff's DASH inbox can thread on it (CC-06 v1.2 §1; PRD-02
+  # v1.5 §5). Idempotent — if the subject already starts with the same
+  # prefix (e.g., the operator hand-edited a draft body), don't double up.
+  def self.prefix_dash_job_number(subject, dash_job_number)
+    return subject if dash_job_number.blank?
+    prefix = "[DASH-#{dash_job_number}]"
+    return subject if subject.to_s.start_with?(prefix)
+    "#{prefix} #{subject}".strip
+  end
+
   # Appends a standard sign-off block to every email body so individual
   # campaign templates don't have to repeat (and drift on) the
   # "name / phone / email / org" pattern. Built from already-resolved
@@ -172,6 +183,7 @@ class MailGenerator
       raise UnresolvedMergeFieldError, "Unresolved merge fields: #{unresolved.join(", ")}"
     end
 
+    subject = self.class.prefix_dash_job_number(subject, @job_proposal.dash_job_number)
     body = self.class.append_signature(body, values)
     Output.new(subject:, body:)
   end

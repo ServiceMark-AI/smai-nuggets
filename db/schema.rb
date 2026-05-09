@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_09_001343) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_09_000505) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -47,27 +47,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_001343) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.datetime "expires_at"
-    t.bigint "location_id"
     t.string "provider", default: "google", null: false
     t.text "refresh_token"
     t.text "scopes"
     t.datetime "updated_at", null: false
-    t.index ["location_id"], name: "index_application_mailboxes_on_location_id", unique: true, where: "(location_id IS NOT NULL)"
-  end
-
-  create_table "audit_logs", force: :cascade do |t|
-    t.string "action", null: false
-    t.bigint "actor_user_id"
-    t.datetime "created_at", null: false
-    t.jsonb "payload", default: {}, null: false
-    t.bigint "target_id", null: false
-    t.string "target_type", null: false
-    t.bigint "tenant_id", null: false
-    t.index ["action"], name: "index_audit_logs_on_action"
-    t.index ["actor_user_id"], name: "index_audit_logs_on_actor_user_id"
-    t.index ["created_at"], name: "index_audit_logs_on_created_at"
-    t.index ["target_type", "target_id"], name: "index_audit_logs_on_target_type_and_target_id"
-    t.index ["tenant_id"], name: "index_audit_logs_on_tenant_id"
   end
 
   create_table "campaign_instances", force: :cascade do |t|
@@ -351,10 +334,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_001343) do
   end
 
   create_table "tenants", force: :cascade do |t|
-    t.string "company_name"
     t.datetime "created_at", null: false
     t.boolean "job_reference_required", default: false, null: false
-    t.string "logo_url"
     t.string "name", null: false
     t.datetime "updated_at", null: false
   end
@@ -402,9 +383,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_001343) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "application_mailboxes", "locations"
-  add_foreign_key "audit_logs", "tenants"
-  add_foreign_key "audit_logs", "users", column: "actor_user_id"
   add_foreign_key "campaign_instances", "campaigns"
   add_foreign_key "campaign_step_instances", "campaign_instances"
   add_foreign_key "campaign_step_instances", "campaign_steps"

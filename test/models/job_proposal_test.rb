@@ -227,4 +227,38 @@ class JobProposalTest < ActiveSupport::TestCase
     refute jp.valid?
     assert_includes jp.errors[:location], "must exist"
   end
+
+  # --- DASH job number gating --------------------------------------------
+
+  test "dash_job_number is not required when the tenant flag is false" do
+    tenants(:one).update!(job_reference_required: false)
+    @jp.update!(status: :approved, dash_job_number: nil)
+    assert @jp.valid?
+  end
+
+  test "dash_job_number is not required while the proposal is drafting (tenant flag on)" do
+    tenants(:one).update!(job_reference_required: true)
+    @jp.update!(status: :drafting, dash_job_number: nil)
+    assert @jp.valid?
+  end
+
+  test "dash_job_number is not required while approving (tenant flag on)" do
+    tenants(:one).update!(job_reference_required: true)
+    @jp.update!(status: :approving, dash_job_number: nil)
+    assert @jp.valid?
+  end
+
+  test "dash_job_number is required to transition to approved (tenant flag on)" do
+    tenants(:one).update!(job_reference_required: true)
+    @jp.dash_job_number = nil
+    @jp.status = :approved
+    refute @jp.valid?
+    assert_includes @jp.errors[:dash_job_number], "is required before this job can be approved"
+  end
+
+  test "dash_job_number satisfies the gate when present (tenant flag on)" do
+    tenants(:one).update!(job_reference_required: true)
+    @jp.update!(status: :approved, dash_job_number: "98765")
+    assert_equal "98765", @jp.reload.dash_job_number
+  end
 end

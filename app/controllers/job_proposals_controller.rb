@@ -5,7 +5,7 @@ class JobProposalsController < ApplicationController
   EDITABLE_PARAMS = %i[
     customer_title customer_first_name customer_last_name customer_email
     customer_house_number customer_street customer_city customer_state customer_zip
-    internal_reference loss_notes loss_reason
+    internal_reference dash_job_number loss_notes loss_reason
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
