@@ -80,4 +80,32 @@ class AnalyticsCalculatorTest < ActiveSupport::TestCase
     assert_nil result.conversion_rate_mtd_pct
     assert_nil result.conversion_rate_ytd_pct
   end
+
+  # --- SPEC-06 v1.0 by-location breakdown -------------------------------
+
+  test "conversion_rate_by_location returns one row per location with activated/won/rate" do
+    loc_a = locations(:ne_dallas)
+    loc_b = tenants(:one).locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    jp_a = job_proposals(:in_users_org)
+    jp_a.update!(location: loc_a, pipeline_stage: :won)
+    CampaignInstance.create!(host: jp_a, campaign: campaigns(:approved_campaign), status: :active)
+
+    jp_b = job_proposals(:same_tenant_other_org)
+    jp_b.update!(location: loc_b, pipeline_stage: :in_campaign)
+    CampaignInstance.create!(host: jp_b, campaign: campaigns(:approved_campaign), status: :active)
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    rows = result.conversion_rate_by_location
+    by_name = rows.index_by { |r| r[:location_display_name] }
+    assert_equal 100, by_name["NE Dallas"][:conversion_rate_pct]
+    assert_equal 0,   by_name["South Dallas"][:conversion_rate_pct]
+  end
+
+  test "conversion_rate_by_location is empty when no proposals have a location" do
+    result = AnalyticsCalculator.new(proposals_scope: JobProposal.none).call
+    assert_equal [], result.conversion_rate_by_location
+  end
 end
