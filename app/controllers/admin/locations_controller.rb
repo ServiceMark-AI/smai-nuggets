@@ -8,6 +8,11 @@ class Admin::LocationsController < Admin::BaseController
   def create
     @location = @tenant.locations.build(location_params.merge(created_by_user: current_user))
     if @location.save
+      AuditLogger.write(
+        tenant: @tenant, actor: current_user,
+        action: "location.create", target: @location,
+        after: @location.slice(:display_name, :address_line_1, :address_line_2, :city, :state, :postal_code, :phone_number, :is_active)
+      )
       redirect_to admin_tenant_path(@tenant), notice: "Location added."
     else
       render :new, status: :unprocessable_content

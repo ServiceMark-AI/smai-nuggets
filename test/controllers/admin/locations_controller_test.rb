@@ -39,13 +39,18 @@ class Admin::LocationsControllerTest < ActionDispatch::IntegrationTest
   test "create persists a location under the tenant and stamps created_by" do
     sign_in @admin
     assert_difference -> { Location.count }, 1 do
-      post admin_tenant_locations_url(@tenant), params: valid_params
+      assert_difference -> { AuditLog.count }, 1 do
+        post admin_tenant_locations_url(@tenant), params: valid_params
+      end
     end
     assert_redirected_to admin_tenant_path(@tenant)
     location = @tenant.locations.find_by(display_name: "Boise")
     refute_nil location
     assert_equal "ID", location.state
     assert_equal @admin, location.created_by_user
+    log = AuditLog.where(target_type: "Location", target_id: location.id, action: "location.create").last
+    assert_equal @admin, log.actor_user
+    assert_equal "Boise", log.payload["after"]["display_name"]
   end
 
   test "create rejects invalid input without saving" do
