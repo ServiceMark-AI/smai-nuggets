@@ -21,7 +21,14 @@
       <%= link_to "Campaigns", admin_campaigns_path, class: "nav-link #{'active' if controller_name == 'campaigns'}" %>
       <%= link_to "Mailbox", admin_application_mailbox_path, class: "nav-link #{'active' if controller_path == 'admin/application_mailbox'}" %>
       <%= link_to "Integrations", admin_integrations_path, class: "nav-link #{'active' if controller_path == 'admin/integrations'}" %>
-      <%= link_to "Trash", admin_trash_path, class: "nav-link #{'active' if controller_path == 'admin/trash'}" %>
+      <%= link_to admin_trash_path,
+                  class: "nav-link d-flex align-items-center justify-content-between #{'active' if controller_path == 'admin/trash'}" do %>
+        <span>🗑 Trash</span>
+        <% trash_count = Campaign.with_discarded.discarded.count + JobProposal.with_discarded.discarded.count %>
+        <% if trash_count > 0 %>
+          <span class="badge text-bg-secondary rounded-pill"><%= trash_count %></span>
+        <% end %>
+      <% end %>
       <%= link_to "Sentry ↗", "https://sentry.io/organizations/", class: "nav-link", target: "_blank", rel: "noopener" %>
       <%= link_to "Sidekiq ↗", "/sidekiq", class: "nav-link", target: "_blank", rel: "noopener" %>
 
