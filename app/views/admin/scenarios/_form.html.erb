@@ -35,6 +35,13 @@
   </div>
 
   <div class="mb-3">
+    <%= f.label :industry_classification, "Industry classification", class: "form-label" %>
+    <%= f.text_field :industry_classification, class: "form-control",
+          placeholder: "e.g. IICRC S520 Mold Remediation" %>
+    <div class="form-text">Free-form. The standard or category this scenario fits under.</div>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :campaign_id, "Campaign", class: "form-label" %>
     <% if @scenario.persisted? %>
       <% scoped_campaigns = @scenario.attributed_campaigns.order(:name) %>

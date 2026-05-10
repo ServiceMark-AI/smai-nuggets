@@ -75,6 +75,21 @@
       <div class="card-body">
         <div class="text-muted text-uppercase small mb-1">Closed revenue</div>
         <div class="h4 fw-semibold mb-1"><%= number_to_currency(analytics.closed_revenue, precision: 0) %></div>
+        <%# MTD / YTD inline, mirroring the Conversion Rate tile pattern. %>
+        <div class="d-flex gap-3 small mt-2 mb-2">
+          <div>
+            <span class="text-muted">MTD</span>
+            <span class="fw-semibold ms-1">
+              <%= number_to_currency(analytics.closed_revenue_mtd, precision: 0) %>
+            </span>
+          </div>
+          <div>
+            <span class="text-muted">YTD</span>
+            <span class="fw-semibold ms-1">
+              <%= number_to_currency(analytics.closed_revenue_ytd, precision: 0) %>
+            </span>
+          </div>
+        </div>
         <div class="small text-muted">Proposal value of won jobs</div>
       </div>
     </div>

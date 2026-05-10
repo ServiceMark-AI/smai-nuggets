@@ -47,6 +47,6 @@ class Admin::ScenariosController < Admin::BaseController
   end
 
   def scenario_params
-    params.require(:scenario).permit(:code, :short_name, :description, :campaign_id)
+    params.require(:scenario).permit(:code, :short_name, :description, :industry_classification, :campaign_id)
   end
 end
