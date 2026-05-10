@@ -139,7 +139,10 @@
     <div class="card-body p-0">
       <dl class="row mb-0 px-3 pt-3">
         <dt class="col-sm-3">Campaign</dt>
-        <dd class="col-sm-9"><%= link_to campaign_instance.campaign.name, job_proposal_campaign_instance_path(@job_proposal, campaign_instance) %></dd>
+        <dd class="col-sm-9">
+          <% link_label = "#{campaign_instance.campaign.name} — Revision ##{campaign_instance.campaign_revision.revision_number}" %>
+          <%= link_to link_label, job_proposal_campaign_instance_path(@job_proposal, campaign_instance) %>
+        </dd>
       </dl>
 
       <% step_instances = campaign_instance.step_instances
