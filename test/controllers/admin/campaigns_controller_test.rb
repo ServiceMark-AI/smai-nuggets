@@ -67,15 +67,20 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form select[name='campaign[status]']", count: 0
   end
 
-  test "admin create with valid params persists and redirects" do
+  test "admin create persists the campaign with a drafting revision and lands on it for editing" do
     sign_in @admin
     assert_difference "Campaign.count", 1 do
-      post admin_campaigns_url, params: { campaign: { name: "Fall Drive" } }
+      assert_difference "CampaignRevision.count", 1 do
+        post admin_campaigns_url, params: { campaign: { name: "Fall Drive" } }
+      end
     end
-    assert_redirected_to admin_campaigns_path
+    created = Campaign.find_by(name: "Fall Drive")
+    revision = created.revisions.first
+    assert revision.status_drafting?, "initial revision must be drafting so the admin can add steps"
+    assert_equal 0, revision.revision_number
+    assert_redirected_to admin_campaign_revision_path(created, revision)
     follow_redirect!
-    assert_match "Campaign created.", response.body
-    assert_match "Fall Drive", response.body
+    assert_match "Campaign created", response.body
   end
 
   test "admin create with attributed_scenario_id sets the polymorphic attribution" do

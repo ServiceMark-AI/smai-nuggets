@@ -15,22 +15,24 @@ class Admin::CampaignsController < Admin::BaseController
 
   def create
     @campaign = Campaign.new(campaign_params)
+    revision = nil
     saved = false
     Campaign.transaction do
       saved = @campaign.save
       if saved
-        # Every campaign needs an active revision so the launcher can find
-        # something to send and the steps card on the campaign show page
-        # has somewhere to render. Spawn revision 0 right after create.
-        @campaign.revisions.create!(
+        # Initial revision starts in :drafting so the admin can add steps
+        # immediately. They promote it to :active via the revision's
+        # Approve button once the steps are in place.
+        revision = @campaign.revisions.create!(
           revision_number: 0,
-          status:          :active,
+          status:          :drafting,
           created_by_user: current_user
         )
       end
     end
     if saved
-      redirect_to admin_campaigns_path, notice: "Campaign created."
+      redirect_to admin_campaign_revision_path(@campaign, revision),
+                  notice: "Campaign created. Add the first step below, then click Approve when you're ready."
     else
       render :new, status: :unprocessable_content
     end
