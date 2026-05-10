@@ -10,6 +10,15 @@ class User < ApplicationRecord
 
   validates :time_zone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_blank: true
 
+  # The Gmail OAuth delegation a campaign send for this user (as a proposal
+  # originator) would authenticate as. Per PRD-09 v1.3 §1, customer email goes
+  # out from the originator's own Gmail — not from a shared location/admin
+  # mailbox — so this is what PreSendChecklist and CampaignSweepJob look up
+  # before each send. Returns nil when the originator has not connected Gmail.
+  def gmail_delegation
+    email_delegations.where(provider: "google").first
+  end
+
   def full_name
     [first_name, last_name].compact_blank.join(" ").presence
   end

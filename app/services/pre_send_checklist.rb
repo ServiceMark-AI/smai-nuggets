@@ -42,7 +42,7 @@ class PreSendChecklist
 
   def run
     [
-      check_mailbox_connected,
+      check_originator_mailbox,
       check_pipeline_stage,
       check_status_overlay,
       check_campaign_active,
@@ -67,18 +67,34 @@ class PreSendChecklist
 
   attr_reader :step_instance, :campaign_instance, :job_proposal
 
-  def check_mailbox_connected
-    mailbox = ApplicationMailbox.current
-    if mailbox.nil?
-      fail_check(:mailbox_connected, "Mailbox connected", BLOCK_DELIVERY_ISSUE,
-                 "No Gmail mailbox is connected for this tenant.",
-                 "Connect a mailbox in Settings → Integrations.")
-    elsif mailbox.expired? && mailbox.refresh_token.blank?
-      fail_check(:mailbox_connected, "Mailbox connected", BLOCK_DELIVERY_ISSUE,
-                 "The connected Gmail mailbox's authorization has expired and there is no refresh token.",
-                 "Reconnect the mailbox in Settings → Integrations.")
+  # Per PRD-09 v1.3 §1, customer email goes out from the originator's own
+  # Gmail (not from a shared location/admin mailbox), so the credential the
+  # sweep authenticates as is the proposal owner's EmailDelegation. A missing
+  # or unrecoverably-expired delegation surfaces as a delivery_issue on the
+  # job so the operator (or the originator) reconnects Gmail before the next
+  # step ships.
+  def check_originator_mailbox
+    label = "Originator's Gmail connected"
+    return missing_proposal(:originator_mailbox, label) if job_proposal.nil?
+
+    owner = job_proposal.owner
+    if owner.nil?
+      return fail_check(:originator_mailbox, label, BLOCK_DELIVERY_ISSUE,
+                        "This job has no owner — campaign emails have no originator to send from.",
+                        "Set an owner on the proposal before the campaign can ship.")
+    end
+
+    delegation = owner.gmail_delegation
+    if delegation.nil?
+      fail_check(:originator_mailbox, label, BLOCK_DELIVERY_ISSUE,
+                 "#{owner.display_name} has not connected their Gmail account, so there is no originator mailbox to send from.",
+                 "The originator must connect their Gmail in Settings → Integrations.")
+    elsif delegation.expired? && delegation.refresh_token.blank?
+      fail_check(:originator_mailbox, label, BLOCK_DELIVERY_ISSUE,
+                 "#{owner.display_name}'s Gmail authorization has expired and cannot be refreshed automatically.",
+                 "The originator must reconnect their Gmail in Settings → Integrations.")
     else
-      pass_check(:mailbox_connected, "Mailbox connected")
+      pass_check(:originator_mailbox, label)
     end
   end
 
