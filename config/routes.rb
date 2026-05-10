@@ -49,7 +49,7 @@ Rails.application.routes.draw do
     resources :messages, only: [:index]
     resources :tool_calls, only: [:index]
     resources :models, only: [:index]
-    resources :pdf_processing_revisions, only: [:index, :new, :create]
+    resources :pdf_processing_revisions, only: [:index, :show, :new, :create]
     resource :application_mailbox, only: [:show, :destroy], controller: "application_mailbox"
     resources :integrations, only: [:index] do
       collection { post :check }

@@ -1,0 +1,42 @@
+<% content_for :title, "Revision ##{@revision.revision_number}" %>
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb mb-0">
+    <li class="breadcrumb-item"><%= link_to "PDF Processing Revisions", admin_pdf_processing_revisions_path %></li>
+    <li class="breadcrumb-item active" aria-current="page">Revision #<%= @revision.revision_number %></li>
+  </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-center gap-2">
+    <h1 class="h3 mb-0">Revision #<%= @revision.revision_number %></h1>
+    <% if @revision == @current %>
+      <span class="badge text-bg-success">Current</span>
+    <% end %>
+  </div>
+  <%= link_to "Back to revisions", admin_pdf_processing_revisions_path, class: "btn btn-sm btn-outline-secondary" %>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Model</dt>
+      <dd class="col-sm-9">
+        <%= @revision.model.name %>
+        <span class="text-muted small"><%= @revision.model.provider %></span>
+      </dd>
+
+      <dt class="col-sm-3">Created</dt>
+      <dd class="col-sm-9"><%= l(@revision.created_at, format: :long) %></dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header">
+    <h2 class="h5 mb-0">Instructions</h2>
+  </div>
+  <div class="card-body">
+    <pre class="mb-0" style="white-space: pre-wrap;"><%= @revision.instructions %></pre>
+  </div>
+</div>
