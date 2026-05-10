@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_10_024000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_10_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -167,6 +167,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_024000) do
     t.bigint "user_id", null: false
     t.index ["user_id", "provider", "email"], name: "index_email_delegations_on_user_id_and_provider_and_email", unique: true
     t.index ["user_id"], name: "index_email_delegations_on_user_id"
+  end
+
+  create_table "email_suppressions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.bigint "location_id", null: false
+    t.text "notes"
+    t.string "reason", null: false
+    t.datetime "updated_at", null: false
+    t.index ["location_id", "email"], name: "index_email_suppressions_on_location_id_and_email", unique: true
+    t.index ["location_id"], name: "index_email_suppressions_on_location_id"
   end
 
   create_table "integration_checks", force: :cascade do |t|
@@ -457,6 +468,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_024000) do
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"
   add_foreign_key "chats", "models"
   add_foreign_key "email_delegations", "users"
+  add_foreign_key "email_suppressions", "locations"
   add_foreign_key "invitations", "locations"
   add_foreign_key "invitations", "tenants"
   add_foreign_key "invitations", "users", column: "invited_by_user_id"

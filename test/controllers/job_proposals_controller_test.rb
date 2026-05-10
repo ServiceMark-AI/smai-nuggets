@@ -242,6 +242,54 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     refute_match si_no_thread.id.to_s + "[^\"]*Open", response.body
   end
 
+  # --- pre-send checklist card ---
+
+  test "show renders the pre-send checklist for a proposal with a pending campaign step" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approved, pipeline_stage: :in_campaign, customer_email: "alice@example.com")
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
+      planned_delivery_at: 1.hour.from_now, email_delivery_status: :pending,
+      final_subject: "ready", final_body: "hi"
+    )
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "h2", text: "Pre-send checklist"
+    assert_match "Mailbox connected", response.body
+    assert_match "Recipient email present and valid", response.body
+    assert_match "Recipient is not on the suppression list", response.body
+  end
+
+  test "show flags 'Action needed' when a delivery-issue check fails" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approved, pipeline_stage: :in_campaign, customer_email: nil)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
+      planned_delivery_at: 1.hour.from_now, email_delivery_status: :pending,
+      final_subject: "x", final_body: "y"
+    )
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match "Action needed", response.body
+    assert_match "customer email field is blank", response.body
+  end
+
+  test "show hides the pre-send checklist when there is no pending campaign step" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    # No CampaignInstance at all.
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_no_match "Pre-send checklist", response.body
+  end
+
   # --- sort ---
 
   test "default sort is created_at desc" do

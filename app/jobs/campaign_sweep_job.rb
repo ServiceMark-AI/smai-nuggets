@@ -1,43 +1,46 @@
 require "net/http"
 
 # Runs every 5 minutes (see config/sidekiq_cron.yml) to find campaign step
-# instances whose planned_delivery_at has passed, render and send their email
-# via the application's connected Gmail mailbox, and update both the step
-# instance and its parent campaign instance to reflect the outcome.
+# instances whose planned_delivery_at has passed and either ship them via the
+# connected Gmail mailbox or block them — whichever the PreSendChecklist says.
 #
-# Eligibility: only step instances whose parent CampaignInstance is `active`,
-# whose Campaign is `approved`, and whose host JobProposal has status
-# `approved` are considered. The JobProposal status gate is the operator's
-# explicit "go" signal — until they click Approve on the campaign instance
-# page, the proposal sits in `approving` and the sweep skips it.
+# The checklist (app/services/pre_send_checklist.rb, modeled on PRD-09 v1.3
+# §9.2) is the single source of truth for what must hold before a real
+# customer email leaves the system. Both this job and the operator UI on
+# the proposal page run through the same checklist function so what the
+# operator sees is exactly what the sweep will evaluate next.
 #
-# Concurrency: each due step instance is claimed by atomically transitioning
-# its email_delivery_status from `pending` to `sending` with a conditional
-# UPDATE. If two sweeps overlap, only one gets the row.
+# Failure handling, per the checklist's failure class:
+# - :block_silent          — step stays pending, the next sweep re-evaluates.
+# - :block_delivery_issue  — step is marked failed and the campaign run is
+#                            stopped with stopped_on_delivery_issue.
 #
-# Failure handling: a delivery failure (Gmail rejection, missing recipient,
-# unsupported host, unresolved merge field) marks the step `failed` and
-# stops the parent campaign instance with `stopped_on_delivery_issue`. A
-# successful final step transitions the instance to `completed`.
+# The dev and FAKE-SEND modes never hit Gmail and therefore bypass the
+# checklist — they are local-development conveniences that route to
+# letter_opener_web or do nothing.
 class CampaignSweepJob < ApplicationJob
   queue_as :default
 
-  # Outbound mail flow goes through several gates:
+  # Send-mode resolution for a given run:
   #
-  #   1. development                                  -> route through CampaignStepMailer
-  #                                                      (Action Mailer + letter_opener_web).
+  #   1. development                                  -> :dev_letter_opener (route through
+  #                                                      CampaignStepMailer + letter_opener_web).
   #                                                      Mailbox state is irrelevant in dev;
   #                                                      we never want real Gmail traffic.
-  #   2. production AND no TEST_TO_EMAIL              -> real send to host.customer_email
-  #   3. TEST_TO_EMAIL set (any env, mailbox present) -> mail redirected to TEST_TO_EMAIL
-  #   4. non-prod AND no mailbox                      -> FAKE-SEND mode: render the email,
+  #                                                      Checklist bypassed.
+  #   2. mailbox + (production OR TEST_TO_EMAIL)      -> :real_send. Checklist runs.
+  #   3. no mailbox + non-prod                        -> :fake_send. Render the email,
   #                                                      log it, mark the step :sent.
-  #                                                      Lets test exercise the campaign
-  #                                                      lifecycle without real Gmail.
-  #   5. non-dev AND no mailbox AND non-prod          -> see #4
-  #   6. prod AND no mailbox                          -> skip; log warning
-  #   7. non-prod AND mailbox AND no TEST_TO_EMAIL    -> skip; we won't email customers
-  #                                                      from staging by accident
+  #                                                      Checklist bypassed — lets tests
+  #                                                      exercise the campaign lifecycle
+  #                                                      without real Gmail.
+  #   4. no mailbox + prod                            -> :real_send. The checklist's
+  #                                                      mailbox check surfaces every
+  #                                                      pending step as a delivery_issue
+  #                                                      so the operator sees the outage.
+  #   5. mailbox + non-prod + no TEST_TO_EMAIL        -> :skip. Staging guardrail; we
+  #                                                      will not relay through a real
+  #                                                      Gmail mailbox by accident.
   #
   # Devise mailers (password reset, registration) are unaffected — they go
   # through Action Mailer, not this job.
@@ -56,54 +59,82 @@ class CampaignSweepJob < ApplicationJob
 
   def perform
     mailbox = ApplicationMailbox.current
+    mode = resolve_mode(mailbox)
+    return if mode == :skip
 
-    if self.class.development_environment?
-      # Dev always routes through Action Mailer → letter_opener_web. We
-      # never want a connected dev mailbox to actually relay to a real
-      # customer, even if one is configured.
-      Rails.logger.info "[CampaignSweepJob] dev mode: routing campaign step sends through Action Mailer (letter_opener_web at /letter_opener)"
-    elsif mailbox
-      # Real-send path: still gate non-prod behind TEST_TO_EMAIL so we
-      # don't accidentally email customers from a staging box.
-      unless self.class.production_environment? || self.class.test_to_email_override
-        Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
-        return
-      end
-    elsif !self.class.production_environment?
-      # No mailbox + non-prod env (test/staging) — fake-send so the
-      # campaign lifecycle logic is still exercised end to end.
-      Rails.logger.info "[CampaignSweepJob] no application mailbox connected; running in FAKE-SEND mode (no real email leaves the host)"
-    else
-      Rails.logger.warn "[CampaignSweepJob] no application mailbox connected; skipping sweep"
-      return
-    end
-
-    due_step_instance_ids(Time.current).each { |id| process(id, mailbox) }
+    due_step_instance_ids(Time.current).each { |id| process(id, mailbox, mode) }
   end
 
   private
+
+  def resolve_mode(mailbox)
+    if self.class.development_environment?
+      Rails.logger.info "[CampaignSweepJob] dev mode: routing campaign step sends through Action Mailer (letter_opener_web at /letter_opener)"
+      :dev_letter_opener
+    elsif mailbox && (self.class.production_environment? || self.class.test_to_email_override)
+      :real_send
+    elsif mailbox.nil? && !self.class.production_environment?
+      Rails.logger.info "[CampaignSweepJob] no application mailbox connected; running in FAKE-SEND mode (no real email leaves the host)"
+      :fake_send
+    elsif mailbox.nil? && self.class.production_environment?
+      Rails.logger.warn "[CampaignSweepJob] no application mailbox connected; the pre-send checklist will surface every queued step as a delivery issue until a mailbox is connected"
+      :real_send
+    else
+      Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
+      :skip
+    end
+  end
 
   def recipient_for(host)
     self.class.test_to_email_override || host.customer_email
   end
 
+  # Minimal candidate filter: pending steps whose planned_delivery_at has
+  # passed. Everything else (campaign run status, proposal stage, suppression,
+  # idempotency, …) lives in PreSendChecklist so the UI and the sweep agree
+  # on what would block.
   def due_step_instance_ids(now)
     CampaignStepInstance
-      .joins(campaign_instance: :campaign)
-      .joins("INNER JOIN job_proposals ON job_proposals.id = campaign_instances.host_id AND campaign_instances.host_type = 'JobProposal'")
       .where(email_delivery_status: :pending)
-      .where("campaign_step_instances.planned_delivery_at <= ?", now)
-      .where(campaign_instances: { status: CampaignInstance.statuses[:active] })
-      .where(campaigns: { status: Campaign.statuses[:approved] })
-      .where(job_proposals: { status: JobProposal.statuses[:approved] })
-      .pluck("campaign_step_instances.id")
+      .where("planned_delivery_at <= ?", now)
+      .pluck(:id)
   end
 
-  def process(step_instance_id, mailbox)
-    return unless claim(step_instance_id)
-
+  def process(step_instance_id, mailbox, mode)
     step_instance = CampaignStepInstance.find(step_instance_id)
+
+    if mode == :dev_letter_opener || mode == :fake_send
+      return unless claim(step_instance_id)
+      step_instance.reload
+      simulated_send(step_instance, mode)
+      return
+    end
+
+    blocker = PreSendChecklist.run(step_instance).find(&:fail?)
+    if blocker
+      handle_blocked(step_instance, blocker)
+      return
+    end
+
+    return unless claim(step_instance_id)
+    step_instance.reload
     deliver(step_instance, mailbox)
+  end
+
+  def handle_blocked(step_instance, blocker)
+    case blocker.status
+    when PreSendChecklist::BLOCK_SILENT
+      Rails.logger.info(
+        "[CampaignSweepJob] step #{step_instance.id} blocked silently by checklist " \
+        "(#{blocker.key}): #{blocker.detail}"
+      )
+    when PreSendChecklist::BLOCK_DELIVERY_ISSUE
+      Rails.logger.warn(
+        "[CampaignSweepJob] step #{step_instance.id} blocked with delivery issue " \
+        "(#{blocker.key}): #{blocker.detail}"
+      )
+      claim_to_failed(step_instance)
+    end
   end
 
   # Atomically transitions pending -> sending. Returns true if this worker
@@ -118,22 +149,27 @@ class CampaignSweepJob < ApplicationJob
     rows.positive?
   end
 
+  # Atomically transitions pending -> failed and stops the campaign run.
+  # The conditional update_all guarantees we only act once per step even if
+  # two sweeps overlap.
+  def claim_to_failed(step_instance)
+    rows = CampaignStepInstance
+      .where(id: step_instance.id, email_delivery_status: :pending)
+      .update_all(
+        email_delivery_status: CampaignStepInstance.email_delivery_statuses[:failed],
+        updated_at: Time.current
+      )
+    return unless rows.positive?
+
+    instance = step_instance.campaign_instance
+    instance.reload
+    instance.update!(status: :stopped_on_delivery_issue, ended_at: Time.current) if instance.status_active?
+  end
+
   def deliver(step_instance, mailbox)
     instance = step_instance.campaign_instance
     host = instance.host
-
-    unless host.is_a?(JobProposal)
-      Rails.logger.warn "[CampaignSweepJob] unsupported host #{host.class.name} for step instance #{step_instance.id}"
-      mark_failed(step_instance, instance)
-      return
-    end
-
     recipient = recipient_for(host)
-    if recipient.blank?
-      Rails.logger.warn "[CampaignSweepJob] no recipient resolvable for JobProposal #{host.id} (customer_email blank, no TEST_TO_EMAIL override) on step instance #{step_instance.id}"
-      mark_failed(step_instance, instance)
-      return
-    end
 
     # Content is locked in at approve time (see JobProposalsController#approve).
     # The sweep just ships the persisted final_subject / final_body — no late
@@ -141,11 +177,6 @@ class CampaignSweepJob < ApplicationJob
     # a queued email.
     subject = step_instance.final_subject
     body    = step_instance.final_body
-    if subject.blank?
-      Rails.logger.warn "[CampaignSweepJob] step instance #{step_instance.id} has no final_subject — was it approved?"
-      mark_failed(step_instance, instance)
-      return
-    end
 
     # Display name on the From header is the proposal owner's full
     # name (Mike Frizzell), so the recipient sees
@@ -161,30 +192,9 @@ class CampaignSweepJob < ApplicationJob
     # to admins deleting and re-adding step 1.
     attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
 
-    sender = mailbox ? GmailSender.new(mailbox) : nil
-    delivery_failed = false
-    send_response = nil
-
-    if self.class.development_environment?
-      # Dev: hand the prepared message off to Action Mailer, which routes
-      # through letter_opener_web. No Gmail call, no thread metadata to
-      # capture — reply polling and delivery-issue detection are
-      # production-only concerns.
-      CampaignStepMailer.with(
-        to:          recipient,
-        subject:     subject,
-        body:        body.to_s,
-        from_name:   from_name,
-        attachments: attachments
-      ).step.deliver_now
-    elsif sender
-      send_response = sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
-      delivery_failed = send_response.nil?
-    else
-      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
-    end
-
-    if delivery_failed
+    sender = GmailSender.new(mailbox)
+    send_response = sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
+    if send_response.nil?
       mark_failed(step_instance, instance)
       return
     end
@@ -197,6 +207,50 @@ class CampaignSweepJob < ApplicationJob
     mark_failed(step_instance, instance)
   end
 
+  # Dev/letter_opener and FAKE-SEND paths. No real Gmail call, no thread
+  # metadata to capture — reply polling and delivery-issue detection are
+  # production-only concerns. The checklist is intentionally bypassed for
+  # both modes (they don't reach a real customer).
+  def simulated_send(step_instance, mode)
+    instance = step_instance.campaign_instance
+    host = instance.host
+    recipient = recipient_for(host)
+    if recipient.blank?
+      Rails.logger.warn "[CampaignSweepJob] no recipient resolvable for step instance #{step_instance.id} in #{mode} mode"
+      mark_failed(step_instance, instance)
+      return
+    end
+
+    subject = step_instance.final_subject
+    body    = step_instance.final_body
+    if subject.blank?
+      Rails.logger.warn "[CampaignSweepJob] step instance #{step_instance.id} has no final_subject in #{mode} mode — was it approved?"
+      mark_failed(step_instance, instance)
+      return
+    end
+
+    from_name = host.owner&.full_name
+    attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
+
+    if mode == :dev_letter_opener
+      CampaignStepMailer.with(
+        to:          recipient,
+        subject:     subject,
+        body:        body.to_s,
+        from_name:   from_name,
+        attachments: attachments
+      ).step.deliver_now
+    else
+      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
+    end
+
+    step_instance.update!(email_delivery_status: :sent)
+    complete_instance_if_done(instance)
+  rescue StandardError => e
+    Rails.logger.error "[CampaignSweepJob] unexpected error in #{mode} send for step instance #{step_instance.id}: #{e.class}: #{e.message}"
+    mark_failed(step_instance, instance)
+  end
+
   # Stores the Gmail send response and (best-effort) the thread snapshot
   # captured immediately after send. The snapshot is the baseline the
   # GmailReplyPollJob compares against to detect customer replies. A
@@ -204,7 +258,7 @@ class CampaignSweepJob < ApplicationJob
   # log and leave gmail_thread_snapshot nil so the poller can fill it in
   # on its first pass.
   def persist_send_metadata(step_instance, sender, send_response)
-    return if send_response.nil? # fake-send path
+    return if send_response.nil?
 
     thread_id = send_response["threadId"]
     thread_snapshot = nil

@@ -99,6 +99,22 @@ class JobProposal < ApplicationRecord
     self.class.cta_for(pipeline_stage: pipeline_stage, status_overlay: status_overlay)
   end
 
+  # The campaign step instance that would ship next if the sweep ran right
+  # now: the lowest-sequence pending step on the most-recent campaign run.
+  # Returns nil when no pending step exists (no run yet, or every step has
+  # already shipped). Used by the proposal show page to evaluate the
+  # PreSendChecklist for what the operator should fix before the next send.
+  def next_pending_step_instance
+    instance = campaign_instances.order(created_at: :desc).first
+    return nil unless instance
+
+    instance.step_instances
+      .where(email_delivery_status: :pending)
+      .joins(:campaign_step)
+      .order("campaign_steps.sequence_number ASC")
+      .first
+  end
+
   # Most recent gmail thread id from any of this proposal's campaign step
   # instances. nil when no email has been sent yet. Used to deep-link the
   # operator into the Gmail conversation when the customer replies.

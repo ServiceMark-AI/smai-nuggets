@@ -140,6 +140,56 @@
   </div>
 <% end %>
 
+<% next_pending = @job_proposal.next_pending_step_instance %>
+<% if next_pending %>
+  <% checks = PreSendChecklist.run(next_pending) %>
+  <% has_action_needed = checks.any? { |c| c.status == :block_delivery_issue } %>
+  <% has_waiting = checks.any? { |c| c.status == :block_silent } %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0">Pre-send checklist</h2>
+      <% if has_action_needed %>
+        <span class="badge text-bg-danger">Action needed</span>
+      <% elsif has_waiting %>
+        <span class="badge text-bg-warning">Waiting on a condition</span>
+      <% else %>
+        <span class="badge text-bg-success">Ready to send</span>
+      <% end %>
+    </div>
+    <div class="card-body p-0">
+      <p class="px-3 pt-3 mb-2 small text-muted">
+        Every customer email is checked against this list right before it ships.
+        Anything red here must be cleared before the next campaign step can go out.
+      </p>
+      <ul class="list-group list-group-flush">
+        <% checks.each do |check| %>
+          <li class="list-group-item">
+            <div class="d-flex align-items-center gap-2">
+              <% case check.status
+                 when :pass %>
+                <span class="badge text-bg-success">Pass</span>
+              <% when :block_delivery_issue %>
+                <span class="badge text-bg-danger">Action needed</span>
+              <% else %>
+                <span class="badge text-bg-warning">Waiting</span>
+              <% end %>
+              <span class="fw-semibold"><%= check.label %></span>
+            </div>
+            <% if check.fail? %>
+              <div class="small text-muted ms-1 mt-1">
+                <%= check.detail %>
+                <% if check.remedy.present? %>
+                  <br><strong>How to fix:</strong> <%= check.remedy %>
+                <% end %>
+              </div>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  </div>
+<% end %>
+
 <% campaign_instance = @job_proposal.campaign_instances.order(created_at: :desc).first %>
 <div class="card shadow-sm mb-4">
   <div class="card-header d-flex justify-content-between align-items-center">
