@@ -232,3 +232,77 @@
     <% end %>
   </div>
 </div>
+
+<%# --- Loss reasons --------------------------------------------------- %>
+<div class="card shadow-sm mb-4">
+  <div class="card-header"><h2 class="h5 mb-0">Why we lost</h2></div>
+  <div class="card-body">
+    <% if analytics.loss_reasons_breakdown.any? %>
+      <%# Six product reasons + an "Unspecified" fallback — pick a palette
+          big enough to cover all of them with distinct hues. %>
+      <% palette = %w[#0d6efd #198754 #ffc107 #0dcaf0 #dc3545 #6610f2 #6c757d] %>
+      <% total = analytics.loss_reasons_breakdown.sum { |r| r[:count] } %>
+      <%
+        cursor = 0.0
+        slices = analytics.loss_reasons_breakdown.each_with_index.map do |row, i|
+          start_pct = (cursor * 100).round(2)
+          fraction  = total.positive? ? row[:count].to_f / total : 0.0
+          cursor   += fraction
+          end_pct   = (cursor * 100).round(2)
+          {
+            row:        row,
+            color:      palette[i % palette.size],
+            from_pct:   start_pct,
+            to_pct:     end_pct,
+            share_pct:  (fraction * 100).round
+          }
+        end
+      %>
+      <% gradient_stops = slices.map { |s| "#{s[:color]} #{s[:from_pct]}% #{s[:to_pct]}%" }.join(", ") %>
+
+      <div class="d-flex flex-wrap align-items-center gap-4">
+        <div class="rounded-circle flex-shrink-0"
+             style="width: 180px; height: 180px; background: conic-gradient(<%= gradient_stops %>);"
+             role="img"
+             aria-label="Loss reasons breakdown">
+        </div>
+
+        <div class="flex-grow-1" style="min-width: 280px;">
+          <table class="table table-sm mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 24px;"></th>
+                <th>Reason</th>
+                <th class="text-end">Lost jobs</th>
+                <th class="text-end">Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% slices.each do |s| %>
+                <tr>
+                  <td>
+                    <span class="d-inline-block rounded"
+                          style="width: 14px; height: 14px; background: <%= s[:color] %>;"></span>
+                  </td>
+                  <td><%= s[:row][:display_name] %></td>
+                  <td class="text-end"><%= s[:row][:count] %></td>
+                  <td class="text-end"><%= s[:share_pct] %>%</td>
+                </tr>
+              <% end %>
+            </tbody>
+            <tfoot>
+              <tr class="text-muted small">
+                <td></td>
+                <td>Total</td>
+                <td class="text-end"><%= total %></td>
+                <td class="text-end">100%</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-muted">No lost jobs yet — nothing to break down.</div>
+    <% end %>
+  </div>
+</div>

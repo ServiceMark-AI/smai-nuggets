@@ -1,0 +1,29 @@
+price_too_high:
+  code: price_too_high
+  display_name: Price too high
+  sort_order: 10
+
+went_with_competitor:
+  code: went_with_competitor
+  display_name: Went with competitor
+  sort_order: 20
+
+insurance_issue:
+  code: insurance_issue
+  display_name: Insurance issue
+  sort_order: 30
+
+no_response_from_customer:
+  code: no_response_from_customer
+  display_name: No response from customer
+  sort_order: 40
+
+timing_scheduling_conflict:
+  code: timing_scheduling_conflict
+  display_name: Timing / scheduling conflict
+  sort_order: 50
+
+other:
+  code: other
+  display_name: Other
+  sort_order: 99

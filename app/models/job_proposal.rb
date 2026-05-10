@@ -6,6 +6,7 @@ class JobProposal < ApplicationRecord
   belongs_to :closed_by_user, class_name: "User", optional: true
   belongs_to :job_type, optional: true
   belongs_to :scenario, optional: true
+  belongs_to :loss_reason, optional: true
 
   has_many :attachments, class_name: "JobProposalAttachment", dependent: :destroy
   has_many :campaign_instances, as: :host, dependent: :destroy

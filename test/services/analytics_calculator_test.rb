@@ -108,4 +108,50 @@ class AnalyticsCalculatorTest < ActiveSupport::TestCase
     result = AnalyticsCalculator.new(proposals_scope: JobProposal.none).call
     assert_equal [], result.conversion_rate_by_location
   end
+
+  # --- Loss reasons breakdown -------------------------------------------
+
+  test "loss_reasons_breakdown groups lost proposals by reason and orders by sort_order" do
+    JobProposal.update_all(pipeline_stage: "in_campaign", loss_reason_id: nil)
+    job_proposals(:in_users_org).update!(
+      pipeline_stage: :lost, loss_reason: loss_reasons(:price_too_high)
+    )
+    job_proposals(:same_tenant_other_org).update!(
+      pipeline_stage: :lost, loss_reason: loss_reasons(:went_with_competitor)
+    )
+    # Add a second "Price" so it leads.
+    extra = JobProposal.create!(
+      tenant: tenants(:one), location: locations(:ne_dallas),
+      owner: users(:one), created_by_user: users(:one),
+      customer_first_name: "X", customer_last_name: "Y", proposal_value: 1,
+      pipeline_stage: :lost, loss_reason: loss_reasons(:price_too_high)
+    )
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    rows = result.loss_reasons_breakdown
+    assert_equal 2, rows.size
+    assert_equal "Price too high",       rows[0][:display_name]
+    assert_equal 2,                      rows[0][:count]
+    assert_equal "Went with competitor", rows[1][:display_name]
+    assert_equal 1,                      rows[1][:count]
+
+    extra.destroy!
+  end
+
+  test "loss_reasons_breakdown buckets lost proposals with a NULL loss_reason as Unspecified" do
+    JobProposal.update_all(pipeline_stage: "in_campaign", loss_reason_id: nil)
+    job_proposals(:in_users_org).update!(pipeline_stage: :lost, loss_reason: nil)
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    rows = result.loss_reasons_breakdown
+    assert_equal 1, rows.size
+    assert_equal "Unspecified", rows[0][:display_name]
+    assert_equal 1, rows[0][:count]
+  end
+
+  test "loss_reasons_breakdown is empty when nothing is lost" do
+    JobProposal.update_all(pipeline_stage: "in_campaign", loss_reason_id: nil)
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    assert_equal [], result.loss_reasons_breakdown
+  end
 end

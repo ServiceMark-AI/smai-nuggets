@@ -230,7 +230,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_111234) do
     t.jsonb "last_reply"
     t.bigint "location_id", null: false
     t.text "loss_notes"
-    t.string "loss_reason"
+    t.bigint "loss_reason_id"
     t.bigint "owner_id", null: false
     t.string "pipeline_stage"
     t.decimal "proposal_value", precision: 12, scale: 2
@@ -245,6 +245,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_111234) do
     t.index ["dash_job_number"], name: "index_job_proposals_on_dash_job_number"
     t.index ["job_type_id"], name: "index_job_proposals_on_job_type_id"
     t.index ["location_id"], name: "index_job_proposals_on_location_id"
+    t.index ["loss_reason_id"], name: "index_job_proposals_on_loss_reason_id"
     t.index ["owner_id"], name: "index_job_proposals_on_owner_id"
     t.index ["scenario_id"], name: "index_job_proposals_on_scenario_id"
     t.index ["tenant_id"], name: "index_job_proposals_on_tenant_id"
@@ -277,6 +278,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_111234) do
     t.index ["is_active"], name: "index_locations_on_is_active"
     t.index ["tenant_id"], name: "index_locations_on_tenant_id"
     t.index ["updated_by_user_id"], name: "index_locations_on_updated_by_user_id"
+  end
+
+  create_table "loss_reasons", force: :cascade do |t|
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.string "display_name", null: false
+    t.integer "sort_order", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_loss_reasons_on_code", unique: true
   end
 
   create_table "messages", force: :cascade do |t|
@@ -442,6 +452,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_111234) do
   add_foreign_key "job_proposal_attachments", "users", column: "uploaded_by_user_id"
   add_foreign_key "job_proposals", "job_types"
   add_foreign_key "job_proposals", "locations"
+  add_foreign_key "job_proposals", "loss_reasons"
   add_foreign_key "job_proposals", "scenarios"
   add_foreign_key "job_proposals", "tenants"
   add_foreign_key "job_proposals", "users", column: "closed_by_user_id"
