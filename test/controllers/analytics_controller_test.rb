@@ -73,6 +73,59 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert_match location_b.display_name, response.body
   end
 
+  test "by-location breakdown renders a per-location bar chart sorted by rate descending" do
+    tenant   = tenants(:one)
+    high_loc = locations(:ne_dallas)
+    low_loc  = tenant.locations.create!(
+      display_name: "Low Performer", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75003", phone_number: "(214) 555-0303", is_active: true
+    )
+
+    # high_loc: 1 won out of 1 activated → 100%
+    high = job_proposals(:in_users_org)
+    high.update!(location: high_loc, pipeline_stage: :won)
+    CampaignInstance.create!(host: high, campaign: campaigns(:approved_campaign), status: :active)
+
+    # low_loc: 0 won out of 1 activated → 0%
+    low = job_proposals(:same_tenant_other_org)
+    low.update!(location: low_loc, pipeline_stage: :in_campaign)
+    CampaignInstance.create!(host: low, campaign: campaigns(:approved_campaign), status: :active)
+
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    # Both locations render with a progress bar inside the breakdown.
+    assert_select "#cr-by-location .progress .progress-bar", minimum: 1
+    # High-performer's row appears before the low-performer's (descending by rate).
+    high_pos = response.body.index(high_loc.display_name)
+    low_pos  = response.body.index(low_loc.display_name)
+    assert high_pos < low_pos, "expected #{high_loc.display_name} (100%) above #{low_loc.display_name} (0%) in the breakdown"
+  end
+
+  test "by-location breakdown renders an em-dash for zero-denominator locations" do
+    tenant = tenants(:one)
+    other_loc = tenant.locations.create!(
+      display_name: "Quiet Branch", address_line_1: "9 Side", city: "Dallas",
+      state: "TX", postal_code: "75004", phone_number: "(214) 555-0404", is_active: true
+    )
+
+    # ne_dallas has activations; Quiet Branch is referenced via a proposal
+    # but has no campaign instance — its activated count is 0, so the rate
+    # row should render "—" instead of "0%".
+    job_proposals(:in_users_org).update!(location: locations(:ne_dallas))
+    CampaignInstance.create!(host: job_proposals(:in_users_org), campaign: campaigns(:approved_campaign), status: :active)
+    job_proposals(:same_tenant_other_org).update!(location: other_loc)
+
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    # The em-dash row for Quiet Branch shows up inside the breakdown without a bar.
+    assert_select "#cr-by-location" do
+      assert_match "Quiet Branch", response.body
+      assert_match "—", response.body
+    end
+  end
+
   test "regular tenant user (scoped to a location) does not see the By location toggle" do
     @user_one.update!(location: locations(:ne_dallas))
     sign_in @user_one

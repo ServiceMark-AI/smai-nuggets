@@ -42,23 +42,40 @@
             By location ›
           </button>
           <div class="collapse mt-2" id="cr-by-location">
-            <table class="table table-sm mb-0 small">
-              <thead class="table-light">
-                <tr>
-                  <th>Location</th>
-                  <th class="text-end">Won</th>
-                  <th class="text-end">Activated</th>
-                  <th class="text-end">Rate</th>
-                </tr>
-              </thead>
+            <%# SPEC-06 §8.2 — one row per active location: name, rate as a
+                whole-number %, proportional bar. Sort descending by rate
+                with NULL (zero-denominator) rows last; ties broken
+                alphabetically by display name. The top performer's bar
+                fills the available width; others scale proportionally,
+                same convention as the Originator Performance close-rate
+                bars below. Zero-denominator rows render "—" with no bar. %>
+            <%
+              by_location = analytics.conversion_rate_by_location.sort_by { |r|
+                [r[:conversion_rate_pct].nil? ? 1 : 0,
+                 -(r[:conversion_rate_pct] || 0),
+                 r[:location_display_name].to_s.downcase]
+              }
+              top_rate = by_location.map { |r| r[:conversion_rate_pct] || 0 }.max.to_i
+            %>
+            <table class="table table-sm mb-0 small align-middle">
               <tbody>
-                <% analytics.conversion_rate_by_location.each do |row| %>
+                <% by_location.each do |row| %>
                   <tr>
                     <td><%= row[:location_display_name] %></td>
-                    <td class="text-end"><%= row[:won_count] %></td>
-                    <td class="text-end"><%= row[:activated_count] %></td>
-                    <td class="text-end fw-semibold">
+                    <td class="text-end fw-semibold" style="width: 56px;">
                       <%= row[:conversion_rate_pct].nil? ? "—" : "#{row[:conversion_rate_pct]}%" %>
+                    </td>
+                    <td>
+                      <% if row[:conversion_rate_pct] %>
+                        <% width = top_rate.positive? ? (row[:conversion_rate_pct].to_f / top_rate * 100).round : 0 %>
+                        <div class="progress" style="height: 8px;">
+                          <div class="progress-bar bg-primary"
+                               style="width: <%= width %>%; opacity: <%= [0.6, width / 100.0].max.round(2) %>;"
+                               role="progressbar"
+                               aria-valuenow="<%= row[:conversion_rate_pct] %>"
+                               aria-valuemin="0" aria-valuemax="<%= top_rate %>"></div>
+                        </div>
+                      <% end %>
                     </td>
                   </tr>
                 <% end %>
