@@ -1,4 +1,17 @@
 class JobProposal < ApplicationRecord
+  # Append-only audit trail via paper_trail. Every create / update /
+  # destroy on a proposal writes a row to the polymorphic `versions`
+  # table. We route writes through our locked-down Version subclass
+  # (see app/models/version.rb) so rows can't be edited or deleted
+  # after the fact. The activity timeline on the proposal show page
+  # reads these.
+  #
+  # Ignore the bookkeeping `updated_at` so a touch (or a save that
+  # only differs in updated_at) doesn't produce a noise row in the
+  # timeline — paper_trail skips writing a version when the changeset
+  # consists only of ignored attributes.
+  has_paper_trail versions: { class_name: "Version" }, ignore: [:updated_at]
+
   belongs_to :tenant
   belongs_to :location
   belongs_to :owner, class_name: "User"

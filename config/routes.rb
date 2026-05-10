@@ -41,6 +41,7 @@ Rails.application.routes.draw do
     end
     resources :step_instances, only: [:show], controller: "campaign_step_instances"
     resources :campaign_instances, only: [:show]
+    resources :histories, only: [:show], controller: "job_proposal_histories"
   end
 
   namespace :admin do

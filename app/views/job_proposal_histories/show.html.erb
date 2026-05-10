@@ -1,0 +1,58 @@
+<% content_for :title, "Activity — #{@job_proposal.short_address || "Job Proposal ##{@job_proposal.id}"}" %>
+
+<%= link_to "← Back to proposal", job_proposal_path(@job_proposal), class: "small text-muted" %>
+
+<div class="d-flex justify-content-between align-items-center mt-2 mb-4">
+  <div>
+    <h1 class="h3 mb-0"><%= history_summary(@version) %></h1>
+    <div class="text-muted small">
+      <%= l(@version.created_at, format: :long) %>
+      · by <%= @actor ? @actor.display_name : content_tag(:span, "System", class: "fst-italic") %>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header">
+    <h2 class="h5 mb-0">Changes</h2>
+  </div>
+  <div class="card-body p-0">
+    <% changeset = @version.changeset || {} %>
+    <% if changeset.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 25%;">Field</th>
+            <th>Before</th>
+            <th>After</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% changeset.each do |field, (before, after)| %>
+            <tr>
+              <td class="fw-semibold"><%= field.to_s.humanize %></td>
+              <td>
+                <% if before.nil? || before.to_s.empty? %>
+                  <span class="text-muted">—</span>
+                <% else %>
+                  <code><%= before.to_s.truncate(200) %></code>
+                <% end %>
+              </td>
+              <td>
+                <% if after.nil? || after.to_s.empty? %>
+                  <span class="text-muted">—</span>
+                <% else %>
+                  <code><%= after.to_s.truncate(200) %></code>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">
+        No field-level changes recorded — this entry marks a lifecycle event.
+      </div>
+    <% end %>
+  </div>
+</div>

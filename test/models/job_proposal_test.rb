@@ -261,4 +261,43 @@ class JobProposalTest < ActiveSupport::TestCase
     @jp.update!(status: :approved, dash_job_number: "98765")
     assert_equal "98765", @jp.reload.dash_job_number
   end
+
+  # --- paper_trail history -------------------------------------------------
+
+  test "every meaningful update creates a paper_trail version with the changeset" do
+    PaperTrail.request.whodunnit = users(:admin).id
+    assert_difference -> { @jp.versions.count }, 1 do
+      @jp.update!(internal_reference: "AUDIT-#{SecureRandom.hex(4)}")
+    end
+    version = @jp.versions.order(created_at: :desc).first
+    assert_equal "update", version.event
+    assert_equal users(:admin).id.to_s, version.whodunnit
+    assert_includes version.changeset.keys, "internal_reference"
+  end
+
+  test "noisy updated_at-only saves do not write a version" do
+    PaperTrail.request.whodunnit = users(:admin).id
+    @jp.update!(internal_reference: "FIRST")
+    baseline = @jp.versions.count
+    @jp.touch
+    assert_equal baseline, @jp.reload.versions.count, "touch must not produce a new version"
+  end
+
+  test "version rows are immutable — saving raises ActiveRecord::ReadOnlyRecord" do
+    PaperTrail.request.whodunnit = users(:admin).id
+    @jp.update!(internal_reference: "IMMUTABLE")
+    version = @jp.versions.last
+    assert_raises ActiveRecord::ReadOnlyRecord do
+      version.update!(whodunnit: "tampered")
+    end
+  end
+
+  test "version rows cannot be destroyed individually" do
+    PaperTrail.request.whodunnit = users(:admin).id
+    @jp.update!(internal_reference: "STAYING")
+    version = @jp.versions.last
+    assert_raises ActiveRecord::ReadOnlyRecord do
+      version.destroy
+    end
+  end
 end

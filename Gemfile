@@ -64,6 +64,9 @@ gem "ruby_llm"
 gem "sentry-ruby"
 gem "sentry-rails"
 
+# Append-only model audit trail [https://github.com/paper-trail-gem/paper_trail]
+gem "paper_trail"
+
 # Google OAuth for collecting Gmail send-on-behalf-of tokens
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"
