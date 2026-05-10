@@ -1,0 +1,21 @@
+draft_campaign_v0:
+  campaign: draft_campaign
+  revision_number: 0
+  status: 1                  # :active
+  created_by_user: admin
+
+approved_campaign_v0:
+  campaign: approved_campaign
+  revision_number: 0
+  status: 1                  # :active
+  created_by_user: one
+  approved_by_user: one
+  approved_at: 2026-04-15 09:00:00
+
+paused_campaign_v0:
+  campaign: paused_campaign
+  revision_number: 0
+  status: 1                  # :active
+  created_by_user: one
+  approved_by_user: one
+  approved_at: 2026-03-01 09:00:00

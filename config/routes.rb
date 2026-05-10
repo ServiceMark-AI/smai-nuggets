@@ -75,9 +75,14 @@ Rails.application.routes.draw do
         patch :pause
         patch :resume
       end
-      resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
-        collection do
-          patch :reorder
+      resources :revisions, only: [:show, :create], controller: "campaign_revisions" do
+        member do
+          patch :approve
+        end
+        resources :steps, only: [:new, :create, :edit, :update, :destroy], controller: "campaign_steps" do
+          collection do
+            patch :reorder
+          end
         end
       end
     end

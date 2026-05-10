@@ -237,15 +237,36 @@ class CatalogLoader
     campaign
   end
 
+  # Each campaign needs an active revision so steps have a place to live
+  # and the campaign launcher can pick something up. Creates revision 0
+  # active on first load; subsequent runs reuse it. created_by_user falls
+  # back to the first admin so the NOT NULL FK is satisfied — this is a
+  # programmatic load, no operator is in the loop.
+  def ensure_campaign_revision(campaign)
+    revision = campaign.active_revision
+    return revision if revision
+
+    creator_id = User.where(is_admin: true).order(:id).pick(:id) || User.order(:id).pick(:id)
+    raise "catalog:load needs at least one user to attribute the seeded revision to" if creator_id.nil?
+
+    campaign.revisions.create!(
+      revision_number:    0,
+      status:             :active,
+      created_by_user_id: creator_id
+    )
+  end
+
   def ensure_campaign_steps(campaign, content)
+    revision = ensure_campaign_revision(campaign)
     offsets = parse_cadence_offsets(content)
     parse_step_blocks(content).each do |step_data|
-      step = campaign.steps.find_or_initialize_by(sequence_number: step_data[:sequence_number])
+      step = revision.steps.find_or_initialize_by(sequence_number: step_data[:sequence_number])
       if step.new_record?
         step.assign_attributes(
-          offset_min: offsets[step_data[:sequence_number]] || 0,
+          campaign:         campaign,
+          offset_min:       offsets[step_data[:sequence_number]] || 0,
           template_subject: step_data[:template_subject],
-          template_body: step_data[:template_body]
+          template_body:    step_data[:template_body]
         )
         step.save!
         @result.steps_created += 1

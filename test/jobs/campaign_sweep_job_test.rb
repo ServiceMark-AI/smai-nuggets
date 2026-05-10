@@ -319,6 +319,30 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_empty GmailSender.deliveries
   end
 
+  test "in development, routes campaign step sends through Action Mailer (letter_opener path) and never calls GmailSender" do
+    # A connected mailbox is intentionally still around — dev mode has to
+    # win regardless, so we can't accidentally relay through real Gmail
+    # while developing.
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+    ENV.delete("TEST_TO_EMAIL")
+    ActionMailer::Base.deliveries.clear
+
+    assert_difference -> { ActionMailer::Base.deliveries.size }, 1 do
+      with_development_environment(true) { CampaignSweepJob.new.perform }
+    end
+    assert_empty GmailSender.deliveries, "dev path must not call GmailSender"
+
+    step_instance.reload
+    assert_equal "sent", step_instance.email_delivery_status
+
+    delivery = ActionMailer::Base.deliveries.last
+    assert_equal [@proposal.customer_email], delivery.to
+    assert_equal @step_one.template_subject, delivery.subject
+    # No Gmail metadata captured — the dev path skips persist_send_metadata.
+    assert_nil step_instance.gmail_send_response
+    assert_nil step_instance.gmail_thread_id
+  end
+
   test "claim is idempotent across overlapping sweeps" do
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
@@ -372,5 +396,13 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     yield
   ensure
     CampaignSweepJob.define_singleton_method(:production_environment?, original)
+  end
+
+  def with_development_environment(value)
+    original = CampaignSweepJob.singleton_method(:development_environment?)
+    CampaignSweepJob.define_singleton_method(:development_environment?) { value }
+    yield
+  ensure
+    CampaignSweepJob.define_singleton_method(:development_environment?, original)
   end
 end

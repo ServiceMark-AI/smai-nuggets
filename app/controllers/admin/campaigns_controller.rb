@@ -14,7 +14,21 @@ class Admin::CampaignsController < Admin::BaseController
 
   def create
     @campaign = Campaign.new(campaign_params)
-    if @campaign.save
+    saved = false
+    Campaign.transaction do
+      saved = @campaign.save
+      if saved
+        # Every campaign needs an active revision so the launcher can find
+        # something to send and the steps card on the campaign show page
+        # has somewhere to render. Spawn revision 0 right after create.
+        @campaign.revisions.create!(
+          revision_number: 0,
+          status:          :active,
+          created_by_user: current_user
+        )
+      end
+    end
+    if saved
       redirect_to admin_campaigns_path, notice: "Campaign created."
     else
       render :new, status: :unprocessable_content

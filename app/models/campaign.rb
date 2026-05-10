@@ -6,6 +6,8 @@ class Campaign < ApplicationRecord
   has_many :steps, -> { order(:sequence_number) }, class_name: "CampaignStep", inverse_of: :campaign, dependent: :destroy
   has_many :scenarios, dependent: :nullify
   has_many :instances, class_name: "CampaignInstance", dependent: :destroy
+  has_many :revisions, -> { order(:revision_number) }, class_name: "CampaignRevision", inverse_of: :campaign, dependent: :destroy
+  has_one  :active_revision, -> { where(status: :active) }, class_name: "CampaignRevision"
 
   enum :status, { draft: 0, approved: 1, paused: 2 }, prefix: true
 

@@ -57,7 +57,8 @@ class CampaignInstanceTest < ActiveSupport::TestCase
 
   test "deleting the parent campaign destroys its instances" do
     campaign = Campaign.create!(name: "Throwaway")
-    CampaignInstance.create!(campaign: campaign, host: @proposal)
+    revision = campaign.revisions.create!(revision_number: 0, status: :active, created_by_user: users(:admin))
+    CampaignInstance.create!(campaign: campaign, campaign_revision: revision, host: @proposal)
     assert_difference "CampaignInstance.count", -1 do
       campaign.destroy
     end

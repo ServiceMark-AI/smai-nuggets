@@ -2,6 +2,7 @@
 
 approved_step_one:
   campaign: approved_campaign
+  campaign_revision: approved_campaign_v0
   sequence_number: 1
   offset_min: 0
   template_subject: Welcome
@@ -9,6 +10,7 @@ approved_step_one:
 
 approved_step_two:
   campaign: approved_campaign
+  campaign_revision: approved_campaign_v0
   sequence_number: 2
   offset_min: 1440
   template_subject: Following up

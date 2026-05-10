@@ -24,13 +24,6 @@
     <% elsif @job_proposal.status_approved? %>
       <span class="badge text-bg-success fs-6">Approved</span>
     <% end %>
-    <% inst_status_class = case @campaign_instance.status
-       when "active"    then "text-bg-success"
-       when "paused"    then "text-bg-warning"
-       when "completed" then "text-bg-secondary"
-       else "text-bg-danger"
-       end %>
-    <span class="badge <%= inst_status_class %> fs-6"><%= @campaign_instance.status.humanize %></span>
   </div>
 </div>
 

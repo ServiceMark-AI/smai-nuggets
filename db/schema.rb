@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_09_101104) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_09_111234) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -70,6 +70,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_101104) do
 
   create_table "campaign_instances", force: :cascade do |t|
     t.bigint "campaign_id", null: false
+    t.bigint "campaign_revision_id", null: false
     t.datetime "created_at", null: false
     t.datetime "ended_at"
     t.bigint "host_id", null: false
@@ -78,7 +79,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_101104) do
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["campaign_id"], name: "index_campaign_instances_on_campaign_id"
+    t.index ["campaign_revision_id"], name: "index_campaign_instances_on_campaign_revision_id"
     t.index ["host_type", "host_id"], name: "index_campaign_instances_on_host"
+  end
+
+  create_table "campaign_revisions", force: :cascade do |t|
+    t.datetime "approved_at"
+    t.bigint "approved_by_user_id"
+    t.bigint "campaign_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_user_id", null: false
+    t.integer "revision_number", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["approved_by_user_id"], name: "index_campaign_revisions_on_approved_by_user_id"
+    t.index ["campaign_id", "revision_number"], name: "index_campaign_revisions_on_campaign_id_and_revision_number", unique: true
+    t.index ["campaign_id"], name: "index_campaign_revisions_on_campaign_id"
+    t.index ["campaign_id"], name: "index_campaign_revisions_one_active_per_campaign", unique: true, where: "(status = 1)"
+    t.index ["created_by_user_id"], name: "index_campaign_revisions_on_created_by_user_id"
   end
 
   create_table "campaign_step_instances", force: :cascade do |t|
@@ -101,14 +119,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_101104) do
 
   create_table "campaign_steps", force: :cascade do |t|
     t.bigint "campaign_id", null: false
+    t.bigint "campaign_revision_id", null: false
     t.datetime "created_at", null: false
     t.integer "offset_min", null: false
     t.integer "sequence_number", null: false
     t.text "template_body"
     t.string "template_subject"
     t.datetime "updated_at", null: false
-    t.index ["campaign_id", "sequence_number"], name: "index_campaign_steps_on_campaign_id_and_sequence_number", unique: true
     t.index ["campaign_id"], name: "index_campaign_steps_on_campaign_id"
+    t.index ["campaign_revision_id", "sequence_number"], name: "index_campaign_steps_on_revision_and_sequence", unique: true
+    t.index ["campaign_revision_id"], name: "index_campaign_steps_on_campaign_revision_id"
   end
 
   create_table "campaigns", force: :cascade do |t|
@@ -412,9 +432,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_09_101104) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "audit_logs", "tenants"
   add_foreign_key "audit_logs", "users", column: "actor_user_id"
+  add_foreign_key "campaign_instances", "campaign_revisions"
   add_foreign_key "campaign_instances", "campaigns"
+  add_foreign_key "campaign_revisions", "campaigns"
+  add_foreign_key "campaign_revisions", "users", column: "approved_by_user_id"
+  add_foreign_key "campaign_revisions", "users", column: "created_by_user_id"
   add_foreign_key "campaign_step_instances", "campaign_instances"
   add_foreign_key "campaign_step_instances", "campaign_steps"
+  add_foreign_key "campaign_steps", "campaign_revisions"
   add_foreign_key "campaign_steps", "campaigns"
   add_foreign_key "campaigns", "users", column: "approved_by_user_id"
   add_foreign_key "campaigns", "users", column: "paused_by_user_id"

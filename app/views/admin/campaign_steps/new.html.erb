@@ -4,7 +4,7 @@
   <ol class="breadcrumb mb-0">
     <li class="breadcrumb-item"><%= link_to "Campaigns", admin_campaigns_path %></li>
     <li class="breadcrumb-item"><%= link_to @campaign.name, admin_campaign_path(@campaign) %></li>
-    <li class="breadcrumb-item"><%= link_to "Edit", edit_admin_campaign_path(@campaign) %></li>
+    <li class="breadcrumb-item"><%= link_to "Revision ##{@revision.revision_number}", admin_campaign_revision_path(@campaign, @revision) %></li>
     <li class="breadcrumb-item active" aria-current="page">Add Step</li>
   </ol>
 </nav>
@@ -14,7 +14,12 @@
   <div class="col-12 col-lg-7">
     <div class="card shadow-sm">
       <div class="card-body p-4">
-        <%= render "form", campaign: @campaign, campaign_step: @campaign_step, form_url: admin_campaign_steps_path(@campaign), form_method: :post %>
+        <%= render "form",
+              campaign: @campaign,
+              revision: @revision,
+              campaign_step: @campaign_step,
+              form_url: admin_campaign_revision_steps_path(@campaign, @revision),
+              form_method: :post %>
       </div>
     </div>
   </div>

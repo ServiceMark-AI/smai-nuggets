@@ -24,21 +24,30 @@ class CampaignSweepJob < ApplicationJob
 
   # Outbound mail flow goes through several gates:
   #
-  #   1. production AND no TEST_TO_EMAIL              -> real send to host.customer_email
-  #   2. TEST_TO_EMAIL set (any env, mailbox present) -> mail redirected to TEST_TO_EMAIL
-  #   3. development AND no mailbox                   -> FAKE-SEND mode: render the email,
+  #   1. development                                  -> route through CampaignStepMailer
+  #                                                      (Action Mailer + letter_opener_web).
+  #                                                      Mailbox state is irrelevant in dev;
+  #                                                      we never want real Gmail traffic.
+  #   2. production AND no TEST_TO_EMAIL              -> real send to host.customer_email
+  #   3. TEST_TO_EMAIL set (any env, mailbox present) -> mail redirected to TEST_TO_EMAIL
+  #   4. non-prod AND no mailbox                      -> FAKE-SEND mode: render the email,
   #                                                      log it, mark the step :sent.
-  #                                                      Lets dev exercise the campaign
+  #                                                      Lets test exercise the campaign
   #                                                      lifecycle without real Gmail.
-  #   4. non-dev AND no mailbox                       -> skip; log warning
-  #   5. non-prod AND mailbox AND no TEST_TO_EMAIL    -> skip; we won't email customers
-  #                                                      from staging/dev by accident
+  #   5. non-dev AND no mailbox AND non-prod          -> see #4
+  #   6. prod AND no mailbox                          -> skip; log warning
+  #   7. non-prod AND mailbox AND no TEST_TO_EMAIL    -> skip; we won't email customers
+  #                                                      from staging by accident
   #
   # Devise mailers (password reset, registration) are unaffected — they go
   # through Action Mailer, not this job.
 
   def self.production_environment?
     Rails.env.production?
+  end
+
+  def self.development_environment?
+    Rails.env.development?
   end
 
   def self.test_to_email_override
@@ -48,15 +57,20 @@ class CampaignSweepJob < ApplicationJob
   def perform
     mailbox = ApplicationMailbox.current
 
-    if mailbox
+    if self.class.development_environment?
+      # Dev always routes through Action Mailer → letter_opener_web. We
+      # never want a connected dev mailbox to actually relay to a real
+      # customer, even if one is configured.
+      Rails.logger.info "[CampaignSweepJob] dev mode: routing campaign step sends through Action Mailer (letter_opener_web at /letter_opener)"
+    elsif mailbox
       # Real-send path: still gate non-prod behind TEST_TO_EMAIL so we
-      # don't accidentally email customers from a dev/staging box.
+      # don't accidentally email customers from a staging box.
       unless self.class.production_environment? || self.class.test_to_email_override
         Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
         return
       end
     elsif !self.class.production_environment?
-      # No mailbox + non-prod env (dev/test/staging) — fake-send so the
+      # No mailbox + non-prod env (test/staging) — fake-send so the
       # campaign lifecycle logic is still exercised end to end.
       Rails.logger.info "[CampaignSweepJob] no application mailbox connected; running in FAKE-SEND mode (no real email leaves the host)"
     else
@@ -148,14 +162,29 @@ class CampaignSweepJob < ApplicationJob
     attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
 
     sender = mailbox ? GmailSender.new(mailbox) : nil
-    send_response = if sender
-                      sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
-                    else
-                      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
-                      nil # fake-send path: no Gmail response to record
-                    end
+    delivery_failed = false
+    send_response = nil
 
-    if mailbox && send_response.nil?
+    if self.class.development_environment?
+      # Dev: hand the prepared message off to Action Mailer, which routes
+      # through letter_opener_web. No Gmail call, no thread metadata to
+      # capture — reply polling and delivery-issue detection are
+      # production-only concerns.
+      CampaignStepMailer.with(
+        to:          recipient,
+        subject:     subject,
+        body:        body.to_s,
+        from_name:   from_name,
+        attachments: attachments
+      ).step.deliver_now
+    elsif sender
+      send_response = sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
+      delivery_failed = send_response.nil?
+    else
+      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
+    end
+
+    if delivery_failed
       mark_failed(step_instance, instance)
       return
     end
@@ -197,13 +226,13 @@ class CampaignSweepJob < ApplicationJob
     )
   end
 
-  # True iff this step is the first one in its campaign by
-  # sequence_number. Computed by comparing against the campaign's
-  # minimum sequence_number, so it remains correct if step 1 is
-  # later renumbered or removed.
+  # True iff this step is the first one in its revision by
+  # sequence_number. Scoped to the step's campaign_revision so a later
+  # revision with a renumbered step 1 doesn't change what counts as
+  # "first" for an in-flight instance still on an older revision.
   def first_step?(step_instance)
-    campaign_id = step_instance.campaign_step.campaign_id
-    first_seq = CampaignStep.where(campaign_id: campaign_id).minimum(:sequence_number)
+    revision_id = step_instance.campaign_step.campaign_revision_id
+    first_seq = CampaignStep.where(campaign_revision_id: revision_id).minimum(:sequence_number)
     step_instance.campaign_step.sequence_number == first_seq
   end
 
