@@ -60,7 +60,7 @@
                   <% end %>
                 </td>
                 <td>
-                  <% gmail_delegation = user.email_delegations.find { |d| d.provider == "google" } %>
+                  <% gmail_delegation = user.gmail_delegation %>
                   <% if gmail_delegation %>
                     <span class="badge text-bg-success">Linked</span>
                     <div class="text-muted small"><%= gmail_delegation.email %></div>
