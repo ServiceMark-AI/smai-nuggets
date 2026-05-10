@@ -42,11 +42,14 @@ class CampaignLauncher
 
     instance = nil
     CampaignInstance.transaction do
+      # New instance opens in :drafting so the operator can edit step copy
+       # before the sweep starts shipping. JobProposalsController#approve
+       # transitions it to :active when the operator signs off.
       instance = CampaignInstance.create!(
         host: @job_proposal,
         campaign: campaign,
         campaign_revision: revision,
-        status: :active
+        status: :drafting
       )
 
       # planned_delivery_at is left nil here — the operator hasn't approved

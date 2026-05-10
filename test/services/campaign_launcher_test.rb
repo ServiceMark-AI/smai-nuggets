@@ -15,7 +15,7 @@ class CampaignLauncherTest < ActiveSupport::TestCase
     )
   end
 
-  test "launches an active CampaignInstance with one step instance per step" do
+  test "launches a CampaignInstance in :drafting with one step instance per step" do
     result = nil
     assert_difference "CampaignInstance.count", 1 do
       assert_difference "CampaignStepInstance.count", 2 do
@@ -27,7 +27,10 @@ class CampaignLauncherTest < ActiveSupport::TestCase
     instance = result.instance
     assert_equal campaigns(:approved_campaign), instance.campaign
     assert_equal @proposal, instance.host
-    assert instance.status_active?
+    # A freshly-launched instance starts in :drafting so the operator can
+    # edit step content before the sweep starts shipping it. Approve
+    # transitions :drafting -> :active (covered in the controller specs).
+    assert instance.status_drafting?
   end
 
   test "launching marks the proposal as in_campaign" do

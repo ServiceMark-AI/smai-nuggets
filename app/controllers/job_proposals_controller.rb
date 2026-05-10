@@ -271,7 +271,11 @@ class JobProposalsController < ApplicationController
 
   def lock_in_instance!(instance)
     started_at = Time.current
-    instance.update!(started_at: started_at)
+    # Move the instance out of :drafting on approve so the sweep job picks
+    # up the now-stamped step instances. Idempotent if a re-approval lands
+    # on an already-active instance.
+    new_status = instance.status_drafting? ? :active : instance.status
+    instance.update!(started_at: started_at, status: new_status)
     cumulative_minutes = 0
     instance.step_instances
       .joins(:campaign_step)

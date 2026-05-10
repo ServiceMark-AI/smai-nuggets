@@ -5,13 +5,18 @@ class CampaignInstance < ApplicationRecord
 
   has_many :step_instances, class_name: "CampaignStepInstance", dependent: :destroy
 
+  # A freshly-launched instance starts in :drafting so the operator can edit
+  # step copy without the sweep job picking up the steps. JobProposalsController#approve
+  # transitions :drafting -> :active inside lock_in_instance! once the operator
+  # signs off and the per-step content is locked in.
   enum :status, {
     active: 0,
     paused: 1,
     completed: 2,
     stopped_on_reply: 3,
     stopped_on_delivery_issue: 4,
-    stopped_on_closure: 5
+    stopped_on_closure: 5,
+    drafting: 6
   }, prefix: true
 
   # Default the revision off the campaign's currently-active revision when

@@ -672,7 +672,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
     instance = jp.campaign_instances.first
     assert_equal campaigns(:approved_campaign), instance.campaign
-    assert instance.status_active?
+    # Freshly-launched instances are in :drafting; approve transitions them
+    # to :active. See CampaignInstance enum doc.
+    assert instance.status_drafting?
     # planned_delivery_at is set by approve, not by launch (per PRD-03 §6.4
     # — timing anchored to operator approval, not save).
     assert_nil instance.started_at
@@ -1158,16 +1160,18 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "approve flips status to approved and redirects to the campaign instance show page" do
+  test "approve flips status to approved, transitions a drafting instance to active, and redirects to the campaign instance show page" do
     sign_in @user
     jp = job_proposals(:in_users_org)
-    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :drafting)
     jp.update!(status: :approving)
 
     patch approve_job_proposal_url(jp)
     assert_redirected_to job_proposal_campaign_instance_path(jp, instance)
     assert_match(/Approved/i, flash[:notice])
     assert_equal "approved", jp.reload.status
+    assert_equal "active", instance.reload.status,
+      "approving a proposal must move its instance out of :drafting so the sweep can ship steps"
   end
 
   test "approve stamps started_at and accumulates offset_min across the step sequence" do

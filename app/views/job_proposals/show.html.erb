@@ -205,6 +205,7 @@
     <h2 class="h5 mb-0">Campaign</h2>
     <% if campaign_instance %>
       <% inst_status_class = case campaign_instance.status
+         when "drafting"  then "text-bg-info"
          when "active"    then "text-bg-success"
          when "paused"    then "text-bg-warning"
          when "completed" then "text-bg-secondary"
