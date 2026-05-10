@@ -117,39 +117,25 @@ class Admin::ScenariosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
   end
 
-  # --- authoring_hypothesis ---
+  # --- Authoring hypothesis label (the description field, relabeled in the UI) ---
 
-  test "edit form exposes the authoring hypothesis textarea" do
+  test "edit form labels the description field as Authoring hypothesis" do
     sign_in @admin
     get edit_admin_scenario_url(@scenario)
     assert_response :success
-    assert_select "form textarea[name='scenario[authoring_hypothesis]']"
+    assert_select "form label[for='scenario_description']", text: "Authoring hypothesis"
+    assert_select "form textarea[name='scenario[description]']"
   end
 
-  test "update saves the authoring hypothesis" do
-    sign_in @admin
-    hypothesis = "Variant assumes move-in / move-out customers convert on logistical confidence."
-    patch admin_scenario_url(@scenario), params: { scenario: { authoring_hypothesis: hypothesis } }
-    assert_redirected_to admin_scenario_path(@scenario)
-    assert_equal hypothesis, @scenario.reload.authoring_hypothesis
-  end
-
-  test "show renders the authoring hypothesis when set" do
-    @scenario.update!(authoring_hypothesis: "We believe X about this customer.")
+  test "show page surfaces the description under the Authoring hypothesis label" do
+    @scenario.update!(description: "Variant assumes customers convert on logistical confidence.")
     sign_in @admin
     get admin_scenario_url(@scenario)
     assert_response :success
-    assert_match "Authoring hypothesis", response.body
-    assert_match "We believe X about this customer.", response.body
-  end
-
-  test "show falls back to em-dash when authoring hypothesis is blank" do
-    @scenario.update!(authoring_hypothesis: nil)
-    sign_in @admin
-    get admin_scenario_url(@scenario)
-    assert_response :success
-    assert_match "Authoring hypothesis", response.body
     assert_select "dt", text: "Authoring hypothesis"
+    assert_match "Variant assumes customers convert on logistical confidence.", response.body
+    # The old "Description" label must be gone.
+    assert_select "dt", text: "Description", count: 0
   end
 
   # --- destroy ---
