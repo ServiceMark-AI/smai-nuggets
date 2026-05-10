@@ -81,6 +81,43 @@ class AnalyticsCalculatorTest < ActiveSupport::TestCase
     assert_nil result.conversion_rate_ytd_pct
   end
 
+  # --- Closed revenue MTD/YTD ------------------------------------------
+
+  test "closed_revenue_mtd sums won proposal_value with closed_at this month" do
+    job_proposals(:in_users_org).update!(
+      pipeline_stage: :won,
+      closed_at: Time.current.beginning_of_month + 1.hour,
+      proposal_value: 5_000
+    )
+    # Won earlier in the year — counts toward YTD but not MTD.
+    job_proposals(:same_tenant_other_org).update!(
+      pipeline_stage: :won,
+      closed_at: Time.current.beginning_of_year + 1.day,
+      proposal_value: 8_000
+    )
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    assert_equal 5_000.to_d,  result.closed_revenue_mtd
+    assert_equal 13_000.to_d, result.closed_revenue_ytd
+  end
+
+  test "closed_revenue_mtd/ytd ignore wins from prior years" do
+    last_year_close = Time.current.beginning_of_year - 1.day
+    job_proposals(:in_users_org).update!(
+      pipeline_stage: :won, closed_at: last_year_close, proposal_value: 12_345
+    )
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    assert_equal 0.to_d, result.closed_revenue_mtd
+    assert_equal 0.to_d, result.closed_revenue_ytd
+  end
+
+  test "closed_revenue_mtd/ytd are zero when scope has nothing won" do
+    result = AnalyticsCalculator.new(proposals_scope: JobProposal.none).call
+    assert_equal 0.to_d, result.closed_revenue_mtd
+    assert_equal 0.to_d, result.closed_revenue_ytd
+  end
+
   # --- SPEC-06 v1.0 by-location breakdown -------------------------------
 
   test "conversion_rate_by_location returns one row per location with activated/won/rate" do

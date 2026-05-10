@@ -64,6 +64,13 @@ class AnalyticsCalculator
     conversion_rate_mtd_pct = mtd_activated.positive? ? ((mtd_won.to_f / mtd_activated) * 100).round : nil
     conversion_rate_ytd_pct = ytd_activated.positive? ? ((ytd_won.to_f / ytd_activated) * 100).round : nil
 
+    # MTD/YTD revenue uses the same closed_at bucketing as the conversion
+    # rate above so the two tiles tell a consistent story for the same
+    # window. `closed_at` is stamped on the proposal when pipeline_stage
+    # flips to :won or :lost, so it's a stable cohort marker.
+    closed_revenue_mtd = @proposals.where(pipeline_stage: :won).where("closed_at >= ?", mtd_start).sum(:proposal_value)
+    closed_revenue_ytd = @proposals.where(pipeline_stage: :won).where("closed_at >= ?", ytd_start).sum(:proposal_value)
+
     # SPEC-06 v1.0 — per-location Conversion Rate breakdown for the
     # tile expand-toggle. Computed from the same proposals_scope so it
     # respects whatever filter the caller applied. Empty array means
@@ -144,6 +151,8 @@ class AnalyticsCalculator
       conversion_rate_ytd_pct:  conversion_rate_ytd_pct,
       conversion_rate_by_location: by_location,
       closed_revenue:           closed_revenue,
+      closed_revenue_mtd:       closed_revenue_mtd,
+      closed_revenue_ytd:       closed_revenue_ytd,
       active_pipeline_value:    active_pipeline_value,
       follow_ups_sent:          follow_ups_sent,
       originators:              originators,
