@@ -24,15 +24,6 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
 
-    <% if Rails.env.production? %>
-      <% bugsnag_key = ENV.fetch("BUGSNAG_API_KEY", "0209a17dc735ce3d5830d79ffb5dd260") %>
-      <script src="//d2wy8f7a9ursnm.cloudfront.net/v8/bugsnag.min.js"></script>
-      <script type="module">
-        import BugsnagPerformance from '//d2wy8f7a9ursnm.cloudfront.net/v1/bugsnag-performance.min.js'
-        Bugsnag.start({ apiKey: '<%= bugsnag_key %>' })
-        BugsnagPerformance.start({ apiKey: '<%= bugsnag_key %>' })
-      </script>
-    <% end %>
   </head>
 
   <body>

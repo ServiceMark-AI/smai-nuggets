@@ -17,7 +17,7 @@ Before touching Heroku, get accounts and credentials for the four external servi
 | **Google Cloud Storage** *(preferred)* or **AWS S3** | Active Storage for uploaded job-proposal files in production. | GCS: project id, bucket name, service-account JSON keyfile. S3: access key id, secret access key, region, bucket name. See §0.1a for GCS setup. |
 | **Google Cloud OAuth client** | Application mailbox uses Gmail send-on-behalf-of. Required for outbound invitation emails and campaign sends. | Client id, client secret, plus an OAuth callback URL registered for your Heroku domain. |
 | **Google AI Studio (Gemini)** | PDF extraction for uploaded estimates by `JobProposalProcessor`. | API key. |
-| **Bugsnag** | Error monitoring in production / staging. | API key. (A default key is hard-coded as a fallback; override in production.) |
+| **Sentry** | Error monitoring in production / staging. | DSN. (A default DSN is hard-coded as a fallback; override in production.) |
 
 Notes on Google OAuth:
 
@@ -118,7 +118,7 @@ heroku config:set \
   GCS_CREDENTIALS="$(cat ./gcs-keyfile.json)" \
   GOOGLE_CLIENT_ID=… \
   GOOGLE_CLIENT_SECRET=… \
-  BUGSNAG_API_KEY=… \
+  SENTRY_DSN=… \
   -a <app-name>
 
 # AWS variant (alternative). Use this block instead of the GCS lines if you
@@ -241,7 +241,7 @@ After the deploy is up, **Admin → Integrations** is the one-page health check 
 States in either column:
 
 - **OK** — fully configured / connected.
-- **Warning** — works but not optimal (e.g. Bugsnag is falling back to the bundled default key, or storage is partially configured).
+- **Warning** — works but not optimal (e.g. Sentry is falling back to the bundled default DSN, or storage is partially configured).
 - **Missing** — not configured or unreachable; the feature it gates won't work until you fix it.
 
 Walk through this short checklist before letting tenant users in:

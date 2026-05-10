@@ -46,7 +46,7 @@ The full stack runs under Docker Compose: Postgres 17, Redis 7, the Rails web se
 
 - Docker (Desktop or Engine) with Compose v2.
 - A clone of this repo.
-- The credentials listed in [`.env.example`](.env.example) — Gemini API key, Google OAuth client ID/secret, optionally AWS for Active Storage and Bugsnag for error reporting.
+- The credentials listed in [`.env.example`](.env.example) — Gemini API key, Google OAuth client ID/secret, optionally AWS for Active Storage and Sentry for error reporting.
 
 **First-time setup**
 

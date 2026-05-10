@@ -2,7 +2,7 @@ require "test_helper"
 
 class IntegrationStatusTest < ActiveSupport::TestCase
   ENV_KEYS = %w[
-    GEMINI_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET BUGSNAG_API_KEY
+    GEMINI_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET SENTRY_DSN
     APP_HOST TEST_TO_EMAIL REDIS_URL
     GCS_PROJECT GCS_BUCKET GCS_CREDENTIALS
     AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION AWS_BUCKET
@@ -139,17 +139,17 @@ class IntegrationStatusTest < ActiveSupport::TestCase
     refute_match "pass", s.details # password is not surfaced
   end
 
-  # --- Bugsnag ------------------------------------------------------------
+  # --- Sentry -------------------------------------------------------------
 
-  test "bugsnag is :warn (fallback key in use) when API key is unset" do
-    s = find_status("Bugsnag (error reporting)")
+  test "sentry is :warn (fallback DSN in use) when SENTRY_DSN is unset" do
+    s = find_status("Sentry (error reporting)")
     assert_equal :warn, s.state
-    assert_match(/bundled default key/, s.details)
+    assert_match(/bundled default DSN/, s.details)
   end
 
-  test "bugsnag is :ok when API key is set" do
-    ENV["BUGSNAG_API_KEY"] = "abc"
-    s = find_status("Bugsnag (error reporting)")
+  test "sentry is :ok when SENTRY_DSN is set" do
+    ENV["SENTRY_DSN"] = "https://example.ingest.sentry.io/abc"
+    s = find_status("Sentry (error reporting)")
     assert_equal :ok, s.state
   end
 
