@@ -268,7 +268,9 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     get job_proposal_url(jp)
     assert_response :success
     assert_select "h2", text: "Pre-send checklist"
-    assert_match "Mailbox connected", response.body
+    # The apostrophe in "Originator's Gmail connected" gets HTML-escaped in
+    # the rendered page, so match with a regex that doesn't care.
+    assert_match(/Originator(['&#39;]+s)? Gmail connected/, response.body)
     assert_match "Recipient email present and valid", response.body
     assert_match "Recipient is not on the suppression list", response.body
   end

@@ -2,13 +2,19 @@ require "net/http"
 
 # Runs every 5 minutes (see config/sidekiq_cron.yml) to find campaign step
 # instances whose planned_delivery_at has passed and either ship them via the
-# connected Gmail mailbox or block them — whichever the PreSendChecklist says.
+# proposal originator's connected Gmail or block them — whichever the
+# PreSendChecklist says.
+#
+# Send identity (PRD-09 v1.3 §1, SPEC-07): customer email goes out from the
+# proposal originator's own Gmail account, authenticated via that user's
+# EmailDelegation. The shared ApplicationMailbox is used only for
+# transactional system mail (Devise resets, invitations) — never for
+# customer campaign sends.
 #
 # The checklist (app/services/pre_send_checklist.rb, modeled on PRD-09 v1.3
 # §9.2) is the single source of truth for what must hold before a real
 # customer email leaves the system. Both this job and the operator UI on
-# the proposal page run through the same checklist function so what the
-# operator sees is exactly what the sweep will evaluate next.
+# the proposal page run through the same checklist function.
 #
 # Failure handling, per the checklist's failure class:
 # - :block_silent          — step stays pending, the next sweep re-evaluates.
@@ -21,29 +27,34 @@ require "net/http"
 class CampaignSweepJob < ApplicationJob
   queue_as :default
 
-  # Send-mode resolution for a given run:
+  # Send-mode resolution for a given run. ApplicationMailbox is used here only
+  # as a "real-send environment is configured" sentinel — the actual credential
+  # for a customer send is the originator's per-user EmailDelegation, looked up
+  # in #deliver. The mailbox stays in the picture because it gates Devise/
+  # invitation transactional mail and signals that the host has real Gmail
+  # traffic configured at all.
   #
   #   1. development                                  -> :dev_letter_opener (route through
   #                                                      CampaignStepMailer + letter_opener_web).
-  #                                                      Mailbox state is irrelevant in dev;
-  #                                                      we never want real Gmail traffic.
   #                                                      Checklist bypassed.
-  #   2. mailbox + (production OR TEST_TO_EMAIL)      -> :real_send. Checklist runs.
+  #   2. mailbox + (production OR TEST_TO_EMAIL)      -> :real_send. Checklist runs; the
+  #                                                      originator-mailbox check enforces
+  #                                                      per-proposal Gmail delegation.
   #   3. no mailbox + non-prod                        -> :fake_send. Render the email,
   #                                                      log it, mark the step :sent.
   #                                                      Checklist bypassed — lets tests
   #                                                      exercise the campaign lifecycle
   #                                                      without real Gmail.
   #   4. no mailbox + prod                            -> :real_send. The checklist's
-  #                                                      mailbox check surfaces every
-  #                                                      pending step as a delivery_issue
-  #                                                      so the operator sees the outage.
+  #                                                      originator-mailbox check
+  #                                                      surfaces the outage as a
+  #                                                      delivery issue on each step.
   #   5. mailbox + non-prod + no TEST_TO_EMAIL        -> :skip. Staging guardrail; we
-  #                                                      will not relay through a real
-  #                                                      Gmail mailbox by accident.
+  #                                                      will not relay through real
+  #                                                      Gmail by accident.
   #
-  # Devise mailers (password reset, registration) are unaffected — they go
-  # through Action Mailer, not this job.
+  # Devise mailers (password reset, registration, invitations) are unaffected —
+  # they go through Action Mailer using the shared ApplicationMailbox.
 
   def self.production_environment?
     Rails.env.production?
@@ -58,11 +69,10 @@ class CampaignSweepJob < ApplicationJob
   end
 
   def perform
-    mailbox = ApplicationMailbox.current
-    mode = resolve_mode(mailbox)
+    mode = resolve_mode(ApplicationMailbox.current)
     return if mode == :skip
 
-    due_step_instance_ids(Time.current).each { |id| process(id, mailbox, mode) }
+    due_step_instance_ids(Time.current).each { |id| process(id, mode) }
   end
 
   private
@@ -74,10 +84,10 @@ class CampaignSweepJob < ApplicationJob
     elsif mailbox && (self.class.production_environment? || self.class.test_to_email_override)
       :real_send
     elsif mailbox.nil? && !self.class.production_environment?
-      Rails.logger.info "[CampaignSweepJob] no application mailbox connected; running in FAKE-SEND mode (no real email leaves the host)"
+      Rails.logger.info "[CampaignSweepJob] no application mailbox configured; running in FAKE-SEND mode (no real email leaves the host)"
       :fake_send
     elsif mailbox.nil? && self.class.production_environment?
-      Rails.logger.warn "[CampaignSweepJob] no application mailbox connected; the pre-send checklist will surface every queued step as a delivery issue until a mailbox is connected"
+      Rails.logger.warn "[CampaignSweepJob] no application mailbox configured in production; the pre-send checklist will surface the outage on each queued step"
       :real_send
     else
       Rails.logger.warn "[CampaignSweepJob] sending disabled in #{Rails.env}; set TEST_TO_EMAIL to redirect mail, or run in production"
@@ -100,7 +110,7 @@ class CampaignSweepJob < ApplicationJob
       .pluck(:id)
   end
 
-  def process(step_instance_id, mailbox, mode)
+  def process(step_instance_id, mode)
     step_instance = CampaignStepInstance.find(step_instance_id)
 
     if mode == :dev_letter_opener || mode == :fake_send
@@ -118,7 +128,7 @@ class CampaignSweepJob < ApplicationJob
 
     return unless claim(step_instance_id)
     step_instance.reload
-    deliver(step_instance, mailbox)
+    deliver(step_instance)
   end
 
   def handle_blocked(step_instance, blocker)
@@ -166,10 +176,22 @@ class CampaignSweepJob < ApplicationJob
     instance.update!(status: :stopped_on_delivery_issue, ended_at: Time.current) if instance.status_active?
   end
 
-  def deliver(step_instance, mailbox)
+  def deliver(step_instance)
     instance = step_instance.campaign_instance
     host = instance.host
     recipient = recipient_for(host)
+
+    # Per PRD-09 §1, the originator's own Gmail delegation is the credential.
+    # The checklist's originator_mailbox check would have blocked us already
+    # if this were missing, but a delegation can vanish between the checklist
+    # run and the claim — fall back to delivery-issue handling rather than
+    # crashing.
+    delegation = host.owner&.gmail_delegation
+    if delegation.nil?
+      Rails.logger.warn "[CampaignSweepJob] originator delegation disappeared between checklist and send for step #{step_instance.id}"
+      mark_failed(step_instance, instance)
+      return
+    end
 
     # Content is locked in at approve time (see JobProposalsController#approve).
     # The sweep just ships the persisted final_subject / final_body — no late
@@ -178,12 +200,11 @@ class CampaignSweepJob < ApplicationJob
     subject = step_instance.final_subject
     body    = step_instance.final_body
 
-    # Display name on the From header is the proposal owner's full
-    # name (Mike Frizzell), so the recipient sees
+    # Display name on the From header is the proposal owner's full name, so
+    # the recipient sees:
     #   "Mike Frizzell" <mike@servicemark.ai>
-    # instead of just the bare connected-mailbox address. Falls back
-    # to nil (no display name, just the email) if the owner has no
-    # name set on their profile.
+    # The bare email address comes from the originator's own Gmail
+    # delegation, not from a shared location/admin mailbox.
     from_name = host.owner&.full_name
 
     # The first email of the sequence carries the proposal's PDF
@@ -192,7 +213,7 @@ class CampaignSweepJob < ApplicationJob
     # to admins deleting and re-adding step 1.
     attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
 
-    sender = GmailSender.new(mailbox)
+    sender = GmailSender.new(delegation)
     send_response = sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
     if send_response.nil?
       mark_failed(step_instance, instance)

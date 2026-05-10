@@ -3,7 +3,7 @@ require "test_helper"
 class CampaignSweepJobTest < ActiveSupport::TestCase
   setup do
     @mailbox = ApplicationMailbox.create!(
-      provider: "google",
+      provider: "google_oauth2",
       email: "ops@example.com",
       access_token: "atk",
       refresh_token: "rtk",
@@ -13,9 +13,6 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     @step_one = campaign_steps(:approved_step_one)
     @step_two = campaign_steps(:approved_step_two)
     @proposal = job_proposals(:in_users_org)
-    # status:approved is the operator-explicit "go" gate the sweep checks
-    # before sending. Existing tests pre-date this gate; default to approved
-    # and let any gate-specific tests below override.
     # status:approved gates operator approval. pipeline_stage:in_campaign
     # is the canonical PRD-09 §9.2 check-2 condition for a job that has
     # been launched into a campaign — fixtures don't set it explicitly,
@@ -28,6 +25,19 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
       customer_street: "Oak Ridge"
     )
     @instance = CampaignInstance.create!(campaign: @campaign, host: @proposal, status: :active)
+
+    # Per PRD-09 §1, customer email goes out from the originator's own Gmail.
+    # The pre-send checklist's originator_mailbox check requires this — set
+    # it up by default and let tests opt out (delete it, expire it) to
+    # exercise the failure paths.
+    @owner_delegation = EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
+    )
 
     # Existing tests assume mail goes out. The send gates require either
     # production OR TEST_TO_EMAIL set, so default tests to redirect-mode
@@ -72,9 +82,9 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal 1, GmailSender.deliveries.size
     delivery = GmailSender.deliveries.first
     assert_equal "redirect@test.example.com", delivery[:to]
-    # From header carries the proposal owner's display name when set,
-    # otherwise just the bare connected-mailbox email.
-    expected_from = @proposal.owner.full_name.present? ? %("#{@proposal.owner.full_name}" <ops@example.com>) : "ops@example.com"
+    # From header is the originator's own Gmail (per PRD-09 §1) with their
+    # display name attached when set — not the shared ApplicationMailbox.
+    expected_from = @proposal.owner.full_name.present? ? %("#{@proposal.owner.full_name}" <originator@example.com>) : "originator@example.com"
     assert_equal expected_from, delivery[:from]
     assert_equal @step_one.template_subject, delivery[:subject]
   end
@@ -87,7 +97,20 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
 
     assert_equal "sent", step_instance.reload.email_delivery_status
     assert_equal 1, GmailSender.deliveries.size
-    assert_equal %("Mike Frizzell" <ops@example.com>), GmailSender.deliveries.first[:from]
+    assert_equal %("Mike Frizzell" <originator@example.com>), GmailSender.deliveries.first[:from]
+  end
+
+  test "From email is the originator's Gmail, not the shared ApplicationMailbox" do
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    delivery = GmailSender.deliveries.first
+    assert_includes delivery[:from], "originator@example.com",
+      "campaign mail must be sent from the originator's own Gmail"
+    refute_includes delivery[:from], "ops@example.com",
+      "campaign mail must NOT be sent from the shared ApplicationMailbox"
   end
 
   test "in production with no TEST_TO_EMAIL, mail goes to the customer's address" do
@@ -292,11 +315,11 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_nil step_instance.gmail_thread_snapshot
   end
 
-  test "in production with no mailbox, the checklist surfaces a delivery issue on every queued step" do
-    # Per PRD-09 §10.1 a disconnected mailbox is a delivery_issue, not a
-    # silent skip. The checklist's mailbox check fires first; the step is
-    # marked failed and the campaign run is stopped.
-    @mailbox.destroy!
+  test "in production, a missing originator Gmail surfaces a delivery issue on the step" do
+    # Per PRD-09 §10.1 a disconnected originator Gmail is a delivery_issue,
+    # not a silent skip. The checklist's originator-mailbox check fires
+    # first; the step is marked failed and the campaign run is stopped.
+    @owner_delegation.destroy!
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
     with_production_environment(true) { CampaignSweepJob.new.perform }

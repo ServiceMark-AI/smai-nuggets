@@ -213,12 +213,22 @@ class GmailSender
   # Builds a multipart/mixed Mail::Message with a plain-text body and
   # one part per attachment hash. The Mail gem handles MIME boundaries,
   # base64 encoding of binary content, and Content-Disposition headers.
+  #
+  # Note: assigning to `msg.body=` and then adding attachments does NOT
+  # produce a usable text part — the body string is silently dropped from
+  # the encoded multipart output. We have to build the body as an explicit
+  # text/plain part. Once the first text_part is set, Mail promotes the
+  # message to multipart for us; subsequent attachments slot in cleanly.
   def build_multipart(to:, from:, subject:, body:, attachments:)
+    body_text = body.to_s
     msg = Mail.new
     msg.to      = to
     msg.from    = from
     msg.subject = subject
-    msg.body    = body
+    msg.text_part = Mail::Part.new do
+      content_type "text/plain; charset=UTF-8"
+      body body_text
+    end
     Array(attachments).each do |att|
       msg.attachments[att[:filename]] = {
         content:   att[:content],

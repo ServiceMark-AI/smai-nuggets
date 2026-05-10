@@ -117,6 +117,39 @@ class CampaignInstancesControllerTest < ActionDispatch::IntegrationTest
     refute_match admin_campaign_path(@campaign), response.body
   end
 
+  test "From line shows the originator's connected Gmail, not the shared application mailbox" do
+    ApplicationMailbox.create!(
+      provider: "google_oauth2", email: "ops@example.com", access_token: "atk", expires_at: 1.hour.from_now
+    )
+    EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
+    )
+
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+
+    assert_response :success
+    assert_match "originator@example.com", response.body
+    refute_match "ops@example.com", response.body, "campaign mail must NOT be sent from the shared ApplicationMailbox"
+    refute_match "connected application mailbox", response.body
+  end
+
+  test "From line warns when the originator has not connected Gmail" do
+    @proposal.owner.update!(first_name: "Alice", last_name: "Owner")
+
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+
+    assert_response :success
+    assert_match "Alice Owner", response.body
+    assert_match "has not connected their Gmail yet", response.body
+  end
+
   test "previews send times anchored to now when JobProposal is not yet approved" do
     @step_one.update!(offset_min: 60)
     @step_two.update!(offset_min: 1440)

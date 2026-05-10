@@ -2,13 +2,6 @@ require "test_helper"
 
 class PreSendChecklistTest < ActiveSupport::TestCase
   setup do
-    @mailbox = ApplicationMailbox.create!(
-      provider: "google",
-      email: "ops@example.com",
-      access_token: "atk",
-      refresh_token: "rtk",
-      expires_at: 1.hour.from_now
-    )
     @campaign = campaigns(:approved_campaign)
     @step = campaign_steps(:approved_step_one)
     @proposal = job_proposals(:in_users_org)
@@ -19,6 +12,15 @@ class PreSendChecklistTest < ActiveSupport::TestCase
       customer_email: "alice@example.com",
       customer_house_number: "100",
       customer_street: "Oak Ridge"
+    )
+    # Per PRD-09 §1, the campaign sends as the originator's own Gmail.
+    @owner_delegation = EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
     )
     @instance = CampaignInstance.create!(campaign: @campaign, host: @proposal, status: :active)
     @step_instance = CampaignStepInstance.create!(
@@ -41,36 +43,37 @@ class PreSendChecklistTest < ActiveSupport::TestCase
   test "labels are operator-friendly" do
     checks = PreSendChecklist.run(@step_instance)
 
-    assert_match(/mailbox/i, checks.find { |c| c.key == :mailbox_connected }.label)
+    assert_match(/originator/i, checks.find { |c| c.key == :originator_mailbox }.label)
     assert_match(/recipient/i, checks.find { |c| c.key == :contact_email }.label)
     assert_match(/suppression/i, checks.find { |c| c.key == :suppression }.label)
   end
 
-  test "fails the mailbox check with a delivery_issue when no mailbox is connected" do
-    @mailbox.destroy!
+  test "fails originator_mailbox with delivery_issue when the proposal owner has no Gmail delegation" do
+    @owner_delegation.destroy!
 
     blocker = PreSendChecklist.new(@step_instance).first_blocker
 
-    assert_equal :mailbox_connected, blocker.key
+    assert_equal :originator_mailbox, blocker.key
     assert blocker.block_delivery_issue?
-    assert_match(/no Gmail mailbox/i, blocker.detail)
+    assert_match(/has not connected their Gmail/i, blocker.detail)
   end
 
-  test "fails the mailbox check with delivery_issue when the token is expired and there is no refresh token" do
-    @mailbox.update!(refresh_token: nil, expires_at: 1.hour.ago)
+  test "fails originator_mailbox with delivery_issue when the delegation is expired and has no refresh token" do
+    @owner_delegation.update!(refresh_token: nil, expires_at: 1.hour.ago)
 
     blocker = PreSendChecklist.new(@step_instance).first_blocker
 
-    assert_equal :mailbox_connected, blocker.key
+    assert_equal :originator_mailbox, blocker.key
     assert blocker.block_delivery_issue?
+    assert_match(/expired/i, blocker.detail)
   end
 
-  test "passes the mailbox check when an expired token still has a refresh token" do
-    @mailbox.update!(refresh_token: "rtk", expires_at: 1.hour.ago)
+  test "passes originator_mailbox when an expired delegation still has a refresh token" do
+    @owner_delegation.update!(refresh_token: "rtk", expires_at: 1.hour.ago)
 
     checks = PreSendChecklist.run(@step_instance)
 
-    assert checks.find { |c| c.key == :mailbox_connected }.pass?
+    assert checks.find { |c| c.key == :originator_mailbox }.pass?
   end
 
   test "fails pipeline_stage with block_silent when the proposal status is not approved" do

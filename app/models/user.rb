@@ -10,6 +10,22 @@ class User < ApplicationRecord
 
   validates :time_zone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_blank: true
 
+  # All provider strings this app uses for Google delegations. OmniAuth's
+  # Google strategy registers itself as `google_oauth2` (what
+  # EmailDelegationsController persists today), but seeds and older fixtures
+  # in the wild use the shorter `google`. Match either so a delegation an
+  # operator already has connected isn't ignored on a string-mismatch.
+  GOOGLE_PROVIDERS = %w[google_oauth2 google].freeze
+
+  # The Gmail OAuth delegation a campaign send for this user (as a proposal
+  # originator) would authenticate as. Per PRD-09 v1.3 §1, customer email goes
+  # out from the originator's own Gmail — not from a shared location/admin
+  # mailbox — so this is what PreSendChecklist and CampaignSweepJob look up
+  # before each send. Returns nil when the originator has not connected Gmail.
+  def gmail_delegation
+    email_delegations.where(provider: GOOGLE_PROVIDERS).first
+  end
+
   def full_name
     [first_name, last_name].compact_blank.join(" ").presence
   end
