@@ -60,8 +60,9 @@ gem "google-cloud-storage", "~> 1.11", require: false
 # LLM toolkit with chat / message persistence [https://rubyllm.com]
 gem "ruby_llm"
 
-# Error monitoring [https://github.com/bugsnag/bugsnag-ruby]
-gem "bugsnag"
+# Error monitoring [https://docs.sentry.io/platforms/ruby/]
+gem "sentry-ruby"
+gem "sentry-rails"
 
 # Google OAuth for collecting Gmail send-on-behalf-of tokens
 gem "omniauth-google-oauth2"

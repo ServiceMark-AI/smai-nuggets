@@ -108,8 +108,6 @@ GEM
       msgpack (~> 1.2)
     brakeman (8.0.4)
       racc
-    bugsnag (6.30.0)
-      concurrent-ruby (~> 1.0)
     builder (3.3.0)
     bundler-audit (0.9.3)
       bundler (>= 1.2.0)
@@ -526,6 +524,13 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
+    sentry-rails (6.5.0)
+      railties (>= 5.2.0)
+      sentry-ruby (~> 6.5.0)
+    sentry-ruby (6.5.0)
+      bigdecimal
+      concurrent-ruby (~> 1.0, >= 1.0.2)
+      logger
     sidekiq (8.1.4)
       connection_pool (>= 3.0.0)
       json (>= 2.16.0)
@@ -619,7 +624,6 @@ DEPENDENCIES
   aws-sdk-s3
   bootsnap
   brakeman
-  bugsnag
   bundler-audit
   cancancan
   capybara
@@ -643,6 +647,8 @@ DEPENDENCIES
   rubocop-rails-omakase
   ruby_llm
   selenium-webdriver
+  sentry-rails
+  sentry-ruby
   sidekiq
   sidekiq-cron
   solid_cable

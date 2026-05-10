@@ -35,7 +35,7 @@ class Admin::IntegrationsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Gemini API", response.body
     assert_match "Active Storage", response.body
     assert_match "Redis (Sidekiq)", response.body
-    assert_match "Bugsnag", response.body
+    assert_match "Sentry", response.body
   end
 
   test "admin sees persisted live-check results next to each integration" do

@@ -1,14 +1,14 @@
 # Aggregates the live status of every external integration the app talks
 # to: the application mailbox, Google OAuth, Gemini for PDF extraction,
-# Active Storage backend, Redis (Sidekiq), Bugsnag, the production host
+# Active Storage backend, Redis (Sidekiq), Sentry, the production host
 # config, and the dev-only TEST_TO_EMAIL gate.
 #
 # Drives the Admin → Integrations index. Each entry returns a Status with
 # one of three states:
 #
 #   :ok      — fully configured / connected.
-#   :warn    — works in some form but is sub-optimal (e.g. Bugsnag falling
-#              back to the bundled default key, partial storage config).
+#   :warn    — works in some form but is sub-optimal (e.g. Sentry falling
+#              back to the bundled default DSN, partial storage config).
 #   :missing — not configured; the feature it gates won't work.
 #
 # Each Status carries a one-line `details` describing the current state
@@ -29,7 +29,7 @@ class IntegrationStatus
       active_storage,
       sidekiq_redis,
       app_host,
-      bugsnag,
+      sentry,
       test_to_email
     ]
   end
@@ -186,20 +186,20 @@ class IntegrationStatus
     end
   end
 
-  def bugsnag
-    if ENV["BUGSNAG_API_KEY"].present?
+  def sentry
+    if ENV["SENTRY_DSN"].present?
       Status.new(
-        name: "Bugsnag (error reporting)",
+        name: "Sentry (error reporting)",
         state: :ok,
-        details: "API key configured.",
+        details: "DSN configured.",
         recommendation: nil
       )
     else
       Status.new(
-        name: "Bugsnag (error reporting)",
+        name: "Sentry (error reporting)",
         state: :warn,
-        details: "BUGSNAG_API_KEY not set; falling back to the bundled default key. Errors are reported to a shared project, not yours.",
-        recommendation: "Set your own BUGSNAG_API_KEY to scope errors to your own project."
+        details: "SENTRY_DSN not set; falling back to the bundled default DSN. Errors are reported to a shared project, not yours.",
+        recommendation: "Set your own SENTRY_DSN to scope errors to your own project."
       )
     end
   end
