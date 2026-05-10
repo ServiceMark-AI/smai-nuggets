@@ -52,4 +52,29 @@ class GmailSenderTest < ActiveSupport::TestCase
     delivery = GmailSender.deliveries.last
     assert_equal [], delivery[:attachments]
   end
+
+  # Regression: a multipart message used to drop the body string entirely.
+  # `msg.body = "..."` followed by `msg.attachments[...] = {...}` produced a
+  # multipart/mixed message with only the attachment part — recipients saw
+  # an empty email body next to the PDF. Build the body as an explicit
+  # text/plain part so it survives the multipart promotion.
+  test "build_multipart includes the body as a text/plain part alongside attachments" do
+    sender = GmailSender.new(@mailbox)
+    msg = sender.send(:build_multipart,
+      to: "alice@example.com",
+      from: "bob@example.com",
+      subject: "Test",
+      body: "Hello there. This is the body.",
+      attachments: [{ filename: "p.pdf", content: "%PDF-1.4 fake", mime_type: "application/pdf" }]
+    )
+
+    encoded = msg.encoded
+    assert_includes encoded, "Hello there. This is the body.",
+      "the message body must appear in the encoded multipart output"
+    assert_includes encoded, "Content-Type: text/plain"
+    assert_includes encoded, "Content-Type: application/pdf"
+    assert_match(/Content-Disposition: attachment;\s+filename=p\.pdf/, encoded)
+    refute_nil msg.text_part, "multipart message must have a text part"
+    assert_equal "Hello there. This is the body.", msg.text_part.body.decoded
+  end
 end
