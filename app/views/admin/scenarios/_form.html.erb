@@ -35,6 +35,13 @@
   </div>
 
   <div class="mb-3">
+    <%= f.label :authoring_hypothesis, "Authoring hypothesis", class: "form-label" %>
+    <%= f.text_area :authoring_hypothesis, rows: 6, class: "form-control",
+          placeholder: "What we believe is true about this customer/situation, and what the cadence is leveraging on. The why behind the templated content." %>
+    <div class="form-text">Internal — captures the operator-side rationale for the scenario's content. Not shown to customers.</div>
+  </div>
+
+  <div class="mb-3">
     <%= f.label :campaign_id, "Campaign", class: "form-label" %>
     <% if @scenario.persisted? %>
       <% scoped_campaigns = @scenario.attributed_campaigns.order(:name) %>

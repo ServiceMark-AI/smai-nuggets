@@ -26,6 +26,9 @@
       <dt class="col-sm-3">Description</dt>
       <dd class="col-sm-9"><%= simple_format(@scenario.description.presence || content_tag(:span, "—", class: "text-muted").to_s) %></dd>
 
+      <dt class="col-sm-3">Authoring hypothesis</dt>
+      <dd class="col-sm-9"><%= simple_format(@scenario.authoring_hypothesis.presence || content_tag(:span, "—", class: "text-muted").to_s) %></dd>
+
       <dt class="col-sm-3">Job type</dt>
       <dd class="col-sm-9"><%= link_to @job_type.name, admin_job_type_path(@job_type) %></dd>
 

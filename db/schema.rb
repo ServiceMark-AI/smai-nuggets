@@ -344,6 +344,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_013411) do
   end
 
   create_table "scenarios", force: :cascade do |t|
+    t.text "authoring_hypothesis"
     t.bigint "campaign_id"
     t.string "code", limit: 64, null: false
     t.datetime "created_at", null: false
