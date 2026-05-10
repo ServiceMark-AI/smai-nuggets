@@ -27,18 +27,65 @@ class Admin::PdfProcessingRevisionsControllerTest < ActionDispatch::IntegrationT
     assert_match "No revisions yet.", response.body
   end
 
-  test "admin index lists revisions newest first and badges the current one" do
-    PdfProcessingRevision.create!(instructions: "v1", model: @model)
+  test "admin index pins the current revision at the top in full and lists older revisions in the table below" do
+    older   = PdfProcessingRevision.create!(instructions: "v1", model: @model)
     current = PdfProcessingRevision.create!(instructions: "v2", model: @model)
     sign_in @admin
 
     get admin_pdf_processing_revisions_url
     assert_response :success
+    assert_match "Current instructions", response.body
+    assert_match "Previous revisions",   response.body
     assert_match "v2", response.body
     assert_match "v1", response.body
-    assert_match "Current", response.body
-    assert response.body.index("v2") < response.body.index("v1"), "v2 should appear before v1"
+    # Current's full body sits in the top card; the table only links to older.
+    assert response.body.index("Current instructions") < response.body.index("Previous revisions"),
+           "Current section should appear before Previous"
+    assert_select "a[href=?]", admin_pdf_processing_revision_path(older), text: "View"
     assert_equal current, PdfProcessingRevision.is_current
+  end
+
+  test "admin index empty-state shows when there are no previous revisions, even with one current" do
+    PdfProcessingRevision.create!(instructions: "only", model: @model)
+    sign_in @admin
+    get admin_pdf_processing_revisions_url
+    assert_response :success
+    assert_match "only", response.body
+    assert_match "No previous revisions.", response.body
+  end
+
+  # --- show ---------------------------------------------------------------
+
+  test "show redirects to sign-in when not signed in" do
+    rev = PdfProcessingRevision.create!(instructions: "x", model: @model)
+    get admin_pdf_processing_revision_url(rev)
+    assert_redirected_to new_user_session_path
+  end
+
+  test "non-admin cannot reach show" do
+    rev = PdfProcessingRevision.create!(instructions: "x", model: @model)
+    sign_in @non_admin
+    get admin_pdf_processing_revision_url(rev)
+    assert_redirected_to root_path
+  end
+
+  test "admin show renders the revision number, model, and instructions" do
+    rev = PdfProcessingRevision.create!(instructions: "Detailed steps for extraction.", model: @model)
+    sign_in @admin
+    get admin_pdf_processing_revision_url(rev)
+    assert_response :success
+    assert_match "Revision ##{rev.revision_number}", response.body
+    assert_match @model.name, response.body
+    assert_match "Detailed steps for extraction.", response.body
+  end
+
+  test "admin show flags the current revision with a Current badge" do
+    PdfProcessingRevision.create!(instructions: "older", model: @model)
+    current = PdfProcessingRevision.create!(instructions: "newer", model: @model)
+    sign_in @admin
+    get admin_pdf_processing_revision_url(current)
+    assert_response :success
+    assert_match "Current", response.body
   end
 
   test "admin sees the new form" do
