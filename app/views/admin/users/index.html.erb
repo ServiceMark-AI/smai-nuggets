@@ -1,0 +1,115 @@
+<% content_for :title, "Users" %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div class="d-flex align-items-baseline gap-2">
+    <h1 class="h3 mb-0">Users</h1>
+    <span class="text-muted small"><%= pluralize(@users.size, "user") %></span>
+  </div>
+</div>
+
+<%= form_with url: admin_users_path, method: :get, local: true, class: "card shadow-sm mb-3" do |f| %>
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-sm-5">
+        <%= label_tag :q, "Search", class: "form-label small mb-1" %>
+        <%= text_field_tag :q, @search,
+              placeholder: "Email or name",
+              class: "form-control form-control-sm" %>
+      </div>
+      <div class="col-sm-4">
+        <%= label_tag :tenant_id, "Tenant", class: "form-label small mb-1" %>
+        <%= select_tag :tenant_id,
+              options_from_collection_for_select(@tenant_options, :id, :name, @selected_tenant_id),
+              include_blank: "All tenants",
+              class: "form-select form-select-sm" %>
+      </div>
+      <div class="col-sm-3 d-flex gap-2">
+        <%= f.submit "Filter", class: "btn btn-primary btn-sm" %>
+        <% if @selected_tenant_id || @search.present? %>
+          <%= link_to "Clear", admin_users_path, class: "btn btn-outline-secondary btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <% if @users.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Tenant</th>
+            <th>Location</th>
+            <th>Role</th>
+            <th>Gmail</th>
+            <th class="text-end">Status</th>
+            <th class="text-end" style="width: 1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @users.each do |user| %>
+            <tr>
+              <td>
+                <% if user.full_name.present? %>
+                  <%= user.full_name %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td><%= user.email %></td>
+              <td>
+                <% if user.tenant %>
+                  <%= link_to user.tenant.name, admin_tenant_path(user.tenant) %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td>
+                <% if user.location %>
+                  <%= user.location.display_name %>
+                <% else %>
+                  <span class="text-muted">—</span>
+                <% end %>
+              </td>
+              <td>
+                <% if user.is_admin %>
+                  <span class="badge text-bg-dark">Application Admin</span>
+                <% elsif user.is_tenant_admin? %>
+                  <span class="badge text-bg-info">Tenant Admin</span>
+                <% else %>
+                  <span class="badge text-bg-secondary">Originator</span>
+                <% end %>
+              </td>
+              <td>
+                <% gmail_delegation = user.email_delegations.find { |d| d.provider == "google" } %>
+                <% if gmail_delegation %>
+                  <span class="badge text-bg-success">Linked</span>
+                  <div class="text-muted small"><%= gmail_delegation.email %></div>
+                <% else %>
+                  <span class="text-muted small">Not linked</span>
+                <% end %>
+              </td>
+              <td class="text-end">
+                <% if user.is_pending %>
+                  <span class="badge text-bg-warning">Pending</span>
+                <% else %>
+                  <span class="badge text-bg-success">Active</span>
+                <% end %>
+              </td>
+              <td class="text-end">
+                <% if user.tenant %>
+                  <%= link_to "Edit", edit_admin_tenant_user_path(user.tenant, user), class: "btn btn-sm btn-outline-primary" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted">No users match these filters.</div>
+    <% end %>
+  </div>
+</div>

@@ -64,6 +64,7 @@ Rails.application.routes.draw do
       end
       resources :scenario_activations, only: [:create, :destroy]
     end
+    resources :users, only: [:index]
     resources :job_types do
       resources :scenarios, only: [:new, :create]
     end

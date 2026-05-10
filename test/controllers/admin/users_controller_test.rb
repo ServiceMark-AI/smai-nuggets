@@ -90,4 +90,67 @@ class Admin::UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href=?]", edit_admin_tenant_user_path(@tenant, @teammate), text: "Edit"
   end
+
+  # --- index --------------------------------------------------------------
+
+  test "index redirects to sign-in when not signed in" do
+    get admin_users_url
+    assert_redirected_to new_user_session_path
+  end
+
+  test "non-admin cannot reach the cross-tenant users index" do
+    sign_in @non_admin
+    get admin_users_url
+    assert_redirected_to root_path
+  end
+
+  test "admin index lists users from every tenant" do
+    sign_in @admin
+    get admin_users_url
+    assert_response :success
+    assert_match users(:one).email,   response.body  # tenant: one
+    assert_match users(:two).email,   response.body  # tenant: two
+    assert_match @teammate.email,     response.body  # created in setup, tenant: one
+  end
+
+  test "tenant filter narrows the index to that tenant's users" do
+    sign_in @admin
+    get admin_users_url, params: { tenant_id: tenants(:two).id }
+    assert_response :success
+    assert_match users(:two).email,    response.body
+    assert_no_match users(:one).email, response.body
+    assert_no_match @teammate.email,   response.body
+  end
+
+  test "search query matches by email substring" do
+    sign_in @admin
+    get admin_users_url, params: { q: "admin-edit-victim" }
+    assert_response :success
+    assert_match @teammate.email,      response.body
+    assert_no_match users(:one).email, response.body
+  end
+
+  test "search query matches by full name" do
+    @teammate.update!(first_name: "Pat", last_name: "Sample")
+    sign_in @admin
+    get admin_users_url, params: { q: "pat sample" }
+    assert_response :success
+    assert_match @teammate.email,      response.body
+    assert_no_match users(:one).email, response.body
+  end
+
+  test "index renders an Edit link routed through the user's tenant" do
+    sign_in @admin
+    get admin_users_url
+    assert_response :success
+    assert_select "a[href=?]", edit_admin_tenant_user_path(@tenant, @teammate), text: "Edit"
+  end
+
+  test "index shows a Tenant Admin badge for users with a tenant and no location" do
+    @teammate.update!(tenant: @tenant, location: nil)
+    sign_in @admin
+    get admin_users_url
+    assert_response :success
+    assert_select "tr", text: /#{@teammate.email}.*Tenant Admin/m
+  end
 end
