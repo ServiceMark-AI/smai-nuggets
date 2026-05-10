@@ -84,12 +84,28 @@ class AnalyticsCalculator
         activated = loc_proposals.joins(:campaign_instances).distinct.count
         won = loc_proposals.where(pipeline_stage: :won).count
         rate = activated.positive? ? ((won.to_f / activated) * 100).round : nil
+
+        # Per-location MTD/YTD use the same activated_at (campaign_instance
+        # created_at) and won_at (closed_at) bucketing as the all-locations
+        # conversion-rate tile. Tying both windows to the same anchors keeps
+        # the per-location card consistent with the hero figure for the
+        # same period.
+        mtd_activated_loc = loc_proposals.joins(:campaign_instances).where("campaign_instances.created_at >= ?", mtd_start).distinct.count
+        ytd_activated_loc = loc_proposals.joins(:campaign_instances).where("campaign_instances.created_at >= ?", ytd_start).distinct.count
+        mtd_won_loc       = loc_proposals.where(pipeline_stage: :won).where("closed_at >= ?", mtd_start).count
+        ytd_won_loc       = loc_proposals.where(pipeline_stage: :won).where("closed_at >= ?", ytd_start).count
+
+        mtd_rate = mtd_activated_loc.positive? ? ((mtd_won_loc.to_f / mtd_activated_loc) * 100).round : nil
+        ytd_rate = ytd_activated_loc.positive? ? ((ytd_won_loc.to_f / ytd_activated_loc) * 100).round : nil
+
         {
           location_id: loc_id,
           location_display_name: loc_name,
           activated_count: activated,
           won_count: won,
           conversion_rate_pct: rate,
+          conversion_rate_mtd_pct: mtd_rate,
+          conversion_rate_ytd_pct: ytd_rate,
           total_proposals: total_in_loc
         }
       end

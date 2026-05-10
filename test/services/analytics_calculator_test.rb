@@ -146,6 +146,42 @@ class AnalyticsCalculatorTest < ActiveSupport::TestCase
     assert_equal [], result.conversion_rate_by_location
   end
 
+  test "conversion_rate_by_location includes per-location MTD and YTD pct" do
+    loc = locations(:ne_dallas)
+    # MTD win
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: loc, pipeline_stage: :won, closed_at: Time.current.beginning_of_month + 1.hour)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active,
+                             created_at: Time.current.beginning_of_month + 30.minutes)
+
+    # YTD-but-not-MTD win
+    other_jp = job_proposals(:same_tenant_other_org)
+    other_jp.update!(location: loc, pipeline_stage: :won, closed_at: Time.current.beginning_of_year + 1.day)
+    CampaignInstance.create!(host: other_jp, campaign: campaigns(:approved_campaign), status: :active,
+                             created_at: Time.current.beginning_of_year + 1.hour)
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    row = result.conversion_rate_by_location.find { |r| r[:location_display_name] == "NE Dallas" }
+    assert_equal 100, row[:conversion_rate_mtd_pct], "1 won out of 1 activated MTD = 100%"
+    assert_equal 100, row[:conversion_rate_ytd_pct], "2 won out of 2 activated YTD = 100%"
+  end
+
+  test "per-location MTD and YTD pct are nil when nothing is activated in that window" do
+    loc_b = tenants(:one).locations.create!(
+      display_name: "Quiet Branch", address_line_1: "9 Side", city: "Dallas",
+      state: "TX", postal_code: "75004", phone_number: "(214) 555-0404", is_active: true
+    )
+    # Quiet Branch has a proposal but no campaign instance — zero
+    # denominator for both MTD and YTD windows.
+    jp = job_proposals(:in_users_org)
+    jp.update!(location: loc_b)
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    row = result.conversion_rate_by_location.find { |r| r[:location_display_name] == "Quiet Branch" }
+    assert_nil row[:conversion_rate_mtd_pct]
+    assert_nil row[:conversion_rate_ytd_pct]
+  end
+
   # --- Loss reasons breakdown -------------------------------------------
 
   test "loss_reasons_breakdown groups lost proposals by reason and orders by sort_order" do

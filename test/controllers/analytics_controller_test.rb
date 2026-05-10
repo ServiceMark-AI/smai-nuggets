@@ -102,6 +102,45 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert high_pos < low_pos, "expected #{high_loc.display_name} (100%) above #{low_loc.display_name} (0%) in the breakdown"
   end
 
+  test "Conversion rate by location section renders one card per location with MTD/YTD" do
+    tenant = tenants(:one)
+    loc_a = locations(:ne_dallas)
+    loc_b = tenant.locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    job_proposals(:in_users_org).update!(location: loc_a)
+    job_proposals(:same_tenant_other_org).update!(location: loc_b)
+
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_match "Conversion rate by location", response.body
+    assert_match loc_a.display_name, response.body
+    assert_match loc_b.display_name, response.body
+    # MTD/YTD labels live in spans inside each card. The Conversion Rate
+    # hero tile and the Closed Revenue tile each have one MTD/YTD pair too,
+    # so >= 4 total (2 hero tiles + ≥2 location cards).
+    assert_select "span", text: "MTD", minimum: 4
+    assert_select "span", text: "YTD", minimum: 4
+  end
+
+  test "Conversion rate by location section is hidden for single-location tenants" do
+    job_proposals(:other_tenant).update!(location: locations(:globex_main))
+    sign_in @user_two
+    get analytics_url
+    assert_response :success
+    assert_no_match "Conversion rate by location", response.body
+  end
+
+  test "Conversion rate by location section is hidden for users scoped to a location" do
+    @user_one.update!(location: locations(:ne_dallas))
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_no_match "Conversion rate by location", response.body
+  end
+
   test "by-location breakdown renders an em-dash for zero-denominator locations" do
     tenant = tenants(:one)
     other_loc = tenant.locations.create!(
