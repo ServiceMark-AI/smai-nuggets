@@ -16,8 +16,13 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     # status:approved is the operator-explicit "go" gate the sweep checks
     # before sending. Existing tests pre-date this gate; default to approved
     # and let any gate-specific tests below override.
+    # status:approved gates operator approval. pipeline_stage:in_campaign
+    # is the canonical PRD-09 §9.2 check-2 condition for a job that has
+    # been launched into a campaign — fixtures don't set it explicitly,
+    # so plug it in here so the pre-send checklist passes.
     @proposal.update!(
       status: :approved,
+      pipeline_stage: :in_campaign,
       customer_email: "alice@example.com",
       customer_house_number: "100",
       customer_street: "Oak Ridge"
@@ -287,13 +292,17 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_nil step_instance.gmail_thread_snapshot
   end
 
-  test "skips the sweep entirely outside development when no mailbox is connected" do
+  test "in production with no mailbox, the checklist surfaces a delivery issue on every queued step" do
+    # Per PRD-09 §10.1 a disconnected mailbox is a delivery_issue, not a
+    # silent skip. The checklist's mailbox check fires first; the step is
+    # marked failed and the campaign run is stopped.
     @mailbox.destroy!
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
 
     with_production_environment(true) { CampaignSweepJob.new.perform }
 
-    assert_equal "pending", step_instance.reload.email_delivery_status
+    assert_equal "failed", step_instance.reload.email_delivery_status
+    assert_equal "stopped_on_delivery_issue", @instance.reload.status
     assert_empty GmailSender.deliveries
   end
 
@@ -341,6 +350,43 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     # No Gmail metadata captured — the dev path skips persist_send_metadata.
     assert_nil step_instance.gmail_send_response
     assert_nil step_instance.gmail_thread_id
+  end
+
+  test "skips a step silently when the proposal has a status_overlay set" do
+    @proposal.update!(status_overlay: "paused")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "pending", step_instance.reload.email_delivery_status, "block_silent should leave the step pending"
+    assert_equal "active", @instance.reload.status, "block_silent should not stop the campaign run"
+    assert_empty GmailSender.deliveries
+  end
+
+  test "marks step failed and stops instance when the recipient is on the suppression list" do
+    EmailSuppression.create!(
+      location: @proposal.location,
+      email: @proposal.customer_email,
+      reason: "manual"
+    )
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "failed", step_instance.reload.email_delivery_status
+    assert_equal "stopped_on_delivery_issue", @instance.reload.status
+    assert_empty GmailSender.deliveries
+  end
+
+  test "marks step failed and stops instance when the customer email is malformed" do
+    @proposal.update!(customer_email: "not-an-email")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "failed", step_instance.reload.email_delivery_status
+    assert_equal "stopped_on_delivery_issue", @instance.reload.status
+    assert_empty GmailSender.deliveries
   end
 
   test "claim is idempotent across overlapping sweeps" do

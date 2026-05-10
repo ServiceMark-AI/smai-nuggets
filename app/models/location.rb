@@ -5,6 +5,7 @@ class Location < ApplicationRecord
   has_many :users, dependent: :nullify
   has_many :invitations, dependent: :nullify
   has_many :job_proposals, dependent: :nullify
+  has_many :email_suppressions, dependent: :destroy
 
   validates :display_name, presence: true
   validates :address_line_1, presence: true
