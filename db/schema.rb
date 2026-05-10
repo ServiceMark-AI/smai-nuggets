@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_10_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_10_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -137,6 +137,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_120000) do
     t.bigint "attributed_to_id"
     t.string "attributed_to_type"
     t.datetime "created_at", null: false
+    t.datetime "discarded_at"
     t.string "name", null: false
     t.datetime "paused_at"
     t.bigint "paused_by_user_id"
@@ -145,6 +146,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_120000) do
     t.datetime "updated_at", null: false
     t.index ["approved_by_user_id"], name: "index_campaigns_on_approved_by_user_id"
     t.index ["attributed_to_type", "attributed_to_id"], name: "index_campaigns_on_attributed_to"
+    t.index ["discarded_at"], name: "index_campaigns_on_discarded_at"
     t.index ["paused_by_user_id"], name: "index_campaigns_on_paused_by_user_id"
   end
 
@@ -235,6 +237,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_120000) do
     t.string "customer_title"
     t.string "customer_zip"
     t.string "dash_job_number"
+    t.datetime "discarded_at"
     t.string "internal_reference"
     t.text "job_description"
     t.bigint "job_type_id"
@@ -254,6 +257,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_120000) do
     t.index ["closed_by_user_id"], name: "index_job_proposals_on_closed_by_user_id"
     t.index ["created_by_user_id"], name: "index_job_proposals_on_created_by_user_id"
     t.index ["dash_job_number"], name: "index_job_proposals_on_dash_job_number"
+    t.index ["discarded_at"], name: "index_job_proposals_on_discarded_at"
     t.index ["job_type_id"], name: "index_job_proposals_on_job_type_id"
     t.index ["location_id"], name: "index_job_proposals_on_location_id"
     t.index ["loss_reason_id"], name: "index_job_proposals_on_loss_reason_id"

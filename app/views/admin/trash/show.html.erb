@@ -1,0 +1,87 @@
+<% content_for :title, "Trash" %>
+
+<h1 class="h3 mb-4">Trash</h1>
+
+<p class="text-muted small mb-4">
+  Soft-deleted campaigns and job proposals. Admins can restore from here.
+  The rest of the app treats these as gone — they don't show up on lists,
+  the sweep job won't ship steps for them, and analytics ignores them.
+</p>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="h5 mb-0">Campaigns</h2>
+    <span class="badge text-bg-secondary"><%= @discarded_campaigns.size %></span>
+  </div>
+  <div class="card-body p-0">
+    <% if @discarded_campaigns.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Status at delete</th>
+            <th>Deleted</th>
+            <th class="text-end" style="width: 1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @discarded_campaigns.each do |campaign| %>
+            <tr>
+              <td><%= campaign.name %></td>
+              <td><span class="badge text-bg-secondary"><%= campaign.status.humanize %></span></td>
+              <td><%= time_ago_in_words(campaign.discarded_at) %> ago</td>
+              <td class="text-end">
+                <%= button_to "Restore", restore_admin_campaign_path(campaign),
+                      method: :patch,
+                      class: "btn btn-sm btn-outline-primary",
+                      form: { class: "m-0" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted small">No discarded campaigns.</div>
+    <% end %>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h2 class="h5 mb-0">Job proposals</h2>
+    <span class="badge text-bg-secondary"><%= @discarded_proposals.size %></span>
+  </div>
+  <div class="card-body p-0">
+    <% if @discarded_proposals.any? %>
+      <table class="table mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Address</th>
+            <th>Tenant</th>
+            <th>Owner</th>
+            <th>Deleted</th>
+            <th class="text-end" style="width: 1%;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @discarded_proposals.each do |proposal| %>
+            <tr>
+              <td><%= proposal.short_address || "Job ##{proposal.id}" %></td>
+              <td><%= proposal.tenant&.name || proposal.tenant&.company_name %></td>
+              <td><%= proposal.owner&.display_name %></td>
+              <td><%= time_ago_in_words(proposal.discarded_at) %> ago</td>
+              <td class="text-end">
+                <%= button_to "Restore", restore_job_proposal_path(proposal),
+                      method: :patch,
+                      class: "btn btn-sm btn-outline-primary",
+                      form: { class: "m-0" } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <div class="p-4 text-center text-muted small">No discarded job proposals.</div>
+    <% end %>
+  </div>
+</div>

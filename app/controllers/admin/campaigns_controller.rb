@@ -1,5 +1,6 @@
 class Admin::CampaignsController < Admin::BaseController
   before_action :set_campaign, only: [:show, :edit, :update, :destroy, :approve, :pause, :resume]
+  before_action :set_discarded_campaign, only: [:restore]
 
   def index
     @campaigns = Campaign.includes(:approved_by_user, :paused_by_user, :steps).order(created_at: :desc)
@@ -46,9 +47,20 @@ class Admin::CampaignsController < Admin::BaseController
     end
   end
 
+  # Soft-delete via discard. Refuses while any active/drafting
+  # CampaignInstance references this template — see Campaign#ensure_no_live_runs!.
   def destroy
-    @campaign.destroy
-    redirect_to admin_campaigns_path, notice: "Campaign deleted."
+    if @campaign.discard
+      redirect_to admin_campaigns_path, notice: "Campaign moved to trash."
+    else
+      redirect_to admin_campaign_path(@campaign),
+        alert: @campaign.errors.full_messages.to_sentence.presence || "Couldn't delete this campaign."
+    end
+  end
+
+  def restore
+    @campaign.undiscard
+    redirect_to admin_campaign_path(@campaign), notice: "Campaign restored."
   end
 
   def approve
@@ -74,6 +86,13 @@ class Admin::CampaignsController < Admin::BaseController
 
   def set_campaign
     @campaign = Campaign.find(params[:id])
+  end
+
+  # Restore acts on a discarded row, which default_scope { kept } hides from
+  # a plain `find`. Pull from the unscoped relation here so admins can act
+  # on rows that the rest of the app treats as gone.
+  def set_discarded_campaign
+    @campaign = Campaign.with_discarded.find(params[:id])
   end
 
   def campaign_params

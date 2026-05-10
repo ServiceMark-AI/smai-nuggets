@@ -149,12 +149,39 @@ class Admin::CampaignsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Summer Push", @campaign.reload.name
   end
 
-  test "admin destroy removes the campaign" do
+  test "admin destroy soft-deletes the campaign and hides it from the kept scope" do
     sign_in @admin
     assert_difference "Campaign.count", -1 do
       delete admin_campaign_url(@campaign)
     end
     assert_redirected_to admin_campaigns_path
+    assert_match(/trash/i, flash[:notice])
+    # Row isn't physically deleted — still findable via the unscoped relation.
+    assert Campaign.with_discarded.exists?(@campaign.id)
+    assert @campaign.reload.discarded?
+  end
+
+  test "admin destroy refuses while a CampaignInstance is active or drafting" do
+    sign_in @admin
+    proposal = job_proposals(:in_users_org)
+    CampaignInstance.create!(host: proposal, campaign: @campaign, status: :active)
+
+    assert_no_difference "Campaign.count" do
+      delete admin_campaign_url(@campaign)
+    end
+    assert_redirected_to admin_campaign_path(@campaign)
+    assert_match(/active or drafting runs/i, flash[:alert])
+    refute @campaign.reload.discarded?
+  end
+
+  test "admin restore brings a discarded campaign back" do
+    sign_in @admin
+    @campaign.discard
+    assert @campaign.reload.discarded?
+
+    patch restore_admin_campaign_url(@campaign)
+    assert_redirected_to admin_campaign_path(@campaign)
+    refute @campaign.reload.discarded?
   end
 
   test "show offers Approve button only when status is draft" do

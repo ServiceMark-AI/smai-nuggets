@@ -12,6 +12,16 @@
     <% end %>
     <%= link_to "Edit", edit_admin_campaign_path(@campaign), class: "btn btn-sm btn-outline-primary" %>
     <%= link_to "All campaigns", admin_campaigns_path, class: "btn btn-sm btn-outline-secondary" %>
+    <%# Soft-delete via discard. Disabled when any active/drafting run
+        references this template — Campaign#ensure_no_live_runs! also
+        refuses server-side. %>
+    <% live_runs = @campaign.instances.where(status: %i[active drafting]).exists? %>
+    <%= button_to "Delete", admin_campaign_path(@campaign),
+          method: :delete,
+          class: "btn btn-sm btn-outline-danger",
+          form: { class: "m-0", data: { turbo_confirm: "Move this campaign to trash? An admin can restore it from /admin/trash." } },
+          disabled: live_runs,
+          title: live_runs ? "Pause or close all live runs before deleting." : nil %>
   </div>
 </div>
 

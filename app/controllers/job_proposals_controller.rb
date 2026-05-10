@@ -9,7 +9,9 @@ class JobProposalsController < ApplicationController
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
-  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage, :approve]
+  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage, :approve, :destroy]
+  before_action :load_discarded_proposal, only: [:restore]
+  before_action :require_admin, only: [:destroy, :restore]
 
   def index
     scope = JobProposal
@@ -244,6 +246,22 @@ class JobProposalsController < ApplicationController
     end
   end
 
+  # Admin-only soft-delete via discard. Refuses while any active/drafting
+  # CampaignInstance is on the proposal — see JobProposal#ensure_no_live_campaign!.
+  def destroy
+    if @job_proposal.discard
+      redirect_to job_proposals_path, notice: "Job proposal moved to trash."
+    else
+      redirect_to job_proposal_path(@job_proposal),
+        alert: @job_proposal.errors.full_messages.to_sentence.presence || "Couldn't delete this proposal."
+    end
+  end
+
+  def restore
+    @job_proposal.undiscard
+    redirect_to job_proposal_path(@job_proposal), notice: "Job proposal restored."
+  end
+
   def update
     if @campaign_in_flight
       set_form_options
@@ -295,6 +313,19 @@ class JobProposalsController < ApplicationController
     @job_proposal = JobProposal.accessible_by(current_ability).find(params[:id])
     authorize! :update, @job_proposal
     @campaign_in_flight = @job_proposal.campaign_instances.exists?
+  end
+
+  # Restore acts on a discarded row that default_scope { kept } hides from
+  # a plain `find`. Pull from the unscoped relation so admins can restore
+  # proposals the rest of the app treats as gone. Admin-only by the
+  # before_action below.
+  def load_discarded_proposal
+    @job_proposal = JobProposal.with_discarded.find(params[:id])
+  end
+
+  def require_admin
+    return if current_user&.is_admin
+    redirect_to root_path, alert: "You are not authorized to do that."
   end
 
   def set_form_options

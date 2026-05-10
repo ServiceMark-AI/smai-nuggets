@@ -171,6 +171,66 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/tenant/i, response.body)
   end
 
+  # --- soft delete (admin only) ---
+
+  test "destroy redirects non-admins away and leaves the row alone" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+
+    delete job_proposal_url(jp)
+    assert_redirected_to root_path
+    refute jp.reload.discarded?
+  end
+
+  test "destroy soft-deletes when called by an admin, hides the row from kept queries" do
+    sign_in @admin
+    jp = job_proposals(:in_users_org)
+
+    delete job_proposal_url(jp)
+    assert_redirected_to job_proposals_path
+    assert_match(/trash/i, flash[:notice])
+    assert jp.reload.discarded?
+    refute JobProposal.exists?(jp.id), "kept scope should hide the discarded proposal"
+    assert JobProposal.with_discarded.exists?(jp.id)
+  end
+
+  test "destroy refuses while an active CampaignInstance is on the proposal" do
+    sign_in @admin
+    jp = job_proposals(:in_users_org)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+
+    delete job_proposal_url(jp)
+    assert_redirected_to job_proposal_path(jp)
+    assert_match(/active or drafting campaign/i, flash[:alert])
+    refute jp.reload.discarded?
+  end
+
+  test "restore is admin-only and brings a discarded proposal back" do
+    jp = job_proposals(:in_users_org)
+    jp.discard
+    assert jp.reload.discarded?
+
+    sign_in @user
+    patch restore_job_proposal_url(jp)
+    assert_redirected_to root_path
+    assert jp.reload.discarded?, "non-admins must not be able to restore"
+
+    sign_in @admin
+    patch restore_job_proposal_url(jp)
+    assert_redirected_to job_proposal_path(jp)
+    refute jp.reload.discarded?
+  end
+
+  test "discarded proposals do not appear on the index" do
+    sign_in @admin
+    jp = job_proposals(:in_users_org)
+    jp.discard
+
+    get job_proposals_url
+    assert_response :success
+    assert_no_match "Alice", response.body
+  end
+
   # --- show action ---
 
   test "index links the address column to the show page" do

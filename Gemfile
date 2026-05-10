@@ -67,6 +67,9 @@ gem "sentry-rails"
 # Append-only model audit trail [https://github.com/paper-trail-gem/paper_trail]
 gem "paper_trail"
 
+# Soft-delete for ActiveRecord models [https://github.com/jhawthorn/discard]
+gem "discard"
+
 # Google OAuth for collecting Gmail send-on-behalf-of tokens
 gem "omniauth-google-oauth2"
 gem "omniauth-rails_csrf_protection"

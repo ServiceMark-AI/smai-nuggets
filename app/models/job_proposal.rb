@@ -1,4 +1,11 @@
 class JobProposal < ApplicationRecord
+  # Soft-delete via the discard gem. The default_scope hides discarded
+  # rows from index/show/accessible_by/analytics/sweep so the rest of the
+  # app treats a discarded proposal as gone. The admin trash page reads
+  # discarded rows explicitly via `.with_discarded`.
+  include Discard::Model
+  default_scope -> { kept }
+
   # Append-only audit trail via paper_trail. Every create / update /
   # destroy on a proposal writes a row to the polymorphic `versions`
   # table. We route writes through our locked-down Version subclass
@@ -34,6 +41,17 @@ class JobProposal < ApplicationRecord
   # proposal — but allow drafting and approving states to persist without
   # one so the operator can fill it in on the edit form.
   validate :dash_job_number_required_when_approved
+
+  # Refuse to discard a proposal with a live campaign on it — the sweep
+  # would otherwise keep shipping steps for a job the admin has hidden.
+  # Admins must pause the campaign first.
+  before_discard :ensure_no_live_campaign!
+
+  # Read-side helper for the trash page (and any future cross-state
+  # lookup). default_scope above hides discarded rows everywhere else.
+  def self.with_discarded
+    unscoped
+  end
 
   # Operator hasn't done their part yet on this proposal — it sits in
   # one of: drafting (not finished), approving (campaign drafted but
@@ -143,5 +161,13 @@ class JobProposal < ApplicationRecord
     return if dash_job_number.present?
     return if status_drafting? || status_approving?
     errors.add(:dash_job_number, "is required before this job can be approved")
+  end
+
+  def ensure_no_live_campaign!
+    live = campaign_instances.where(status: %i[active drafting]).exists?
+    if live
+      errors.add(:base, "Cannot delete a job with an active or drafting campaign. Pause the campaign first.")
+      throw(:abort)
+    end
   end
 end

@@ -39,6 +39,17 @@
             form: { class: "d-inline" } %>
     <% end %>
   <% end %>
+  <%# Admin-only soft delete. JobProposal#ensure_no_live_campaign! refuses
+      server-side too if anything slips past the disabled UI state. %>
+  <% if current_user.is_admin %>
+    <% live_campaign = @job_proposal.campaign_instances.where(status: %i[active drafting]).exists? %>
+    <%= button_to "Delete", job_proposal_path(@job_proposal),
+          method: :delete,
+          class: "btn btn-outline-danger btn-sm",
+          form: { class: "d-inline", data: { turbo_confirm: "Move this job to trash? Admins can restore from /admin/trash." } },
+          disabled: live_campaign,
+          title: live_campaign ? "Pause the campaign before deleting this job." : nil %>
+  <% end %>
 </div>
 
 <% attachments = @job_proposal.attachments.select { |a| a.file.attached? } %>

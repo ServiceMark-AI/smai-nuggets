@@ -29,7 +29,7 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "email_delegations#create", as: :email_delegation_callback
   get "/auth/failure", to: "email_delegations#failure", as: :email_delegation_failure
   resources :email_delegations, only: [:destroy]
-  resources :job_proposals, only: [:index, :show, :new, :create, :edit, :update] do
+  resources :job_proposals, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
       patch :resume
       patch :pause
@@ -38,6 +38,7 @@ Rails.application.routes.draw do
       patch :mark_lost
       patch :revert_pipeline_stage
       patch :approve
+      patch :restore
     end
     resources :step_instances, only: [:show], controller: "campaign_step_instances"
     resources :campaign_instances, only: [:show]
@@ -71,11 +72,13 @@ Rails.application.routes.draw do
     end
     resources :scenarios, only: [:show, :edit, :update, :destroy]
     resources :job_proposals, only: [:new, :create]
+    resource :trash, only: [:show], controller: "trash"
     resources :campaigns do
       member do
         patch :approve
         patch :pause
         patch :resume
+        patch :restore
       end
       resources :revisions, only: [:show, :create], controller: "campaign_revisions" do
         member do
