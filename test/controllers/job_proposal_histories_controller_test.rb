@@ -10,10 +10,12 @@ class JobProposalHistoriesControllerTest < ActionDispatch::IntegrationTest
 
     PaperTrail.request.whodunnit = users(:admin).id
     @jp.update!(internal_reference: "HIST-#{SecureRandom.hex(2)}")
-    # Order by id rather than created_at — within a single test, two
-    # update!s often share a microsecond and created_at ties are
-    # unstable. id is monotonically increasing and disambiguates.
-    @version = @jp.versions.order(id: :desc).first
+    # `reorder` rather than `order`: paper_trail's has_many :versions
+    # ships with a default ASC order; chaining `order(id: :desc)` would
+    # append (giving us the oldest, not the newest). id is also more
+    # stable than created_at, which can tie within a single test
+    # microsecond.
+    @version = @jp.versions.reorder(id: :desc).first
     PaperTrail.request.whodunnit = nil
   end
 
