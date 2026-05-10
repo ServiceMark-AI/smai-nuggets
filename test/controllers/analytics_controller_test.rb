@@ -90,4 +90,28 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match "By location", response.body
   end
+
+  # --- Loss reasons pie ------------------------------------------------
+
+  test "Why we lost section renders a pie + reason rows when lost jobs exist" do
+    job_proposals(:in_users_org).update!(
+      pipeline_stage: :lost, loss_reason: loss_reasons(:price_too_high)
+    )
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_match "Why we lost", response.body
+    assert_match "Price too high", response.body
+    assert_select "div[role=img][aria-label=?]", "Loss reasons breakdown"
+  end
+
+  test "Why we lost shows an empty-state message when nothing is lost" do
+    JobProposal.update_all(pipeline_stage: "in_campaign", loss_reason_id: nil)
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_match "Why we lost", response.body
+    assert_match "No lost jobs yet", response.body
+    assert_select "div[role=img][aria-label=?]", "Loss reasons breakdown", count: 0
+  end
 end

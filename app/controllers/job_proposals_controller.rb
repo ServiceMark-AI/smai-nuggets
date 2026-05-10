@@ -5,7 +5,7 @@ class JobProposalsController < ApplicationController
   EDITABLE_PARAMS = %i[
     customer_title customer_first_name customer_last_name customer_email
     customer_house_number customer_street customer_city customer_state customer_zip
-    internal_reference dash_job_number loss_notes loss_reason
+    internal_reference dash_job_number loss_notes loss_reason_id
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
@@ -50,6 +50,7 @@ class JobProposalsController < ApplicationController
 
   def show
     @job_proposal = JobProposal.accessible_by(current_ability).find(params[:id])
+    @loss_reason_options = LossReason.ordered
   end
 
   def new
@@ -176,9 +177,10 @@ class JobProposalsController < ApplicationController
   end
 
   def mark_lost
-    reason = params[:loss_reason].to_s.strip
-    notes  = params[:loss_notes].to_s.strip
-    if reason.blank? || notes.blank?
+    reason_id = params[:loss_reason_id].presence
+    notes     = params[:loss_notes].to_s.strip
+    reason    = LossReason.find_by(id: reason_id)
+    if reason.nil? || notes.blank?
       redirect_to job_proposal_path(@job_proposal),
         alert: "Loss reason and loss notes are both required to mark a job lost."
       return
@@ -298,6 +300,7 @@ class JobProposalsController < ApplicationController
     @scenario_options = tenant.activated_scenarios.includes(:job_type).order("job_types.name", :short_name)
     @location_editable = !current_user.scoped_to_location?
     @location_options = @location_editable ? tenant.locations.order(:display_name) : Location.none
+    @loss_reason_options = LossReason.ordered
   end
 
   def proposal_params

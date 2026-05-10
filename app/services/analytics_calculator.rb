@@ -113,6 +113,26 @@ class AnalyticsCalculator
       .sort
       .to_h
 
+    # Loss-reason breakdown for the analytics pie. Lost proposals with no
+    # loss_reason_id (e.g. legacy rows the migration backfilled to NULL,
+    # or anything that slips past the controller validation in the future)
+    # are bucketed as "Unspecified" so the chart's slices add up to the
+    # full lost_count regardless.
+    loss_reasons_breakdown = @proposals
+      .where(pipeline_stage: :lost)
+      .left_outer_joins(:loss_reason)
+      .group("loss_reasons.id", "loss_reasons.display_name", "loss_reasons.sort_order")
+      .pluck(
+        "loss_reasons.id",
+        "loss_reasons.display_name",
+        "loss_reasons.sort_order",
+        Arel.sql("COUNT(*)")
+      )
+      .map { |id, label, sort_order, count|
+        { loss_reason_id: id, display_name: label || "Unspecified", sort_order: sort_order, count: count }
+      }
+      .sort_by { |row| [row[:sort_order] || Float::INFINITY, row[:display_name]] }
+
     OpenStruct.new(
       activated_count:          activated_count,
       first_followup_delivered: first_followup_delivered,
@@ -128,6 +148,7 @@ class AnalyticsCalculator
       follow_ups_sent:          follow_ups_sent,
       originators:              originators,
       follow_ups_by_day:        follow_ups_by_day,
+      loss_reasons_breakdown:   loss_reasons_breakdown,
       funnel_max:               [activated_count, 1].max,
       total_proposals:          @proposals.count
     )
