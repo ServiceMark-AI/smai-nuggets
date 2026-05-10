@@ -138,6 +138,40 @@ class Admin::ScenariosControllerTest < ActionDispatch::IntegrationTest
     assert_select "dt", text: "Description", count: 0
   end
 
+  # --- industry_classification ---
+
+  test "edit form exposes the industry classification text field" do
+    sign_in @admin
+    get edit_admin_scenario_url(@scenario)
+    assert_response :success
+    assert_select "form input[type=text][name='scenario[industry_classification]']"
+  end
+
+  test "update saves the industry classification" do
+    sign_in @admin
+    patch admin_scenario_url(@scenario),
+      params: { scenario: { industry_classification: "IICRC S520 Mold Remediation" } }
+    assert_redirected_to admin_scenario_path(@scenario)
+    assert_equal "IICRC S520 Mold Remediation", @scenario.reload.industry_classification
+  end
+
+  test "show renders the industry classification when set" do
+    @scenario.update!(industry_classification: "IICRC S520 Mold Remediation")
+    sign_in @admin
+    get admin_scenario_url(@scenario)
+    assert_response :success
+    assert_match "Industry classification", response.body
+    assert_match "IICRC S520 Mold Remediation", response.body
+  end
+
+  test "show keeps the industry-classification row visible with em-dash when blank" do
+    @scenario.update!(industry_classification: nil)
+    sign_in @admin
+    get admin_scenario_url(@scenario)
+    assert_response :success
+    assert_select "dt", text: "Industry classification"
+  end
+
   # --- destroy ---
 
   test "destroy removes the scenario and returns to the job type page" do
