@@ -54,6 +54,15 @@
         <%= [@job_proposal.customer_first_name, @job_proposal.customer_last_name].compact_blank.join(" ").presence || content_tag(:span, "—", class: "text-muted") %>
       </dd>
 
+      <dt class="col-sm-3">Email</dt>
+      <dd class="col-sm-9">
+        <% if @job_proposal.customer_email.present? %>
+          <%= mail_to @job_proposal.customer_email %>
+        <% else %>
+          <span class="text-muted">—</span>
+        <% end %>
+      </dd>
+
       <dt class="col-sm-3">Address</dt>
       <dd class="col-sm-9">
         <% if @job_proposal.short_address %>

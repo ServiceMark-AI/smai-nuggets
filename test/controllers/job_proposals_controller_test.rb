@@ -210,6 +210,16 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show renders the customer's email in the Customer section as a mailto link" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(customer_email: "alice@example.com")
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_select "a[href=?]", "mailto:alice@example.com", text: "alice@example.com"
+  end
+
   test "show falls back to a Job Proposal #N heading when address is missing" do
     sign_in @user
     jp = job_proposals(:in_users_org)
