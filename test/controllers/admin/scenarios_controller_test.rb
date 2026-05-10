@@ -117,6 +117,41 @@ class Admin::ScenariosControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
   end
 
+  # --- authoring_hypothesis ---
+
+  test "edit form exposes the authoring hypothesis textarea" do
+    sign_in @admin
+    get edit_admin_scenario_url(@scenario)
+    assert_response :success
+    assert_select "form textarea[name='scenario[authoring_hypothesis]']"
+  end
+
+  test "update saves the authoring hypothesis" do
+    sign_in @admin
+    hypothesis = "Variant assumes move-in / move-out customers convert on logistical confidence."
+    patch admin_scenario_url(@scenario), params: { scenario: { authoring_hypothesis: hypothesis } }
+    assert_redirected_to admin_scenario_path(@scenario)
+    assert_equal hypothesis, @scenario.reload.authoring_hypothesis
+  end
+
+  test "show renders the authoring hypothesis when set" do
+    @scenario.update!(authoring_hypothesis: "We believe X about this customer.")
+    sign_in @admin
+    get admin_scenario_url(@scenario)
+    assert_response :success
+    assert_match "Authoring hypothesis", response.body
+    assert_match "We believe X about this customer.", response.body
+  end
+
+  test "show falls back to em-dash when authoring hypothesis is blank" do
+    @scenario.update!(authoring_hypothesis: nil)
+    sign_in @admin
+    get admin_scenario_url(@scenario)
+    assert_response :success
+    assert_match "Authoring hypothesis", response.body
+    assert_select "dt", text: "Authoring hypothesis"
+  end
+
   # --- destroy ---
 
   test "destroy removes the scenario and returns to the job type page" do
