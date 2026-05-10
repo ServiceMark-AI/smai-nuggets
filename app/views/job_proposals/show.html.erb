@@ -330,7 +330,7 @@
     <h2 class="h5 mb-0">Activity</h2>
   </div>
   <div class="card-body p-0">
-    <% versions = @job_proposal.versions.order(created_at: :desc) %>
+    <% versions = @job_proposal.versions.reorder(created_at: :desc, id: :desc) %>
     <% if versions.any? %>
       <ul class="list-group list-group-flush mb-0">
         <% versions.each do |version| %>
