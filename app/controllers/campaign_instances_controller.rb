@@ -12,7 +12,12 @@ class CampaignInstancesController < ApplicationController
   before_action :load_proposal_and_instance
 
   def show
-    @from_address = ApplicationMailbox.current&.email
+    # Per PRD-09 §1, the campaign sends as the proposal originator's own
+    # Gmail — not the shared ApplicationMailbox — so the preview reflects
+    # the originator's delegation, falling back to nil when they haven't
+    # connected Gmail yet (which the pre-send checklist will block on).
+    @from_owner   = @job_proposal.owner
+    @from_address = @from_owner&.gmail_delegation&.email
     @to_address   = @job_proposal.customer_email.presence
 
     step_instances = @campaign_instance.step_instances
