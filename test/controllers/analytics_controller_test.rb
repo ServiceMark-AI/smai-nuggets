@@ -96,9 +96,13 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     # Both locations render with a progress bar inside the breakdown.
     assert_select "#cr-by-location .progress .progress-bar", minimum: 1
-    # High-performer's row appears before the low-performer's (descending by rate).
-    high_pos = response.body.index(high_loc.display_name)
-    low_pos  = response.body.index(low_loc.display_name)
+    # High-performer's row appears before the low-performer's (descending by
+    # rate). Scope the index lookup to #cr-by-location — the page now also
+    # has a "Conversion rate by location" card grid sorted alphabetically,
+    # and a body-wide index() would pick those names up first.
+    breakdown_html = css_select("#cr-by-location").first.to_s
+    high_pos = breakdown_html.index(high_loc.display_name)
+    low_pos  = breakdown_html.index(low_loc.display_name)
     assert high_pos < low_pos, "expected #{high_loc.display_name} (100%) above #{low_loc.display_name} (0%) in the breakdown"
   end
 
@@ -205,5 +209,89 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Why we lost", response.body
     assert_match "No lost jobs yet", response.body
     assert_select "div[role=img][aria-label=?]", "Loss reasons breakdown", count: 0
+  end
+
+  # --- Location slicer ----------------------------------------------------
+
+  test "tenant admin with multiple locations sees a Location slicer defaulting to All locations" do
+    tenant = tenants(:one)
+    tenant.locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_select "form[action=?][method=get] select[name=location_id]", analytics_path
+    assert_select "select[name=location_id] option[value='']", text: "All locations"
+  end
+
+  test "selecting a location narrows the proposals scope across every section" do
+    tenant   = tenants(:one)
+    dallas   = locations(:ne_dallas)
+    south    = tenant.locations.create!(
+      display_name: "South Dallas", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75002", phone_number: "(214) 555-0202", is_active: true
+    )
+
+    # Dallas: $5K won (counts toward Closed revenue when scoped here).
+    dallas_jp = job_proposals(:in_users_org)
+    dallas_jp.update!(location: dallas, pipeline_stage: :won, proposal_value: 5_000)
+    CampaignInstance.create!(host: dallas_jp, campaign: campaigns(:approved_campaign), status: :completed)
+
+    # South Dallas: $9K won — should be excluded when filtering to Dallas only.
+    south_jp = job_proposals(:same_tenant_other_org)
+    south_jp.update!(location: south, pipeline_stage: :won, proposal_value: 9_000)
+    CampaignInstance.create!(host: south_jp, campaign: campaigns(:approved_campaign), status: :completed)
+
+    sign_in @user_one
+    get analytics_url, params: { location_id: dallas.id }
+    assert_response :success
+    assert_match "$5,000", response.body
+    assert_no_match "$9,000", response.body
+    # Scope label reflects the active location.
+    assert_match dallas.display_name, response.body
+  end
+
+  test "location slicer is hidden for users scoped to a single location" do
+    @user_one.update!(location: locations(:ne_dallas))
+    sign_in @user_one
+    get analytics_url
+    assert_response :success
+    assert_select "select[name=location_id]", count: 0
+  end
+
+  test "an originator's tampered location_id param is ignored — scope stays at their own location" do
+    other_loc = tenants(:one).locations.create!(
+      display_name: "Other Branch", address_line_1: "5 Side", city: "Dallas",
+      state: "TX", postal_code: "75003", phone_number: "(214) 555-0303", is_active: true
+    )
+    @user_one.update!(location: locations(:ne_dallas)) # originator at NE Dallas
+    # Plant a $9K won at the Other Branch — must not leak even with a
+    # tampered ?location_id param.
+    other_jp = job_proposals(:same_tenant_other_org)
+    other_jp.update!(location: other_loc, pipeline_stage: :won, proposal_value: 9_000)
+
+    sign_in @user_one
+    get analytics_url, params: { location_id: other_loc.id }
+    assert_response :success
+    assert_no_match "$9,000", response.body
+  end
+
+  test "a cross-tenant location_id param is ignored" do
+    foreign = locations(:globex_main) # belongs to tenant: two
+    sign_in @user_one
+    get analytics_url, params: { location_id: foreign.id }
+    assert_response :success
+    # Slicer should fall back to All locations — selected_location_id stays nil.
+    assert_select "select[name=location_id] option[selected]", count: 0
+  end
+
+  test "slicer is hidden for tenants with only one location" do
+    job_proposals(:other_tenant).update!(location: locations(:globex_main))
+    sign_in @user_two # tenant: two has one location
+    get analytics_url
+    assert_response :success
+    assert_select "select[name=location_id]", count: 0
   end
 end
