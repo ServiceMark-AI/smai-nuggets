@@ -119,11 +119,11 @@ class CampaignInstancesControllerTest < ActionDispatch::IntegrationTest
 
   test "From line shows the originator's connected Gmail, not the shared application mailbox" do
     ApplicationMailbox.create!(
-      provider: "google", email: "ops@example.com", access_token: "atk", expires_at: 1.hour.from_now
+      provider: "google_oauth2", email: "ops@example.com", access_token: "atk", expires_at: 1.hour.from_now
     )
     EmailDelegation.create!(
       user: @proposal.owner,
-      provider: "google",
+      provider: "google_oauth2",
       email: "originator@example.com",
       access_token: "atk",
       refresh_token: "rtk",

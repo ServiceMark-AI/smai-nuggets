@@ -16,7 +16,7 @@ class PreSendChecklistTest < ActiveSupport::TestCase
     # Per PRD-09 §1, the campaign sends as the originator's own Gmail.
     @owner_delegation = EmailDelegation.create!(
       user: @proposal.owner,
-      provider: "google",
+      provider: "google_oauth2",
       email: "originator@example.com",
       access_token: "atk",
       refresh_token: "rtk",

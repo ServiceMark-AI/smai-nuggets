@@ -3,7 +3,7 @@ require "test_helper"
 class CampaignSweepJobTest < ActiveSupport::TestCase
   setup do
     @mailbox = ApplicationMailbox.create!(
-      provider: "google",
+      provider: "google_oauth2",
       email: "ops@example.com",
       access_token: "atk",
       refresh_token: "rtk",
@@ -32,7 +32,7 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     # exercise the failure paths.
     @owner_delegation = EmailDelegation.create!(
       user: @proposal.owner,
-      provider: "google",
+      provider: "google_oauth2",
       email: "originator@example.com",
       access_token: "atk",
       refresh_token: "rtk",
