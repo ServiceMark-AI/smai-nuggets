@@ -34,8 +34,17 @@ Rails.application.configure do
       :local
     end
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
+  # NOTE: do NOT enable config.assume_ssl on Heroku. The Heroku router
+  # already sets X-Forwarded-Proto correctly, and assume_ssl=true makes
+  # Rails ignore that header and unconditionally treat every request as
+  # SSL. The fallout: a user who visits the bare http:// URL is served
+  # the page over plain HTTP (force_ssl thinks it's already SSL and
+  # skips the redirect), so the rendered form's Origin is http://, but
+  # request.base_url is reported as https:// — the Rails 7.1+
+  # forgery_protection_origin_check fails with 422
+  # InvalidAuthenticityToken. Rely on force_ssl + X-Forwarded-Proto
+  # instead; force_ssl will correctly redirect HTTP → HTTPS before any
+  # form is ever rendered, so Origin always matches base_url.
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
   config.force_ssl = true
