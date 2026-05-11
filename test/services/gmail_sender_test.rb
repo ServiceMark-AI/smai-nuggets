@@ -53,6 +53,51 @@ class GmailSenderTest < ActiveSupport::TestCase
     assert_equal [], delivery[:attachments]
   end
 
+  test "send_email records the bcc address when passed" do
+    sender = GmailSender.new(@mailbox)
+    sender.send_email(to: "alice@example.com", subject: "Hi", body: "Hello.", bcc: "originator@example.com")
+    delivery = GmailSender.deliveries.last
+    assert_equal "originator@example.com", delivery[:bcc]
+  end
+
+  test "build_message includes a Bcc header when bcc is present" do
+    sender = GmailSender.new(@mailbox)
+    raw = sender.send(:build_message, to: "alice@example.com", subject: "Hi", body: "Hello.", bcc: "originator@example.com")
+    assert_includes raw, "Bcc: originator@example.com"
+  end
+
+  test "build_message omits the Bcc header when bcc is blank" do
+    sender = GmailSender.new(@mailbox)
+    raw = sender.send(:build_message, to: "alice@example.com", subject: "Hi", body: "Hello.")
+    refute_includes raw, "Bcc:"
+  end
+
+  test "build_multipart records the Bcc on the message object" do
+    sender = GmailSender.new(@mailbox)
+    msg = sender.send(:build_multipart,
+      to: "alice@example.com",
+      from: "bob@example.com",
+      subject: "Test",
+      body: "Hello.",
+      attachments: [{ filename: "p.pdf", content: "%PDF-1.4 fake", mime_type: "application/pdf" }],
+      bcc: "originator@example.com"
+    )
+    assert_equal ["originator@example.com"], Array(msg.bcc)
+  end
+
+  # Mail#encoded strips Bcc (it's the SMTP envelope's job), but the Gmail
+  # API reads BCC recipients from the raw message. Inject the header back
+  # in before base64 encoding so Gmail actually delivers the BCC.
+  test "inject_bcc_header places Bcc in the header section, not the body" do
+    sender = GmailSender.new(@mailbox)
+    raw = "From: bob@example.com\r\nTo: alice@example.com\r\nSubject: Hi\r\n\r\nHello body."
+    out = sender.send(:inject_bcc_header, raw, "originator@example.com")
+    header_section, body_section = out.split("\r\n\r\n", 2)
+    assert_includes header_section, "Bcc: originator@example.com"
+    refute_includes body_section, "Bcc:"
+    assert_equal "Hello body.", body_section
+  end
+
   # Regression: a multipart message used to drop the body string entirely.
   # `msg.body = "..."` followed by `msg.attachments[...] = {...}` produced a
   # multipart/mixed message with only the attachment part — recipients saw

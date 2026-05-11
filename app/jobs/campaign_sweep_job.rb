@@ -99,6 +99,17 @@ class CampaignSweepJob < ApplicationJob
     self.class.test_to_email_override || host.customer_email
   end
 
+  # BCC the proposal originator (at the same Gmail address that appears in
+  # the From header) on every customer send, so they have an inbox-visible
+  # copy of every campaign email going out under their identity. Suppressed
+  # when TEST_TO_EMAIL is set — that flag means "redirect all mail to a QA
+  # inbox," and a leak to the originator's real Gmail would defeat the
+  # point of the redirect.
+  def bcc_for(host)
+    return nil if self.class.test_to_email_override.present?
+    host.owner&.gmail_delegation&.email
+  end
+
   # Minimal candidate filter: pending steps whose planned_delivery_at has
   # passed. Everything else (campaign run status, proposal stage, suppression,
   # idempotency, …) lives in PreSendChecklist so the UI and the sweep agree
@@ -214,7 +225,7 @@ class CampaignSweepJob < ApplicationJob
     attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
 
     sender = GmailSender.new(delegation)
-    send_response = sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments)
+    send_response = sender.send_email(to: recipient, subject: subject, body: body.to_s, from_name: from_name, attachments: attachments, bcc: bcc_for(host))
     if send_response.nil?
       mark_failed(step_instance, instance)
       return
@@ -252,17 +263,19 @@ class CampaignSweepJob < ApplicationJob
 
     from_name = host.owner&.full_name
     attachments = first_step?(step_instance) ? pdf_attachments_for(host) : []
+    bcc = bcc_for(host)
 
     if mode == :dev_letter_opener
       CampaignStepMailer.with(
         to:          recipient,
+        bcc:         bcc,
         subject:     subject,
         body:        body.to_s,
         from_name:   from_name,
         attachments: attachments
       ).step.deliver_now
     else
-      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
+      Rails.logger.info "[CampaignSweepJob][FAKE-SEND] step #{step_instance.id} -> #{recipient} (from #{from_name.inspect}, bcc #{bcc.inspect}, #{attachments.size} attachment(s)): #{subject.inspect}"
     end
 
     step_instance.update!(email_delivery_status: :sent)

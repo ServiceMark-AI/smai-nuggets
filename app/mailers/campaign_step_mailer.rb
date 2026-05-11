@@ -16,6 +16,7 @@ class CampaignStepMailer < ApplicationMailer
 
   def step
     to        = params[:to]
+    bcc       = params[:bcc]
     subject   = params[:subject]
     body      = params[:body].to_s
     from_name = params[:from_name]
@@ -35,6 +36,8 @@ class CampaignStepMailer < ApplicationMailer
                     FROM_PLACEHOLDER_ADDRESS
                   end
 
-    mail(to: to, from: from_header, subject: subject, content_type: "text/plain", body: body)
+    headers = { to: to, from: from_header, subject: subject, content_type: "text/plain", body: body }
+    headers[:bcc] = bcc if bcc.present?
+    mail(headers)
   end
 end

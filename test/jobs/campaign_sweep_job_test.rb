@@ -124,6 +124,30 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal "alice@example.com", GmailSender.deliveries.first[:to]
   end
 
+  test "in production, the originator's Gmail is BCC'd on the customer send" do
+    ENV.delete("TEST_TO_EMAIL")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    with_production_environment(true) { CampaignSweepJob.new.perform }
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    delivery = GmailSender.deliveries.first
+    assert_equal "originator@example.com", delivery[:bcc],
+      "the originator should receive a BCC copy of every customer send"
+  end
+
+  test "BCC is suppressed when TEST_TO_EMAIL is set so the originator's real inbox doesn't get the redirected mail" do
+    # TEST_TO_EMAIL is set by the default setup. The redirect is for QA, so
+    # leaking a copy to the originator's real Gmail would defeat the point.
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    assert_equal "sent", step_instance.reload.email_delivery_status
+    delivery = GmailSender.deliveries.first
+    assert_nil delivery[:bcc], "TEST_TO_EMAIL redirect must not leak a copy to the originator"
+  end
+
   test "in development with no TEST_TO_EMAIL, the sweep is a no-op" do
     ENV.delete("TEST_TO_EMAIL")
     step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
@@ -453,7 +477,7 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
 
   def with_gmail_sender_returning(value)
     original = GmailSender.instance_method(:send_email)
-    GmailSender.define_method(:send_email) { |to:, subject:, body:, from_name: nil, attachments: []| value }
+    GmailSender.define_method(:send_email) { |to:, subject:, body:, from_name: nil, attachments: [], bcc: nil| value }
     yield
   ensure
     GmailSender.define_method(:send_email, original)

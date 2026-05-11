@@ -42,13 +42,13 @@ class GmailSender
   # via the Mail gem. With no attachments, the original hand-rolled
   # plain-text path is used so the bytes on the wire are unchanged from
   # the pre-attachment behavior.
-  def send_email(to:, subject:, body:, from_name: nil, attachments: [])
+  def send_email(to:, subject:, body:, from_name: nil, attachments: [], bcc: nil)
     from_address = from_name.present? ? %("#{from_name}" <#{@credentials.email}>) : @credentials.email
 
     if Rails.env.test?
       stub = synthetic_send_response
       self.class.deliveries << {
-        from: from_address, to: to, subject: subject, body: body,
+        from: from_address, to: to, bcc: bcc, subject: subject, body: body,
         attachments: Array(attachments).map { |a| a.slice(:filename, :mime_type).merge(byte_size: a[:content].to_s.bytesize) },
         response: stub
       }
@@ -57,10 +57,12 @@ class GmailSender
 
     refresh_if_needed
     encoded = if Array(attachments).any?
-                mail = build_multipart(to: to, from: from_address, subject: subject, body: body, attachments: attachments)
-                Base64.urlsafe_encode64(mail.encoded)
+                mail = build_multipart(to: to, from: from_address, subject: subject, body: body, attachments: attachments, bcc: bcc)
+                raw = mail.encoded
+                raw = inject_bcc_header(raw, bcc) if bcc.present?
+                Base64.urlsafe_encode64(raw)
               else
-                raw = build_message(to: to, subject: subject, body: body, from_name: from_name)
+                raw = build_message(to: to, subject: subject, body: body, from_name: from_name, bcc: bcc)
                 Base64.urlsafe_encode64(raw)
               end
     post_send(encoded)
@@ -219,11 +221,12 @@ class GmailSender
   # the encoded multipart output. We have to build the body as an explicit
   # text/plain part. Once the first text_part is set, Mail promotes the
   # message to multipart for us; subsequent attachments slot in cleanly.
-  def build_multipart(to:, from:, subject:, body:, attachments:)
+  def build_multipart(to:, from:, subject:, body:, attachments:, bcc: nil)
     body_text = body.to_s
     msg = Mail.new
     msg.to      = to
     msg.from    = from
+    msg.bcc     = bcc if bcc.present?
     msg.subject = subject
     msg.text_part = Mail::Part.new do
       content_type "text/plain; charset=UTF-8"
@@ -238,21 +241,34 @@ class GmailSender
     msg
   end
 
-  def build_message(to:, subject:, body:, from_name: nil)
+  # Mail gem's #encoded strips Bcc by design — Bcc normally rides in the SMTP
+  # envelope, not the on-the-wire headers. The Gmail API instead reads
+  # recipients (including Bcc) from the raw RFC 2822 message and strips the
+  # Bcc header from delivered copies on its own. Inject the header back just
+  # before the headers/body boundary so Gmail actually delivers the BCC.
+  def inject_bcc_header(raw, bcc)
+    raw.sub(/\r\n\r\n/, "\r\nBcc: #{bcc}\r\n\r\n")
+  end
+
+  def build_message(to:, subject:, body:, from_name: nil, bcc: nil)
     from_header = if from_name.present?
                     %("#{from_name.gsub('"', '\\"')}" <#{@credentials.email}>)
                   else
                     @credentials.email
                   end
-    [
+    headers = [
       "To: #{to}",
-      "From: #{from_header}",
+      "From: #{from_header}"
+    ]
+    headers << "Bcc: #{bcc}" if bcc.present?
+    headers += [
       "Subject: #{subject}",
       "MIME-Version: 1.0",
       "Content-Type: text/plain; charset=UTF-8",
       "",
       body
-    ].join("\r\n")
+    ]
+    headers.join("\r\n")
   end
 
   def post_json(url, payload, bearer:)
