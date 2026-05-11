@@ -65,17 +65,31 @@ class CampaignStepInstancesControllerTest < ActionDispatch::IntegrationTest
     assert_match "Frozen body as-shipped", response.body
   end
 
-  test "From line shows the connected mailbox email when one is connected" do
-    ApplicationMailbox.create!(provider: "google_oauth2", email: "noreply@app.example.com", access_token: "tok")
+  test "From line shows the originator's connected Gmail (not the shared application mailbox)" do
+    # Per PRD-09 §1, customer email leaves from the originator's own Gmail.
+    # Connect *both* the shared ApplicationMailbox and the owner's EmailDelegation
+    # so the test proves the preview surfaces the originator address and ignores
+    # the shared mailbox.
+    ApplicationMailbox.create!(provider: "google_oauth2", email: "ops@example.com", access_token: "tok")
+    EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
+    )
     sign_in @user
     get job_proposal_step_instance_url(@proposal, @step_instance)
-    assert_match "noreply@app.example.com", response.body
+    assert_match "originator@example.com", response.body
+    refute_match "ops@example.com", response.body,
+      "preview must not show the shared ApplicationMailbox — campaign mail leaves from the originator's Gmail"
   end
 
-  test "From line warns when no mailbox is connected" do
+  test "From line warns when the originator hasn't connected their Gmail" do
     sign_in @user
     get job_proposal_step_instance_url(@proposal, @step_instance)
-    assert_match(/No application mailbox connected/i, response.body)
+    assert_match(/hasn't connected their Gmail/i, response.body)
   end
 
   test "To line warns when customer_email is blank" do

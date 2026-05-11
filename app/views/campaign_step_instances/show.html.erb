@@ -36,9 +36,11 @@
       <dd class="col-sm-10">
         <% if @from_address %>
           <code><%= @from_address %></code>
-          <span class="text-muted small ms-2">(connected application mailbox)</span>
+          <span class="text-muted small ms-2">
+            (<%= @from_display_name %>'s connected Gmail)
+          </span>
         <% else %>
-          <span class="text-warning">No application mailbox connected — in development the sweep job runs in FAKE-SEND mode and skips the real Gmail call.</span>
+          <span class="text-warning"><%= @from_display_name %> hasn't connected their Gmail — every step on this proposal will surface a delivery issue until they connect in Settings → Integrations.</span>
         <% end %>
       </dd>
 

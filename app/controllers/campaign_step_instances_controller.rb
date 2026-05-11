@@ -47,8 +47,16 @@ class CampaignStepInstancesController < ApplicationController
       end
     end
 
-    @from_address = ApplicationMailbox.current&.email
-    @to_address   = @job_proposal.customer_email.presence
+    # Per PRD-09 §1, the From on a customer send is the proposal originator's
+    # own connected Gmail — not the shared ApplicationMailbox. Surface the
+    # same address (and owner name for the caption) so this preview matches
+    # what actually lands in the customer's inbox. A missing delegation is
+    # the same condition PreSendChecklist#check_originator_mailbox flags as
+    # a delivery issue; the view shows an explanatory warning in that case.
+    owner               = @job_proposal.owner
+    @from_address       = owner.gmail_delegation&.email
+    @from_display_name  = owner.display_name
+    @to_address         = @job_proposal.customer_email.presence
   end
 
   private
