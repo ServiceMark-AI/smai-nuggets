@@ -40,7 +40,11 @@ Rails.application.routes.draw do
       patch :approve
       patch :restore
     end
-    resources :step_instances, only: [:show], controller: "campaign_step_instances"
+    resources :step_instances, only: [:show], controller: "campaign_step_instances" do
+      member do
+        post :check_thread
+      end
+    end
     resources :campaign_instances, only: [:show]
     resources :histories, only: [:show], controller: "job_proposal_histories"
   end

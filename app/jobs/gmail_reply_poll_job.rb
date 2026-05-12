@@ -4,6 +4,12 @@ require "net/http"
 # on its own cadence (see config/sidekiq_cron.yml), independent of the
 # CampaignSweepJob so reply latency isn't bounded by the send cadence.
 #
+# Per PRD-09 §1, customer email leaves from the proposal originator's
+# own Gmail — so the conversation lives in *their* mailbox, not the
+# shared ApplicationMailbox. The poller authenticates per-step as that
+# originator's EmailDelegation; a step whose originator has since
+# disconnected Gmail is logged and skipped, and the next tick retries.
+#
 # Eligibility (per-campaign-instance, latest sent step only):
 #   - Step has a stored gmail_thread_id.
 #   - Parent CampaignInstance.status IN (:active, :completed).
@@ -16,7 +22,7 @@ require "net/http"
 #     is the baseline of "what was on the thread when we sent."
 #   - The current thread is fetched on each poll. If the current message
 #     count exceeds the baseline AND any of the new messages have a From
-#     header whose address isn't the connected mailbox, that message is
+#     header whose address isn't the originator's Gmail, that message is
 #     either a customer reply or an asynchronous bounce DSN.
 #
 # Bounces are distinguished by the local-part of the inbound From
@@ -41,15 +47,8 @@ class GmailReplyPollJob < ApplicationJob
   POLLING_CUTOFF = 6.months
 
   def perform
-    mailbox = ApplicationMailbox.current
-    if mailbox.nil?
-      Rails.logger.warn "[GmailReplyPollJob] no application mailbox connected; skipping poll"
-      return
-    end
-
-    sender = GmailSender.new(mailbox)
     pollable_step_instance_ids(Time.current).each do |id|
-      process(id, mailbox, sender)
+      process(id)
     end
   end
 
@@ -79,10 +78,23 @@ class GmailReplyPollJob < ApplicationJob
       .pluck("campaign_step_instances.id")
   end
 
-  def process(step_instance_id, mailbox, sender)
+  def process(step_instance_id)
     step_instance = CampaignStepInstance.find_by(id: step_instance_id)
     return unless step_instance
 
+    # Per PRD-09 §1, the originator's own Gmail is what shipped the mail,
+    # so the thread lives there. Authenticate as them — the shared
+    # ApplicationMailbox can't see it. A vanished delegation (originator
+    # disconnected Gmail) surfaces as a delivery_issue on subsequent
+    # sweeps via PreSendChecklist; for polling we just log + skip and let
+    # the next tick re-evaluate once they reconnect.
+    delegation = step_instance.campaign_instance.host&.owner&.gmail_delegation
+    if delegation.nil?
+      Rails.logger.warn "[GmailReplyPollJob] no originator Gmail delegation for step #{step_instance.id} (thread #{step_instance.gmail_thread_id}); skipping until reconnect"
+      return
+    end
+
+    sender = GmailSender.new(delegation)
     thread = sender.fetch_thread(step_instance.gmail_thread_id)
     if thread.nil?
       Rails.logger.warn "[GmailReplyPollJob] thread fetch returned nil for step #{step_instance.id} thread #{step_instance.gmail_thread_id} — will retry next tick"
@@ -97,7 +109,7 @@ class GmailReplyPollJob < ApplicationJob
       return
     end
 
-    inbound = first_inbound_message(thread, step_instance.gmail_thread_snapshot, mailbox.email)
+    inbound = first_inbound_message(thread, step_instance.gmail_thread_snapshot, delegation.email)
     return unless inbound
 
     case inbound[:kind]
@@ -109,27 +121,28 @@ class GmailReplyPollJob < ApplicationJob
   end
 
   # Returns the first message in the current thread (after the snapshot
-  # baseline) that came from someone other than the connected mailbox,
-  # tagged as either :reply or :bounce. Returns nil when no such message
-  # exists. Returning the message itself — rather than just a flag —
-  # lets the caller persist the specific Gmail payload that triggered
-  # the stop, useful for diagnostics.
-  def first_inbound_message(current_thread, baseline_thread, mailbox_email)
+  # baseline) that came from someone other than the originator (the
+  # account that sent the campaign mail), tagged as either :reply or
+  # :bounce. Returns nil when no such message exists. Returning the
+  # message itself — rather than just a flag — lets the caller persist
+  # the specific Gmail payload that triggered the stop, useful for
+  # diagnostics.
+  def first_inbound_message(current_thread, baseline_thread, originator_email)
     baseline_count = Array(baseline_thread["messages"]).length
     current_messages = Array(current_thread["messages"])
     return nil if current_messages.length <= baseline_count
 
     new_messages = current_messages.last(current_messages.length - baseline_count)
     new_messages.each do |msg|
-      next unless from_other_party?(msg, mailbox_email)
+      next unless from_other_party?(msg, originator_email)
       return { kind: bounce_message?(msg) ? :bounce : :reply, message: msg }
     end
     nil
   end
 
-  def from_other_party?(message, mailbox_email)
+  def from_other_party?(message, originator_email)
     sender_email = extract_email(extract_from_header(message))
-    sender_email.present? && sender_email.casecmp(mailbox_email.to_s) != 0
+    sender_email.present? && sender_email.casecmp(originator_email.to_s) != 0
   end
 
   # Recognizes a Gmail-side delivery status notification (DSN) from the

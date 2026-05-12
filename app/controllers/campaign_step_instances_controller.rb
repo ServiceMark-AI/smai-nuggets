@@ -10,6 +10,33 @@ class CampaignStepInstancesController < ApplicationController
   before_action :load_proposal_and_step_instance
 
   def show
+    prepare_show_view_data
+  end
+
+  # On-demand diagnostic: probe the Gmail thread this step opened and surface
+  # the API request + response. Authenticates as the proposal originator's
+  # connected Gmail — the same credential GmailReplyPollJob uses and the
+  # account where the conversation actually lives — so the result
+  # reproduces what the production poller sees. URL and response body are
+  # logged at info level so Heroku logs always carry the diagnostic trail.
+  def check_thread
+    delegation = @job_proposal.owner.gmail_delegation
+    if delegation.nil?
+      flash.now[:alert] = "#{@job_proposal.owner.display_name} hasn't connected their Gmail — no originator credential to probe with. Have them reconnect in Settings → Integrations."
+    else
+      sender = GmailSender.new(delegation)
+      Rails.logger.info "[ThreadCheck] step #{@step_instance.id} probing thread #{@step_instance.gmail_thread_id.inspect} as #{delegation.email} (originator)"
+      @thread_probe    = sender.probe_thread(@step_instance.gmail_thread_id)
+      @thread_probe_at = Time.current
+    end
+
+    prepare_show_view_data
+    render :show
+  end
+
+  private
+
+  def prepare_show_view_data
     @campaign_step  = @step_instance.campaign_step
     @sent           = @step_instance.email_delivery_status_sent?
 
@@ -58,8 +85,6 @@ class CampaignStepInstancesController < ApplicationController
     @from_display_name  = owner.display_name
     @to_address         = @job_proposal.customer_email.presence
   end
-
-  private
 
   def load_proposal_and_step_instance
     @job_proposal  = JobProposal.accessible_by(current_ability).find(params[:job_proposal_id])

@@ -99,6 +99,47 @@ class GmailSender
     post_send(encoded)
   end
 
+  # Diagnostic counterpart to fetch_thread. Same Gmail API call, but
+  # always logs the request URI and response (status + body) at info
+  # level, and returns a ThreadProbeResult struct instead of just the
+  # parsed JSON — so a diagnostic UI can show the operator the raw
+  # HTTP status / response body Gmail actually returned. Use this from
+  # admin / operator-facing "check now" actions; the production poller
+  # uses the leaner fetch_thread.
+  ThreadProbeResult = Struct.new(:uri, :http_status, :body, :parsed, :error, :credential_email, keyword_init: true)
+
+  def probe_thread(thread_id)
+    if thread_id.blank?
+      return ThreadProbeResult.new(error: "no Gmail thread id stored on this step", credential_email: @credentials.email)
+    end
+
+    if Rails.env.test?
+      stub = synthetic_thread_response(thread_id)
+      return ThreadProbeResult.new(
+        uri:              "(test stub) GET #{GMAIL_THREAD_URL}/#{thread_id}?format=metadata",
+        http_status:      200,
+        body:             stub.to_json,
+        parsed:           stub,
+        credential_email: @credentials.email
+      )
+    end
+
+    refresh_if_needed
+    uri = URI("#{GMAIL_THREAD_URL}/#{thread_id}?format=metadata")
+    Rails.logger.info "[GmailSender][probe_thread] GET #{uri} as #{@credentials.email}"
+    response = get_json(uri, bearer: @credentials.access_token)
+    Rails.logger.info "[GmailSender][probe_thread] HTTP #{response.code} body: #{response.body}"
+
+    parsed = JSON.parse(response.body) rescue nil
+    ThreadProbeResult.new(
+      uri:              uri.to_s,
+      http_status:      response.code.to_i,
+      body:             response.body.to_s,
+      parsed:           parsed,
+      credential_email: @credentials.email
+    )
+  end
+
   # Fetches a Gmail thread by id with metadata-only formatting (headers
   # but no message bodies — enough to detect replies via From/Date and
   # message count). Returns the parsed JSON hash on success, nil on

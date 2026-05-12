@@ -142,4 +142,73 @@ class CampaignStepInstancesControllerTest < ActionDispatch::IntegrationTest
     assert_match "THREAD-XYZ", response.body
     assert_match "mail.google.com", response.body
   end
+
+  # --- POST /check_thread: on-demand Gmail thread probe ----------------------
+
+  test "check_thread requires authentication" do
+    @step_instance.update!(email_delivery_status: :sent, gmail_thread_id: "THREAD-XYZ", final_subject: "x", final_body: "y")
+    post check_thread_job_proposal_step_instance_url(@proposal, @step_instance)
+    assert_redirected_to new_user_session_path
+  end
+
+  test "check_thread 404s when the step instance belongs to a different proposal" do
+    other_proposal = job_proposals(:other_tenant)
+    @step_instance.update!(email_delivery_status: :sent, gmail_thread_id: "THREAD-XYZ", final_subject: "x", final_body: "y")
+    sign_in users(:admin)
+    post check_thread_job_proposal_step_instance_url(other_proposal, @step_instance)
+    assert_response :not_found
+  end
+
+  test "check_thread surfaces a warning when the originator has no connected Gmail" do
+    @step_instance.update!(email_delivery_status: :sent, gmail_thread_id: "THREAD-XYZ", final_subject: "x", final_body: "y")
+    # Originator without a delegation — the poller would also skip in this case.
+    sign_in @user
+    post check_thread_job_proposal_step_instance_url(@proposal, @step_instance)
+    assert_response :success
+    assert_match(/hasn't connected their Gmail/i, response.body)
+    refute_match(/Thread check result/i, response.body)
+  end
+
+  test "check_thread probes the thread as the originator and renders the diagnostic block with the API response" do
+    EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
+    )
+    @step_instance.update!(email_delivery_status: :sent, gmail_thread_id: "THREAD-XYZ", final_subject: "x", final_body: "y")
+    sign_in @user
+
+    post check_thread_job_proposal_step_instance_url(@proposal, @step_instance)
+    assert_response :success
+    assert_match(/Thread check result/i, response.body)
+    # In test env the probe returns a synthetic 200. Assert the diagnostic
+    # surfaces the credential it used (the originator's Gmail, NOT the
+    # shared ApplicationMailbox), the thread id, and the HTTP status.
+    assert_match "originator@example.com", response.body
+    assert_match "THREAD-XYZ", response.body
+    assert_match "HTTP status", response.body
+    # 200 OK badge appears in the diagnostic block when the API responds successfully.
+    assert_match %r{<span class="badge text-bg-success">200</span>}, response.body
+  end
+
+  test "check_thread reports gracefully when the step has no Gmail thread id" do
+    # Pending / pre-send step: gmail_thread_id is blank. The probe should
+    # surface a clear "no thread id" message rather than hitting the API.
+    EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
+    )
+    sign_in @user
+
+    post check_thread_job_proposal_step_instance_url(@proposal, @step_instance)
+    assert_response :success
+    assert_match(/no Gmail thread id/i, response.body)
+  end
 end

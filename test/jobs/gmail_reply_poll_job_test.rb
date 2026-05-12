@@ -2,13 +2,6 @@ require "test_helper"
 
 class GmailReplyPollJobTest < ActiveSupport::TestCase
   setup do
-    @mailbox = ApplicationMailbox.create!(
-      provider: "google",
-      email: "ops@example.com",
-      access_token: "atk",
-      refresh_token: "rtk",
-      expires_at: 1.hour.from_now
-    )
     @campaign = campaigns(:approved_campaign)
     @step_one = campaign_steps(:approved_step_one)
     @proposal = job_proposals(:in_users_org)
@@ -20,10 +13,24 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
       customer_street: "Oak Ridge"
     )
     @instance = CampaignInstance.create!(campaign: @campaign, host: @proposal, status: :active)
+
+    # Per PRD-09 §1, customer email leaves from the originator's own Gmail,
+    # so the conversation lives in their mailbox — the poller authenticates
+    # there, not against the shared ApplicationMailbox. Each test starts
+    # with a working delegation; tests covering the "originator vanished"
+    # path destroy it explicitly.
+    @owner_delegation = EmailDelegation.create!(
+      user: @proposal.owner,
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "atk",
+      refresh_token: "rtk",
+      expires_at: 1.hour.from_now
+    )
   end
 
-  test "no-op when no application mailbox is connected" do
-    @mailbox.destroy!
+  test "no-op when the originator has no connected Gmail delegation" do
+    @owner_delegation.destroy!
     step = build_sent_step(thread_id: "t1", snapshot_messages: outgoing_only("t1"))
 
     assert_nothing_raised { GmailReplyPollJob.new.perform }
@@ -66,11 +73,11 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
     assert_equal reply, step.gmail_reply_payload, "step should retain the specific Gmail message that triggered the stop"
   end
 
-  test "ignores new messages that come from the connected mailbox itself" do
+  test "ignores new messages that come from the originator's own mailbox" do
     snapshot = outgoing_only("t1")
     build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
     # A second outgoing message (e.g., a follow-up step) — same From as us.
-    current = snapshot + [message_from(@mailbox.email, "t1")]
+    current = snapshot + [message_from(@owner_delegation.email, "t1")]
 
     stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
       GmailReplyPollJob.new.perform
@@ -310,7 +317,7 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
   end
 
   def outgoing_only(thread_id)
-    [message_from(@mailbox.email, thread_id, label: "SENT")]
+    [message_from(@owner_delegation.email, thread_id, label: "SENT")]
   end
 
   def message_from(address, thread_id, label: "INBOX")
