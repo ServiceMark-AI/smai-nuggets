@@ -93,6 +93,20 @@ module JobProposalsHelper
     content_tag(:span, cfg[:text], class: cfg[:klass])
   end
 
+  # Won/Lost outcome label for the index card. Always renders for a
+  # terminal pipeline_stage so an operator scanning the list can see at
+  # a glance which jobs are closed and which are still in flight.
+  OUTCOME_LABELS = {
+    "won"  => { text: "won",  klass: "text-success fw-semibold" },
+    "lost" => { text: "lost", klass: "text-muted fw-semibold" }
+  }.freeze
+
+  def proposal_outcome_label(jp)
+    cfg = OUTCOME_LABELS[jp.pipeline_stage]
+    return nil unless cfg
+    content_tag(:span, cfg[:text], class: cfg[:klass])
+  end
+
   # Display label for a proposal's job type. Strips a trailing "Job type"
   # from the JobType.name so labels like "Development Job Type" render as
   # "Development" — the "Job type" suffix is redundant in context.
