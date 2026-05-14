@@ -57,9 +57,15 @@ class JobProposal < ApplicationRecord
   # one of: drafting (not finished), approving (campaign drafted but
   # awaiting operator approval), or approved+in-campaign with an
   # attention-grabbing overlay (customer replied, delivery failed).
+  # Won/lost proposals are always excluded — once the job's outcome is
+  # decided, there's nothing left for the operator to do here.
   # Powers the sidebar's "Needs Attention" badge and filter.
   scope :needs_attention, -> {
+    # Allow NULL pipeline_stage through — proposals haven't necessarily
+    # been assigned an in_campaign stage by the time they're drafting,
+    # and SQL `NOT IN ('won','lost')` would silently drop NULL rows.
     drafting_or_approving = where(status: [:drafting, :approving])
+      .where(pipeline_stage: [nil, :in_campaign])
     flagged_in_flight = where(
       status: :approved,
       pipeline_stage: :in_campaign,
