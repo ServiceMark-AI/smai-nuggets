@@ -60,4 +60,26 @@
   <% end %>
 </div>
 
+<%# Convenience presets — single-click date-range shortcuts. Preserves
+    any active location_id so the slicer compositions stay sticky. %>
+<% if current_user.tenant %>
+  <%
+    today = Date.current
+    this_month_from = today.beginning_of_month
+    this_month_to   = today.end_of_month
+    last_month_from = (today - 1.month).beginning_of_month
+    last_month_to   = (today - 1.month).end_of_month
+    common_params   = { location_id: @selected_location_id }.compact
+  %>
+  <div class="d-flex gap-2 small mb-3 flex-wrap">
+    <span class="text-muted">Quick range:</span>
+    <%= link_to "This Month",
+          analytics_path(common_params.merge(date_from: this_month_from, date_to: this_month_to)),
+          class: "link-secondary text-decoration-none" %>
+    <%= link_to "Last Month",
+          analytics_path(common_params.merge(date_from: last_month_from, date_to: last_month_to)),
+          class: "link-secondary text-decoration-none" %>
+  </div>
+<% end %>
+
 <%= render "analytics/dashboard", analytics: @analytics %>
