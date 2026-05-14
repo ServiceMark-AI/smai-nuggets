@@ -192,7 +192,7 @@
     <% funnel = [
          { label: "Proposals activated",       count: analytics.activated_count,          implemented: true },
          { label: "First follow-up delivered", count: analytics.first_followup_delivered, implemented: true },
-         { label: "Customer replied",          count: nil,                                implemented: false },
+         { label: "Customer replied",          count: analytics.customer_replied_count,   implemented: true },
          { label: "Operator responded",        count: nil,                                implemented: false },
          { label: "Closed won",                count: analytics.won_count,                implemented: true }
        ] %>
@@ -245,7 +245,7 @@
             <th>Originator</th>
             <th class="text-end">Active jobs</th>
             <th class="text-end">Pipeline</th>
-            <th class="text-end" title="Pending inbound-message tracking">Reply rate</th>
+            <th class="text-end">Reply rate</th>
             <th>Close rate</th>
           </tr>
         </thead>
@@ -261,7 +261,14 @@
               </td>
               <td class="text-end"><%= row[:active_jobs] %></td>
               <td class="text-end"><%= number_to_currency(row[:pipeline_value], precision: 0) %></td>
-              <td class="text-end text-muted"><em>—</em></td>
+              <td class="text-end">
+                <% if row[:reply_rate_pct].nil? %>
+                  <span class="text-muted">—</span>
+                <% else %>
+                  <%= row[:reply_rate_pct] %>%
+                  <div class="text-muted small"><%= row[:replied_count] %>/<%= row[:activated_count] %></div>
+                <% end %>
+              </td>
               <td>
                 <% width = top_close.positive? ? (row[:close_rate_pct].to_f / top_close * 100).round : 0 %>
                 <div class="d-flex align-items-center gap-2">

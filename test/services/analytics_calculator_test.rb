@@ -227,4 +227,44 @@ class AnalyticsCalculatorTest < ActiveSupport::TestCase
     result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
     assert_equal [], result.loss_reasons_breakdown
   end
+
+  # --- Customer replies -------------------------------------------------
+
+  test "customer_replied_count and originator reply rate reflect step-level replies" do
+    jp = job_proposals(:in_users_org)
+    jp.update!(owner: users(:one))
+    inst = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    CampaignStepInstance.create!(
+      campaign_instance: inst, campaign_step: campaign_steps(:approved_step_one),
+      planned_delivery_at: 1.hour.ago, email_delivery_status: :sent,
+      final_subject: "x", final_body: "y", customer_replied: true
+    )
+
+    # A second proposal owned by the same user, activated but no reply
+    silent = job_proposals(:same_tenant_other_org)
+    silent.update!(owner: users(:one))
+    CampaignInstance.create!(host: silent, campaign: campaigns(:approved_campaign), status: :active)
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    assert_equal 1, result.customer_replied_count
+
+    row = result.originators.find { |r| r[:user] == users(:one) }
+    assert_equal 1,  row[:replied_count]
+    assert_equal 50, row[:reply_rate_pct], "1 reply / 2 activated = 50%"
+  end
+
+  test "customer_replied_count counts each proposal once even with multiple replied steps" do
+    jp = job_proposals(:in_users_org)
+    inst = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :active)
+    [campaign_steps(:approved_step_one), campaign_steps(:approved_step_two)].each do |step|
+      CampaignStepInstance.create!(
+        campaign_instance: inst, campaign_step: step,
+        planned_delivery_at: 1.hour.ago, email_delivery_status: :sent,
+        final_subject: "x", final_body: "y", customer_replied: true
+      )
+    end
+
+    result = AnalyticsCalculator.new(proposals_scope: tenants(:one).job_proposals).call
+    assert_equal 1, result.customer_replied_count
+  end
 end
