@@ -171,15 +171,37 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/tenant/i, response.body)
   end
 
-  # --- soft delete (admin only) ---
+  # --- soft delete ---
 
-  test "destroy redirects non-admins away and leaves the row alone" do
-    sign_in @user
+  test "destroy refuses location-scoped tenant users and leaves the row alone" do
+    location_user = User.create!(
+      email: "loc@example.com", password: "Password1", is_pending: false,
+      tenant: tenants(:one), location: locations(:ne_dallas)
+    )
+    sign_in location_user
     jp = job_proposals(:in_users_org)
 
     delete job_proposal_url(jp)
     assert_redirected_to root_path
     refute jp.reload.discarded?
+  end
+
+  test "destroy refuses a tenant admin acting on another tenant's proposal" do
+    sign_in @user  # tenant: one, no location → tenant admin of tenant one
+    jp = job_proposals(:other_tenant)  # tenant: two
+
+    delete job_proposal_url(jp)
+    refute jp.reload.discarded?
+  end
+
+  test "destroy soft-deletes when called by a tenant admin in the same tenant" do
+    sign_in @user  # tenant: one, no location → tenant admin of tenant one
+    jp = job_proposals(:in_users_org)
+
+    delete job_proposal_url(jp)
+    assert_redirected_to job_proposals_path
+    assert_match(/trash/i, flash[:notice])
+    assert jp.reload.discarded?
   end
 
   test "destroy soft-deletes when called by an admin, hides the row from kept queries" do

@@ -11,7 +11,7 @@ class JobProposalsController < ApplicationController
 
   before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage, :approve, :destroy]
   before_action :load_discarded_proposal, only: [:restore]
-  before_action :require_admin, only: [:destroy, :restore]
+  before_action :require_admin, only: [:restore]
 
   def index
     scope = JobProposal
@@ -246,9 +246,12 @@ class JobProposalsController < ApplicationController
     end
   end
 
-  # Admin-only soft-delete via discard. Refuses while any active/drafting
+  # Soft-delete via discard. Available to SMAI staff (via Ability's
+  # `:manage, :all`) and tenant admins for proposals in their own tenant
+  # (see Ability#initialize). Refuses while any active/drafting
   # CampaignInstance is on the proposal — see JobProposal#ensure_no_live_campaign!.
   def destroy
+    authorize! :destroy, @job_proposal
     if @job_proposal.discard
       redirect_to job_proposals_path, notice: "Job proposal moved to trash."
     else
