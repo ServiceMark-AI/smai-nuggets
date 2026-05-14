@@ -98,7 +98,7 @@ module JobProposalsHelper
   # a glance which jobs are closed and which are still in flight.
   OUTCOME_LABELS = {
     "won"  => { text: "won",  klass: "text-success fw-semibold" },
-    "lost" => { text: "lost", klass: "text-muted fw-semibold" }
+    "lost" => { text: "Loss", klass: "text-danger fw-semibold" }
   }.freeze
 
   def proposal_outcome_label(jp)
