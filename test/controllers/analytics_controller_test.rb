@@ -294,4 +294,38 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "select[name=location_id]", count: 0
   end
+
+  # --- Date range slicer ------------------------------------------------
+
+  test "date range narrows the proposals scope by created_at" do
+    inside  = job_proposals(:in_users_org)
+    outside = job_proposals(:same_tenant_other_org)
+    inside.update!(pipeline_stage: :won, proposal_value: 5_000, created_at: Date.new(2026, 3, 15))
+    outside.update!(pipeline_stage: :won, proposal_value: 9_000, created_at: Date.new(2026, 1, 5))
+
+    sign_in @user_one
+    get analytics_url, params: { date_from: "2026-03-01", date_to: "2026-03-31" }
+    assert_response :success
+    assert_match "$5,000", response.body
+    assert_no_match "$9,000", response.body
+  end
+
+  test "date_from alone bounds only the lower edge" do
+    inside  = job_proposals(:in_users_org)
+    outside = job_proposals(:same_tenant_other_org)
+    inside.update!(pipeline_stage: :won, proposal_value: 5_000, created_at: Date.new(2026, 4, 1))
+    outside.update!(pipeline_stage: :won, proposal_value: 9_000, created_at: Date.new(2026, 1, 5))
+
+    sign_in @user_one
+    get analytics_url, params: { date_from: "2026-03-01" }
+    assert_response :success
+    assert_match "$5,000", response.body
+    assert_no_match "$9,000", response.body
+  end
+
+  test "malformed date params don't 500 — slicer falls back to all-time" do
+    sign_in @user_one
+    get analytics_url, params: { date_from: "not-a-date", date_to: "also-bad" }
+    assert_response :success
+  end
 end
