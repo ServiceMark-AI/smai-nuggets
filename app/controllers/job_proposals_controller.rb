@@ -248,7 +248,7 @@ class JobProposalsController < ApplicationController
 
   # Soft-delete via discard. Available to SMAI staff (via Ability's
   # `:manage, :all`) and tenant admins for proposals in their own tenant
-  # (see Ability#initialize). Refuses while any active/drafting
+  # (see Ability#initialize). Refuses only while an :active
   # CampaignInstance is on the proposal — see JobProposal#ensure_no_live_campaign!.
   def destroy
     authorize! :destroy, @job_proposal

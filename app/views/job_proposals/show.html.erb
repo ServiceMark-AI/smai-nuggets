@@ -43,13 +43,13 @@
       Ability. JobProposal#ensure_no_live_campaign! refuses server-side
       too if anything slips past the disabled UI state. %>
   <% if can?(:destroy, @job_proposal) %>
-    <% live_campaign = @job_proposal.campaign_instances.where(status: %i[active drafting]).exists? %>
+    <% active_campaign = @job_proposal.campaign_instances.where(status: :active).exists? %>
     <%= button_to "Delete", job_proposal_path(@job_proposal),
           method: :delete,
           class: "btn btn-outline-danger btn-sm",
           form: { class: "d-inline", data: { turbo_confirm: "Move this job to trash? Contact SMAI support if you need it restored." } },
-          disabled: live_campaign,
-          title: live_campaign ? "Pause the campaign before deleting this job." : nil %>
+          disabled: active_campaign,
+          title: active_campaign ? "Pause the campaign before deleting this job." : nil %>
   <% end %>
 </div>
 

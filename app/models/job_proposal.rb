@@ -169,10 +169,15 @@ class JobProposal < ApplicationRecord
     errors.add(:dash_job_number, "is required before this job can be approved")
   end
 
+  # Only an :active campaign blocks deletion — that one is mid-send and
+  # losing it would orphan in-flight messages. A :drafting instance has
+  # never shipped anything (it's the "Review Campaign" state where the
+  # operator is deciding whether to approve), so deleting it is safe and
+  # is in fact the only way out for an operator who decides not to send.
   def ensure_no_live_campaign!
-    live = campaign_instances.where(status: %i[active drafting]).exists?
+    live = campaign_instances.where(status: :active).exists?
     if live
-      errors.add(:base, "Cannot delete a job with an active or drafting campaign. Pause the campaign first.")
+      errors.add(:base, "Cannot delete a job with an active campaign. Pause the campaign first.")
       throw(:abort)
     end
   end
