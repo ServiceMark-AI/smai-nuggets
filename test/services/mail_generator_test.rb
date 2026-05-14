@@ -304,13 +304,13 @@ class MailGeneratorTest < ActiveSupport::TestCase
 
   # --- DASH subject prefix -----------------------------------------------
 
-  test "subject is prefixed with [DASH-NNN] when the proposal has a dash_job_number" do
+  test "subject is prefixed with the bare DASH number when the proposal has a dash_job_number" do
     @job.update!(dash_job_number: "12345")
     out = MailGenerator.render(
       campaign_step: step(subject: "Following up on {property_address_short}", body: "Body."),
       job_proposal: @job
     )
-    assert_equal "[DASH-12345] Following up on 1247 Oak Ridge Drive", out.subject
+    assert_equal "12345 Following up on 1247 Oak Ridge Drive", out.subject
   end
 
   test "subject is unchanged when dash_job_number is blank" do
@@ -325,10 +325,10 @@ class MailGeneratorTest < ActiveSupport::TestCase
   test "DASH prefix is idempotent — subject already prefixed isn't doubled" do
     @job.update!(dash_job_number: "12345")
     out = MailGenerator.render(
-      campaign_step: step(subject: "[DASH-12345] Already prefixed", body: "Body."),
+      campaign_step: step(subject: "12345 Already prefixed", body: "Body."),
       job_proposal: @job
     )
-    assert_equal "[DASH-12345] Already prefixed", out.subject
+    assert_equal "12345 Already prefixed", out.subject
   end
 
   test "render appends the signature with originator + company info" do
