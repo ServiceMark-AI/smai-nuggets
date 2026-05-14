@@ -30,56 +30,53 @@
   </div>
 
   <%# Slicer form: location (admins / tenant admins with multiple locations)
-      plus the date range. One form so the two filters compose on submit. %>
+      plus the date range, plus quick-range presets underneath. Bundled in
+      one wrapper so they wrap together as a unit on small screens. %>
   <% if current_user.tenant %>
-    <%= form_with url: analytics_path, method: :get, local: true, class: "d-flex align-items-end gap-2 flex-wrap" do |f| %>
-      <% if !current_user.scoped_to_location? && @location_options.size > 1 %>
+    <%
+      today = Date.current
+      this_month_from = today.beginning_of_month
+      this_month_to   = today.end_of_month
+      last_month_from = (today - 1.month).beginning_of_month
+      last_month_to   = (today - 1.month).end_of_month
+      common_params   = { location_id: @selected_location_id }.compact
+    %>
+    <div class="d-flex flex-column align-items-end gap-2">
+      <%= form_with url: analytics_path, method: :get, local: true, class: "d-flex align-items-end gap-2 flex-wrap" do |f| %>
+        <% if !current_user.scoped_to_location? && @location_options.size > 1 %>
+          <div>
+            <%= label_tag :location_id, "Location", class: "form-label small mb-1" %>
+            <%= select_tag :location_id,
+                  options_from_collection_for_select(@location_options, :id, :display_name, @selected_location_id),
+                  include_blank: "All locations",
+                  class: "form-select form-select-sm" %>
+          </div>
+        <% end %>
         <div>
-          <%= label_tag :location_id, "Location", class: "form-label small mb-1" %>
-          <%= select_tag :location_id,
-                options_from_collection_for_select(@location_options, :id, :display_name, @selected_location_id),
-                include_blank: "All locations",
-                class: "form-select form-select-sm" %>
+          <%= label_tag :date_from, "From", class: "form-label small mb-1" %>
+          <%= date_field_tag :date_from, @date_from, class: "form-control form-control-sm" %>
+        </div>
+        <div>
+          <%= label_tag :date_to, "To", class: "form-label small mb-1" %>
+          <%= date_field_tag :date_to, @date_to, class: "form-control form-control-sm" %>
+        </div>
+        <div class="d-flex gap-1">
+          <%= f.submit "Apply", class: "btn btn-primary btn-sm" %>
+          <% if @date_from || @date_to || @selected_location_id %>
+            <%= link_to "Clear", analytics_path, class: "btn btn-outline-secondary btn-sm" %>
+          <% end %>
         </div>
       <% end %>
-      <div>
-        <%= label_tag :date_from, "From", class: "form-label small mb-1" %>
-        <%= date_field_tag :date_from, @date_from, class: "form-control form-control-sm" %>
+      <div class="d-flex gap-2 flex-wrap">
+        <%= link_to "This Month",
+              analytics_path(common_params.merge(date_from: this_month_from, date_to: this_month_to)),
+              class: "btn btn-outline-secondary btn-sm" %>
+        <%= link_to "Last Month",
+              analytics_path(common_params.merge(date_from: last_month_from, date_to: last_month_to)),
+              class: "btn btn-outline-secondary btn-sm" %>
       </div>
-      <div>
-        <%= label_tag :date_to, "To", class: "form-label small mb-1" %>
-        <%= date_field_tag :date_to, @date_to, class: "form-control form-control-sm" %>
-      </div>
-      <div class="d-flex gap-1">
-        <%= f.submit "Apply", class: "btn btn-primary btn-sm" %>
-        <% if @date_from || @date_to || @selected_location_id %>
-          <%= link_to "Clear", analytics_path, class: "btn btn-outline-secondary btn-sm" %>
-        <% end %>
-      </div>
-    <% end %>
+    </div>
   <% end %>
 </div>
-
-<%# Convenience presets — single-click date-range shortcuts. Preserves
-    any active location_id so the slicer compositions stay sticky.
-    Right-justified to sit under the slicer form above. %>
-<% if current_user.tenant %>
-  <%
-    today = Date.current
-    this_month_from = today.beginning_of_month
-    this_month_to   = today.end_of_month
-    last_month_from = (today - 1.month).beginning_of_month
-    last_month_to   = (today - 1.month).end_of_month
-    common_params   = { location_id: @selected_location_id }.compact
-  %>
-  <div class="d-flex justify-content-end gap-2 mb-3 flex-wrap">
-    <%= link_to "This Month",
-          analytics_path(common_params.merge(date_from: this_month_from, date_to: this_month_to)),
-          class: "btn btn-outline-secondary btn-sm" %>
-    <%= link_to "Last Month",
-          analytics_path(common_params.merge(date_from: last_month_from, date_to: last_month_to)),
-          class: "btn btn-outline-secondary btn-sm" %>
-  </div>
-<% end %>
 
 <%= render "analytics/dashboard", analytics: @analytics %>
