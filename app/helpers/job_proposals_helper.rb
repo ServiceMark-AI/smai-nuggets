@@ -111,6 +111,13 @@ module JobProposalsHelper
     [street, tail].reject(&:empty?).join(", ").presence
   end
 
+  # Red asterisk used to flag required fields on the proposal edit form. The
+  # asterisk is decorative — the input itself carries `required: true` for
+  # screen readers and form-level submit prevention.
+  def required_marker
+    content_tag(:span, "*", class: "text-danger ms-1", "aria-hidden": "true")
+  end
+
   # Renders a small "Needed for the campaign to start: ..." caption under
   # an edit-form input when the corresponding field is blank and the
   # proposal isn't already in flight. Returns nil (renders nothing) when
