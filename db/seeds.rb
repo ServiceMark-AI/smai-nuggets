@@ -211,6 +211,24 @@ DEMO_PROPOSALS = [
     description: "Bathroom-confined incident; landlord-engaged after tenant family declined; standard biohazard protocol." }
 ].freeze
 
+# Loss reasons. The 0509 migration seeded these inline, but a
+# `db:schema:load`-based dev setup (db:setup / db:reset) skips
+# migration bodies and leaves the table empty. Recreate idempotently
+# here so a fresh dev DB has the lost-job dropdown populated.
+[
+  { code: "price_too_high",             display_name: "Price too high",                sort_order: 10 },
+  { code: "went_with_competitor",       display_name: "Went with competitor",          sort_order: 20 },
+  { code: "insurance_issue",            display_name: "Insurance issue",               sort_order: 30 },
+  { code: "no_response_from_customer",  display_name: "No response from customer",     sort_order: 40 },
+  { code: "timing_scheduling_conflict", display_name: "Timing / scheduling conflict",  sort_order: 50 },
+  { code: "other",                      display_name: "Other",                         sort_order: 99 }
+].each do |attrs|
+  LossReason.find_or_create_by!(code: attrs[:code]) do |lr|
+    lr.display_name = attrs[:display_name]
+    lr.sort_order   = attrs[:sort_order]
+  end
+end
+
 scenario_lookup = Scenario.includes(:job_type).index_by(&:code)
 loss_reason_lookup = LossReason.all.index_by(&:code)
 
