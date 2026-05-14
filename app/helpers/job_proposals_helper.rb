@@ -97,8 +97,8 @@ module JobProposalsHelper
   # terminal pipeline_stage so an operator scanning the list can see at
   # a glance which jobs are closed and which are still in flight.
   OUTCOME_LABELS = {
-    "won"  => { text: "won",  klass: "text-success fw-semibold" },
-    "lost" => { text: "Loss", klass: "text-danger fw-semibold" }
+    "won"  => { text: "Won",  klass: "btn btn-success btn-sm disabled" },
+    "lost" => { text: "Loss", klass: "btn btn-danger  btn-sm disabled" }
   }.freeze
 
   def proposal_outcome_label(jp)
