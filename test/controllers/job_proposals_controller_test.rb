@@ -171,15 +171,37 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/tenant/i, response.body)
   end
 
-  # --- soft delete (admin only) ---
+  # --- soft delete ---
 
-  test "destroy redirects non-admins away and leaves the row alone" do
-    sign_in @user
+  test "destroy refuses location-scoped tenant users and leaves the row alone" do
+    location_user = User.create!(
+      email: "loc@example.com", password: "Password1", is_pending: false,
+      tenant: tenants(:one), location: locations(:ne_dallas)
+    )
+    sign_in location_user
     jp = job_proposals(:in_users_org)
 
     delete job_proposal_url(jp)
     assert_redirected_to root_path
     refute jp.reload.discarded?
+  end
+
+  test "destroy refuses a tenant admin acting on another tenant's proposal" do
+    sign_in @user  # tenant: one, no location → tenant admin of tenant one
+    jp = job_proposals(:other_tenant)  # tenant: two
+
+    delete job_proposal_url(jp)
+    refute jp.reload.discarded?
+  end
+
+  test "destroy soft-deletes when called by a tenant admin in the same tenant" do
+    sign_in @user  # tenant: one, no location → tenant admin of tenant one
+    jp = job_proposals(:in_users_org)
+
+    delete job_proposal_url(jp)
+    assert_redirected_to job_proposals_path
+    assert_match(/trash/i, flash[:notice])
+    assert jp.reload.discarded?
   end
 
   test "destroy soft-deletes when called by an admin, hides the row from kept queries" do
@@ -201,8 +223,18 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
 
     delete job_proposal_url(jp)
     assert_redirected_to job_proposal_path(jp)
-    assert_match(/active or drafting campaign/i, flash[:alert])
+    assert_match(/active campaign/i, flash[:alert])
     refute jp.reload.discarded?
+  end
+
+  test "destroy allows deletion while a drafting CampaignInstance is on the proposal" do
+    sign_in @admin
+    jp = job_proposals(:in_users_org)
+    CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :drafting)
+
+    delete job_proposal_url(jp)
+    assert_redirected_to job_proposals_path
+    assert jp.reload.discarded?, "drafting (Review Campaign) instance must not block delete"
   end
 
   test "restore is admin-only and brings a discarded proposal back" do

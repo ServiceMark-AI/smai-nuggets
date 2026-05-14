@@ -39,16 +39,17 @@
             form: { class: "d-inline" } %>
     <% end %>
   <% end %>
-  <%# Admin-only soft delete. JobProposal#ensure_no_live_campaign! refuses
-      server-side too if anything slips past the disabled UI state. %>
-  <% if current_user.is_admin %>
-    <% live_campaign = @job_proposal.campaign_instances.where(status: %i[active drafting]).exists? %>
+  <%# Soft delete. SMAI staff and tenant admins can both do this — see
+      Ability. JobProposal#ensure_no_live_campaign! refuses server-side
+      too if anything slips past the disabled UI state. %>
+  <% if can?(:destroy, @job_proposal) %>
+    <% active_campaign = @job_proposal.campaign_instances.where(status: :active).exists? %>
     <%= button_to "Delete", job_proposal_path(@job_proposal),
           method: :delete,
           class: "btn btn-outline-danger btn-sm",
-          form: { class: "d-inline", data: { turbo_confirm: "Move this job to trash? Admins can restore from /admin/trash." } },
-          disabled: live_campaign,
-          title: live_campaign ? "Pause the campaign before deleting this job." : nil %>
+          form: { class: "d-inline", data: { turbo_confirm: "Move this job to trash? Contact SMAI support if you need it restored." } },
+          disabled: active_campaign,
+          title: active_campaign ? "Pause the campaign before deleting this job." : nil %>
   <% end %>
 </div>
 

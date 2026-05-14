@@ -146,6 +146,20 @@ class JobProposalTest < ActiveSupport::TestCase
     assert_not_includes JobProposal.needs_attention, @jp
   end
 
+  test "needs_attention excludes drafting proposals once they're marked won or lost" do
+    @jp.update!(status: :drafting, pipeline_stage: :won)
+    assert_not_includes JobProposal.needs_attention, @jp
+    @jp.update!(pipeline_stage: :lost)
+    assert_not_includes JobProposal.needs_attention, @jp
+  end
+
+  test "needs_attention excludes approving proposals once they're marked won or lost" do
+    @jp.update!(status: :approving, pipeline_stage: :won)
+    assert_not_includes JobProposal.needs_attention, @jp
+    @jp.update!(pipeline_stage: :lost)
+    assert_not_includes JobProposal.needs_attention, @jp
+  end
+
   # --- gmail_thread_id ---
 
   test "gmail_thread_id is nil when no step instances exist" do

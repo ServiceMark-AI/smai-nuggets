@@ -138,14 +138,14 @@ class MailGenerator
     end
   end
 
-  # When the proposal carries a DASH job number, prefix it on the email
-  # subject so Jeff's DASH inbox can thread on it (CC-06 v1.2 §1; PRD-02
-  # v1.5 §5). Idempotent — if the subject already starts with the same
-  # prefix (e.g., the operator hand-edited a draft body), don't double up.
+  # When the proposal carries a DASH job number, prefix "<number>: " on
+  # the email subject so Jeff's DASH inbox can thread on it (CC-06 v1.2
+  # §1; PRD-02 v1.5 §5). Idempotent — if the subject already starts with
+  # the same "<number>: " prefix, don't double up.
   def self.prefix_dash_job_number(subject, dash_job_number)
     return subject if dash_job_number.blank?
-    prefix = "[DASH-#{dash_job_number}]"
-    return subject if subject.to_s.start_with?(prefix)
+    prefix = "#{dash_job_number}:"
+    return subject if subject.to_s.start_with?("#{prefix} ")
     "#{prefix} #{subject}".strip
   end
 

@@ -93,6 +93,20 @@ module JobProposalsHelper
     content_tag(:span, cfg[:text], class: cfg[:klass])
   end
 
+  # Won/Lost outcome label for the index card. Always renders for a
+  # terminal pipeline_stage so an operator scanning the list can see at
+  # a glance which jobs are closed and which are still in flight.
+  OUTCOME_LABELS = {
+    "won"  => { text: "Won",  klass: "badge border border-success text-success" },
+    "lost" => { text: "Loss", klass: "badge border border-danger  text-danger" }
+  }.freeze
+
+  def proposal_outcome_label(jp)
+    cfg = OUTCOME_LABELS[jp.pipeline_stage]
+    return nil unless cfg
+    content_tag(:span, cfg[:text], class: cfg[:klass])
+  end
+
   # Display label for a proposal's job type. Strips a trailing "Job type"
   # from the JobType.name so labels like "Development Job Type" render as
   # "Development" — the "Job type" suffix is redundant in context.
@@ -109,6 +123,13 @@ module JobProposalsHelper
     city_state = [jp.customer_city, jp.customer_state].map { |p| p.to_s.strip }.reject(&:empty?).join(" ")
     tail = [city_state, jp.customer_zip.to_s.strip].reject(&:empty?).join(" ")
     [street, tail].reject(&:empty?).join(", ").presence
+  end
+
+  # Red asterisk used to flag required fields on the proposal edit form. The
+  # asterisk is decorative — the input itself carries `required: true` for
+  # screen readers and form-level submit prevention.
+  def required_marker
+    content_tag(:span, "*", class: "text-danger ms-1", "aria-hidden": "true")
   end
 
   # Renders a small "Needed for the campaign to start: ..." caption under

@@ -92,6 +92,13 @@
               <span class="text-muted me-2">·</span>
             <% end %>
             <span class="text-muted me-2"><%= proposal_job_type_label(jp) || "no job type" %></span>
+            <% if jp.dash_job_number.present? %>
+              <span class="text-muted me-2">·</span>
+              <span class="text-muted me-2">DASH #<%= jp.dash_job_number %></span>
+            <% end %>
+            <% if (outcome = proposal_outcome_label(jp)) %>
+              <span class="ms-1 me-2"><%= outcome %></span>
+            <% end %>
             <% if (overlay = proposal_overlay_label(jp)) %>
               <span class="text-muted me-2">·</span>
               <%= overlay %>

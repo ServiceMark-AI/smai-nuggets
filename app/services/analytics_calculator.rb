@@ -36,6 +36,17 @@ class AnalyticsCalculator
       .where(campaign_step_instances: { email_delivery_status: :sent })
       .distinct.count
 
+    # Proposals with at least one step instance flagged customer_replied
+    # by the reply poller. Counts the proposal once even if multiple
+    # threads on the campaign saw a reply — the funnel row asks "did
+    # the customer engage at all," not "how many replies."
+    replied_proposal_ids = instances_in_scope
+      .joins(:step_instances)
+      .where(campaign_step_instances: { customer_replied: true })
+      .distinct
+      .pluck(:host_id)
+    customer_replied_count = replied_proposal_ids.size
+
     closed_revenue        = @proposals.where(pipeline_stage: :won).sum(:proposal_value)
     active_pipeline_value = @proposals.where(pipeline_stage: :in_campaign).sum(:proposal_value)
     follow_ups_sent       = steps_in_scope.where(email_delivery_status: :sent).count
@@ -118,12 +129,15 @@ class AnalyticsCalculator
       won            = user_proposals.where(pipeline_stage: :won).count
       active_jobs    = user_proposals.where(pipeline_stage: :in_campaign).count
       pipeline_value = user_proposals.where(pipeline_stage: :in_campaign).sum(:proposal_value).to_f
+      replied        = user_proposals.where(id: replied_proposal_ids).count
 
       {
         user: user,
         activated_count: activated,
         active_jobs: active_jobs,
         pipeline_value: pipeline_value,
+        replied_count: replied,
+        reply_rate_pct: activated.positive? ? ((replied.to_f / activated) * 100).round : nil,
         close_rate_pct: activated.positive? ? ((won.to_f / activated) * 100).round : 0
       }
     end.sort_by { |row| [-row[:close_rate_pct], -row[:pipeline_value]] }
@@ -159,6 +173,7 @@ class AnalyticsCalculator
     OpenStruct.new(
       activated_count:          activated_count,
       first_followup_delivered: first_followup_delivered,
+      customer_replied_count:   customer_replied_count,
       won_count:                won_count,
       lost_count:               lost_count,
       in_campaign_count:        in_campaign_count,

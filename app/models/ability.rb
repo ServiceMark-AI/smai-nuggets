@@ -15,6 +15,10 @@ class Ability
 
     can :read, User, tenant_id: tenant_id
     can [:read, :update], JobProposal, tenant_id: tenant_id
+    # Tenant admins (tenant_id set, no location) can soft-delete a
+    # proposal in their own tenant. Restore still routes through SMAI
+    # staff because the trash UI lives under /admin/trash.
+    can :destroy, JobProposal, tenant_id: tenant_id if user.is_tenant_admin?
     can :read, JobType, tenant_id: tenant_id
 
     can [:read, :update], User, id: user.id
