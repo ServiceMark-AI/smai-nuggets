@@ -32,7 +32,7 @@ class PasswordResetTest < ApplicationSystemTestCase
 
     assert_text "You will receive an email with instructions"
     assert_equal [@user.email], last_email.to
-    assert_match(/Change my password/i, last_email.body.to_s)
+    assert_match(/Reset password/i, last_email.body.to_s)
   end
 
   test "submitting an unknown email shows the same confirmation but sends no mail" do
