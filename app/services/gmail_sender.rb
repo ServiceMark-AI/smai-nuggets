@@ -269,8 +269,16 @@ class GmailSender
     msg.from    = from
     msg.bcc     = bcc if bcc.present?
     msg.subject = subject
+    # format=flowed (RFC 3676): paragraphs that are single long lines
+    # render at the recipient's display width instead of getting hard-
+    # wrapped at ~65 chars by Gmail (or similar) on display. delsp=no
+    # means trailing spaces aren't deleted on unfold. With our bodies
+    # (one long line per paragraph, paragraphs separated by \n\n), the
+    # encoder only ever inserts soft QP breaks that decode away — the
+    # flowed declaration just tells the reader to treat each paragraph
+    # as a single flowed line.
     msg.text_part = Mail::Part.new do
-      content_type "text/plain; charset=UTF-8"
+      content_type "text/plain; charset=UTF-8; format=flowed; delsp=no"
       body body_text
     end
     Array(attachments).each do |att|
@@ -305,7 +313,8 @@ class GmailSender
     headers += [
       "Subject: #{subject}",
       "MIME-Version: 1.0",
-      "Content-Type: text/plain; charset=UTF-8",
+      # See build_multipart for the format=flowed rationale.
+      "Content-Type: text/plain; charset=UTF-8; format=flowed; delsp=no",
       "",
       body
     ]
