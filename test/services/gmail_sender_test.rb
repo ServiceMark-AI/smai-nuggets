@@ -122,4 +122,24 @@ class GmailSenderTest < ActiveSupport::TestCase
     refute_nil msg.text_part, "multipart message must have a text part"
     assert_equal "Hello there. This is the body.", msg.text_part.body.decoded
   end
+
+  test "multipart text part declares format=flowed so receivers reflow long paragraphs" do
+    sender = GmailSender.new(@mailbox)
+    msg = sender.send(:build_multipart,
+      to: "alice@example.com", from: "bob@example.com",
+      subject: "Test", body: "Single long paragraph.",
+      attachments: [{ filename: "p.pdf", content: "%PDF-1.4", mime_type: "application/pdf" }]
+    )
+    assert_match(/format=flowed/, msg.text_part.content_type.to_s)
+    assert_match(/delsp=no/, msg.text_part.content_type.to_s)
+  end
+
+  test "non-attachment send declares format=flowed in its Content-Type" do
+    sender = GmailSender.new(@mailbox)
+    raw = sender.send(:build_message,
+      to: "alice@example.com", subject: "Test", body: "Single long paragraph."
+    )
+    assert_match(/Content-Type: text\/plain;.*format=flowed/, raw)
+    assert_match(/delsp=no/, raw)
+  end
 end

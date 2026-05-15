@@ -1090,6 +1090,53 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  # --- revert_to_edit (Review Campaign → editing) ----------------------
+
+  test "revert_to_edit flips approving back to drafting and destroys the drafting instance" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approving)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :drafting)
+    CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
+      planned_delivery_at: 1.hour.from_now, email_delivery_status: :pending,
+      final_subject: "preview", final_body: "preview body"
+    )
+
+    patch revert_to_edit_job_proposal_url(jp)
+    assert_redirected_to edit_job_proposal_path(jp)
+    assert_match(/reverted/i, flash[:notice])
+    assert_equal "drafting", jp.reload.status
+    refute CampaignInstance.exists?(instance.id), "drafting instance should be destroyed so a fresh one launches on next save"
+  end
+
+  test "revert_to_edit refuses when the proposal isn't in approving status" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approved)
+    patch revert_to_edit_job_proposal_url(jp)
+    assert_redirected_to edit_job_proposal_path(jp)
+    assert_match(/nothing to revert/i, flash[:alert])
+    assert_equal "approved", jp.reload.status
+  end
+
+  test "revert_to_edit 404s for a proposal outside the user's scope" do
+    sign_in @user
+    jp = job_proposals(:other_tenant)
+    patch revert_to_edit_job_proposal_url(jp)
+    assert_response :not_found
+  end
+
+  test "campaign instance show page renders Revert to edit button when approving" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    jp.update!(status: :approving)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :drafting)
+    get job_proposal_campaign_instance_url(jp, instance)
+    assert_response :success
+    assert_select "form[action=?] button", revert_to_edit_job_proposal_path(jp), text: /Revert to edit/
+  end
+
   test "revert_pipeline_stage flips won back to in_campaign" do
     sign_in @user
     jp = job_proposals(:in_users_org)

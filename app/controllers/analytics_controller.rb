@@ -24,6 +24,26 @@ class AnalyticsController < ApplicationController
     proposals_scope = tenant_scope
     proposals_scope = proposals_scope.where(location_id: @selected_location_id) if @selected_location_id
 
+    @date_from = parse_date(params[:date_from])
+    @date_to   = parse_date(params[:date_to])
+    if @date_from
+      proposals_scope = proposals_scope.where("job_proposals.created_at >= ?", @date_from.beginning_of_day)
+    end
+    if @date_to
+      proposals_scope = proposals_scope.where("job_proposals.created_at <= ?", @date_to.end_of_day)
+    end
+
     @analytics = AnalyticsCalculator.new(proposals_scope: proposals_scope).call
+  end
+
+  private
+
+  # Permissive: silently drops a malformed string so a bad URL param
+  # doesn't 500 the page. Returns nil for blank or unparseable input.
+  def parse_date(raw)
+    return nil if raw.blank?
+    Date.parse(raw.to_s)
+  rescue ArgumentError
+    nil
   end
 end

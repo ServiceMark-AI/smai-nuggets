@@ -9,7 +9,7 @@ class JobProposalsController < ApplicationController
     owner_id job_type_id scenario_id proposal_value
   ].freeze
 
-  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage, :approve, :destroy]
+  before_action :load_proposal, only: [:edit, :update, :resume, :pause, :launch_campaign, :mark_won, :mark_lost, :revert_pipeline_stage, :revert_to_edit, :approve, :destroy]
   before_action :load_discarded_proposal, only: [:restore]
   before_action :require_admin, only: [:restore]
 
@@ -189,6 +189,27 @@ class JobProposalsController < ApplicationController
     end
     @job_proposal.update!(pipeline_stage: :lost, loss_reason: reason, loss_notes: notes)
     redirect_to job_proposal_path(@job_proposal), notice: "Marked as lost."
+  end
+
+  # Back-out from the "Review Campaign" page when the operator spots a
+  # mistake in the proposal data. Flips status :approving → :drafting
+  # and discards the in-flight drafting CampaignInstance — the next save
+  # re-launches a fresh instance against the corrected data, so any
+  # previously-rendered step_instance previews don't leak the old values
+  # forward. Refuses any other status because there's nothing to revert.
+  def revert_to_edit
+    unless @job_proposal.status_approving?
+      redirect_to edit_job_proposal_path(@job_proposal),
+        alert: "This proposal isn't waiting on review — nothing to revert."
+      return
+    end
+
+    JobProposal.transaction do
+      @job_proposal.campaign_instances.where(status: :drafting).destroy_all
+      @job_proposal.update!(status: :drafting)
+    end
+    redirect_to edit_job_proposal_path(@job_proposal),
+      notice: "Reverted to editing. Save again to re-launch the campaign with your changes."
   end
 
   # Undo path for an accidental Mark Won / Mark Lost click. Sets the

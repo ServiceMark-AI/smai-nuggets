@@ -37,6 +37,7 @@ Rails.application.routes.draw do
       patch :mark_won
       patch :mark_lost
       patch :revert_pipeline_stage
+      patch :revert_to_edit
       patch :approve
       patch :restore
     end

@@ -17,6 +17,10 @@
   </div>
   <div class="d-flex align-items-center gap-2">
     <% if @job_proposal.status_approving? %>
+      <%= button_to "Revert to edit", revert_to_edit_job_proposal_path(@job_proposal),
+            method: :patch,
+            class: "btn btn-outline-secondary btn-sm",
+            form: { class: "d-inline", data: { turbo_confirm: "Revert to editing? The current campaign draft will be discarded and re-built when you save." } } %>
       <%= button_to "Approve", approve_job_proposal_path(@job_proposal),
             method: :patch,
             class: "btn btn-primary btn-sm",
