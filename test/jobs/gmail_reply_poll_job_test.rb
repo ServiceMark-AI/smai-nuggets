@@ -86,6 +86,25 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
     assert_equal "active", @instance.reload.status
   end
 
+  test "stops on a reply from any third party on a non-excluded domain" do
+    # The customer's wife forwards the thread to her husband's work email;
+    # he replies to the thread with our originator still on it. His domain
+    # is neither the tenant's nor servicemark.ai, so this is a real reply
+    # and must stop the campaign.
+    snapshot = outgoing_only("t1")
+    step = build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    reply = message_from("husband@some-employer.com", "t1")
+    current = snapshot + [reply]
+
+    stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "stopped_on_reply", @instance.reload.status
+    assert_equal "customer_waiting", @proposal.reload.status_overlay
+    assert_equal reply, step.reload.gmail_reply_payload
+  end
+
   test "ignores a reply that comes from the originator's own tenant domain" do
     # The proposal owner belongs to tenant :one, whose account owner is
     # one@example.com — so example.com is the tenant's own domain.
