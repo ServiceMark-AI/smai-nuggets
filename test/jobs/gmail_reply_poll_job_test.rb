@@ -86,6 +86,50 @@ class GmailReplyPollJobTest < ActiveSupport::TestCase
     assert_equal "active", @instance.reload.status
   end
 
+  test "ignores a reply that comes from the originator's own tenant domain" do
+    # The proposal owner belongs to tenant :one, whose account owner is
+    # one@example.com — so example.com is the tenant's own domain.
+    snapshot = outgoing_only("t1")
+    build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    internal = message_from("colleague@example.com", "t1")
+    current = snapshot + [internal]
+
+    stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "active", @instance.reload.status, "an internal teammate reply must not stop the campaign"
+    assert_nil @proposal.reload.status_overlay
+  end
+
+  test "ignores a reply that comes from the servicemark.ai domain" do
+    snapshot = outgoing_only("t1")
+    build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    current = snapshot + [message_from("staff@servicemark.ai", "t1")]
+
+    stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "active", @instance.reload.status, "a ServiceMark AI reply must not stop the campaign"
+  end
+
+  test "stops on a genuine customer reply even when an internal reply precedes it" do
+    snapshot = outgoing_only("t1")
+    step = build_sent_step(thread_id: "t1", snapshot_messages: snapshot)
+    internal = message_from("colleague@example.com", "t1")
+    reply = message_from("customer@elsewhere.com", "t1")
+    current = snapshot + [internal, reply]
+
+    stub_fetch_thread(returns: { "id" => "t1", "messages" => current }) do
+      GmailReplyPollJob.new.perform
+    end
+
+    assert_equal "stopped_on_reply", @instance.reload.status
+    assert_equal "customer_waiting", @proposal.reload.status_overlay
+    assert_equal reply, step.reload.gmail_reply_payload, "the customer reply, not the internal one, should trip the stop"
+  end
+
   test "establishes a baseline snapshot on first pass when send-time snapshot was missing" do
     step = build_sent_step(thread_id: "t1", snapshot_messages: nil)
     snapshot_now = outgoing_only("t1")
