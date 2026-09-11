@@ -440,6 +440,24 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_empty GmailSender.deliveries
   end
 
+  # Regression: handle_blocked used to write the blocker's reason only to
+  # Rails.logger. campaign_step_instances had no column for it, so once a
+  # BLOCK_DELIVERY_ISSUE step got claimed to :failed it dropped out of
+  # next_pending_step_instance and the proposal page's live checklist had
+  # nothing left to run — the operator saw the stopped campaign but never
+  # the cause. Persisting it on the row is what lets a view show it after
+  # the fact.
+  test "persists the blocker's key and detail on the step when blocked silently" do
+    @proposal.update!(status_overlay: "paused")
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    step_instance.reload
+    assert_equal "status_overlay", step_instance.blocked_reason_key
+    assert_match(/paused overlay/i, step_instance.blocked_reason_detail)
+  end
+
   test "marks step failed and stops instance when the recipient is on the suppression list" do
     EmailSuppression.create!(
       location: @proposal.location,
@@ -453,6 +471,21 @@ class CampaignSweepJobTest < ActiveSupport::TestCase
     assert_equal "failed", step_instance.reload.email_delivery_status
     assert_equal "stopped_on_delivery_issue", @instance.reload.status
     assert_empty GmailSender.deliveries
+  end
+
+  test "persists the blocker's key and detail on the step when blocked with a delivery issue" do
+    EmailSuppression.create!(
+      location: @proposal.location,
+      email: @proposal.customer_email,
+      reason: "manual"
+    )
+    step_instance = build_step_instance(@step_one, status: :pending, due: 1.minute.ago)
+
+    CampaignSweepJob.new.perform
+
+    step_instance.reload
+    assert_equal "suppression", step_instance.blocked_reason_key
+    assert_match(/suppression list/i, step_instance.blocked_reason_detail)
   end
 
   test "marks step failed and stops instance when the customer email is malformed" do

@@ -509,6 +509,28 @@ class JobProposalsControllerTest < ActionDispatch::IntegrationTest
     refute_match si_no_thread.id.to_s + "[^\"]*Open", response.body
   end
 
+  # Regression: once a blocked step is claimed to :failed it drops out of
+  # next_pending_step_instance, so the live pre-send checklist card below
+  # has nothing left to run — the operator used to see "Failed" with zero
+  # explanation. blocked_reason_detail (persisted by CampaignSweepJob#
+  # handle_blocked) is what lets the step row itself carry the reason.
+  test "show step table surfaces blocked_reason_detail on a failed step" do
+    sign_in @user
+    jp = job_proposals(:in_users_org)
+    instance = CampaignInstance.create!(host: jp, campaign: campaigns(:approved_campaign), status: :stopped_on_delivery_issue)
+    CampaignStepInstance.create!(
+      campaign_instance: instance, campaign_step: campaign_steps(:approved_step_one),
+      planned_delivery_at: 1.hour.ago, email_delivery_status: :failed,
+      final_subject: "x", final_body: "y",
+      blocked_reason_key: "originator_mailbox",
+      blocked_reason_detail: "Ethan Francis's Gmail authorization was revoked or expired at Google and the last refresh attempt failed (invalid_grant)."
+    )
+
+    get job_proposal_url(jp)
+    assert_response :success
+    assert_match "the last refresh attempt failed (invalid_grant)", response.body
+  end
+
   # --- pre-send checklist card ---
 
   test "show renders the pre-send checklist for a proposal with a pending campaign step" do

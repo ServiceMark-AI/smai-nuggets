@@ -90,6 +90,34 @@ class CampaignInstancesControllerTest < ActionDispatch::IntegrationTest
     assert_match "totally_unknown_token", response.body
   end
 
+  # Regression: once a blocked step is claimed to :failed it drops out of
+  # next_pending_step_instance, so the proposal page's live checklist has
+  # nothing left to evaluate for it. blocked_reason_detail (persisted by
+  # CampaignSweepJob#handle_blocked at block time) is what lets this page
+  # show the operator why, after the fact.
+  test "shows why a failed step stopped when blocked_reason_detail is present" do
+    @si_one.update!(
+      email_delivery_status: :failed,
+      blocked_reason_key: "originator_mailbox",
+      blocked_reason_detail: "Alice Anderson's Gmail authorization was revoked or expired at Google and the last refresh attempt failed (invalid_grant)."
+    )
+
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+
+    assert_response :success
+    assert_match(/Why this step stopped/i, response.body)
+    assert_match "the last refresh attempt failed (invalid_grant)", response.body
+  end
+
+  test "does not show a why-it-stopped alert for a pending step" do
+    sign_in @user
+    get job_proposal_campaign_instance_url(@proposal, @instance)
+
+    assert_response :success
+    refute_match(/Why this step stopped/i, response.body)
+  end
+
   test "404 when the instance belongs to a different proposal" do
     other_proposal = job_proposals(:other_tenant)
     sign_in users(:admin)
