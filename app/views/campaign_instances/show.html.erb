@@ -111,6 +111,18 @@
         </div>
       <% end %>
 
+      <%# A failed/bounced step drops out of next_pending_step_instance, so
+          the pre-send checklist card on the proposal page has nothing left
+          to evaluate for it. blocked_reason_detail (persisted by
+          CampaignSweepJob#handle_blocked at block time) is what tells the
+          operator why this step stopped, here, after the fact. %>
+      <% if %w[failed bounced].include?(step_status) && si.blocked_reason_detail.present? %>
+        <div class="alert alert-danger mb-3">
+          <strong>Why this step stopped.</strong>
+          <%= si.blocked_reason_detail %>
+        </div>
+      <% end %>
+
       <dl class="row mb-3">
         <dt class="col-sm-2 text-muted">Subject</dt>
         <dd class="col-sm-10">

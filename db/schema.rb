@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_23_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_11_175309) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -100,6 +100,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_23_180000) do
   end
 
   create_table "campaign_step_instances", force: :cascade do |t|
+    t.text "blocked_reason_detail"
+    t.string "blocked_reason_key"
     t.bigint "campaign_instance_id", null: false
     t.bigint "campaign_step_id", null: false
     t.datetime "created_at", null: false
@@ -163,6 +165,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_23_180000) do
     t.string "email", null: false
     t.datetime "expires_at"
     t.string "provider", default: "google", null: false
+    t.string "refresh_error"
+    t.datetime "refresh_failed_at"
     t.text "refresh_token"
     t.text "scopes"
     t.datetime "updated_at", null: false

@@ -81,7 +81,14 @@
                 <% gmail_delegation = user.gmail_delegation %>
                 <% if gmail_delegation.nil? %>
                   <span class="text-muted small">Not linked</span>
-                <% elsif gmail_delegation.expired? && gmail_delegation.refresh_token.blank? %>
+                <% elsif gmail_delegation.reconnect_required? %>
+                  <%# EmailDelegation#reconnect_required? covers both the
+                      legacy expired-with-no-refresh-token case and a
+                      present-but-dead refresh token (Google rejected the
+                      last refresh with invalid_grant) — the same signal
+                      PreSendChecklist and the profile page use, so a dead
+                      token never reads as "Linked" here while every send
+                      for this user fails underneath it. %>
                   <span class="badge text-bg-warning">Expired</span>
                   <div class="text-muted small"><%= gmail_delegation.email %></div>
                 <% else %>

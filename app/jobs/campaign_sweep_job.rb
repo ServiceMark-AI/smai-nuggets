@@ -142,6 +142,13 @@ class CampaignSweepJob < ApplicationJob
     deliver(step_instance)
   end
 
+  # Persisting the blocker's key/detail (not just logging it) is what lets
+  # an operator-facing view show the cause after the fact. Without this,
+  # the proposal page's live checklist re-runs against next_pending_step_
+  # instance — once a BLOCK_DELIVERY_ISSUE step is claimed to :failed it's
+  # no longer pending, so the checklist has nothing left to evaluate and
+  # the reason silently vanishes from the page, leaving only the stopped
+  # campaign with no explanation.
   def handle_blocked(step_instance, blocker)
     case blocker.status
     when PreSendChecklist::BLOCK_SILENT
@@ -149,11 +156,13 @@ class CampaignSweepJob < ApplicationJob
         "[CampaignSweepJob] step #{step_instance.id} blocked silently by checklist " \
         "(#{blocker.key}): #{blocker.detail}"
       )
+      step_instance.update!(blocked_reason_key: blocker.key.to_s, blocked_reason_detail: blocker.detail)
     when PreSendChecklist::BLOCK_DELIVERY_ISSUE
       Rails.logger.warn(
         "[CampaignSweepJob] step #{step_instance.id} blocked with delivery issue " \
         "(#{blocker.key}): #{blocker.detail}"
       )
+      step_instance.update!(blocked_reason_key: blocker.key.to_s, blocked_reason_detail: blocker.detail)
       claim_to_failed(step_instance)
     end
   end

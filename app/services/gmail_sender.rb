@@ -232,9 +232,18 @@ class GmailSender
     end
   end
 
+  # Root cause of the months-long silent outage this guards against: this
+  # method used to `return unless response.code.to_i.between?(200, 299)`
+  # with no log line and no state change, so a delegation whose refresh
+  # token Google has revoked (invalid_grant) just kept failing forever,
+  # invisibly, while PreSendChecklist still reported it as connected.
   def refresh_if_needed
     return unless @credentials.expired? && @credentials.refresh_token.present?
-    return if ENV["GOOGLE_CLIENT_ID"].blank? || ENV["GOOGLE_CLIENT_SECRET"].blank?
+
+    if ENV["GOOGLE_CLIENT_ID"].blank? || ENV["GOOGLE_CLIENT_SECRET"].blank?
+      Rails.logger.error "[GmailSender] cannot refresh token for #{@credentials.email}: GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET is not configured"
+      return
+    end
 
     response = Net::HTTP.post_form(URI(TOKEN_REFRESH_URL),
       client_id: ENV["GOOGLE_CLIENT_ID"],
@@ -242,15 +251,41 @@ class GmailSender
       refresh_token: @credentials.refresh_token,
       grant_type: "refresh_token"
     )
-    return unless response.code.to_i.between?(200, 299)
+
+    unless response.code.to_i.between?(200, 299)
+      data = JSON.parse(response.body) rescue {}
+      error = data["error"]
+      description = data["error_description"]
+      Rails.logger.error "[GmailSender] token refresh failed for #{@credentials.email} (HTTP #{response.code}): error=#{error.inspect} description=#{description.inspect}"
+      persist_refresh_failure(error)
+      return
+    end
 
     data = JSON.parse(response.body)
-    return if data["access_token"].blank?
+    if data["access_token"].blank?
+      Rails.logger.error "[GmailSender] token refresh for #{@credentials.email} returned HTTP #{response.code} with no access_token: #{response.body}"
+      return
+    end
 
-    @credentials.update!(
+    update_attrs = {
       access_token: data["access_token"],
       expires_at: data["expires_in"] ? Time.current + data["expires_in"].to_i.seconds : nil
-    )
+    }
+    update_attrs[:refresh_failed_at] = nil if @credentials.respond_to?(:refresh_failed_at=)
+    update_attrs[:refresh_error] = nil if @credentials.respond_to?(:refresh_error=)
+    @credentials.update!(update_attrs)
+  end
+
+  # email_delegations carries refresh_failed_at/refresh_error so
+  # PreSendChecklist#check_originator_mailbox can tell a present-but-dead
+  # refresh token from a healthy one. ApplicationMailbox (the other
+  # credential type GmailSender serves) doesn't have these columns —
+  # guard with respond_to? so a refresh failure there still logs above
+  # without raising ActiveModel::UnknownAttributeError.
+  def persist_refresh_failure(error)
+    return unless @credentials.respond_to?(:refresh_failed_at=)
+
+    @credentials.update!(refresh_failed_at: Time.current, refresh_error: error)
   end
 
   # Builds a multipart/mixed Mail::Message with a plain-text body and

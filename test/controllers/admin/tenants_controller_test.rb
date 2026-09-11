@@ -149,5 +149,35 @@ class Admin::TenantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "th", text: "Gmail"
     assert_select "tr", text: /#{Regexp.escape(unlinked_user.email)}.*Not linked/m
     assert_select "tr", text: /#{Regexp.escape(expired_user.email)}.*Expired/m
+    assert_select "tr", text: /#{Regexp.escape(linked_user.email)}.*Linked/m
+  end
+
+  # Regression: Arturo's production delegation has a present refresh_token
+  # whose every refresh attempt fails with invalid_grant, so it is not
+  # expired?+refresh_token.blank? — the old condition — but it can't send.
+  # Before this fix the roster reported him "Linked" while every campaign
+  # send for him failed underneath it.
+  test "show does not report Linked for a user whose refresh token is present but dead (invalid_grant)" do
+    dead_token_user = User.create!(
+      email: "arturo@servpronedallas.example",
+      password: "password123",
+      tenant: tenants(:one),
+      is_pending: false
+    )
+    EmailDelegation.create!(
+      user: dead_token_user,
+      provider: "google_oauth2",
+      email: "arturo@gmail.example.com",
+      access_token: "tok",
+      refresh_token: "present-but-dead",
+      expires_at: 1.hour.ago,
+      refresh_failed_at: 5.minutes.ago,
+      refresh_error: "invalid_grant"
+    )
+
+    sign_in @admin
+    get admin_tenant_url(tenants(:one))
+    assert_response :success
+    refute_match(/#{Regexp.escape(dead_token_user.email)}.*Linked/m, response.body)
   end
 end

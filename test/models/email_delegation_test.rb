@@ -49,4 +49,55 @@ class EmailDelegationTest < ActiveSupport::TestCase
     delegation = build_delegation(scopes: nil)
     assert_equal EmailDelegation::REQUIRED_GMAIL_SCOPES, delegation.missing_scopes
   end
+
+  # --- refresh_failed? / reconnect_required? -------------------------------
+  # Single source of truth for "is this delegation actually usable", shared
+  # by PreSendChecklist and the profile/admin-roster views so a dead-but-
+  # present refresh token doesn't read as "connected" in three different
+  # places with three different conditions.
+
+  test "refresh_failed? is true when the last refresh failed with invalid_grant" do
+    delegation = build_delegation(scopes: nil)
+    delegation.refresh_error = "invalid_grant"
+    assert delegation.refresh_failed?
+  end
+
+  test "refresh_failed? is false when there is no recorded refresh error" do
+    delegation = build_delegation(scopes: nil)
+    assert_not delegation.refresh_failed?
+  end
+
+  test "refresh_failed? is false for a refresh error other than invalid_grant" do
+    delegation = build_delegation(scopes: nil)
+    delegation.refresh_error = "temporarily_unavailable"
+    assert_not delegation.refresh_failed?
+  end
+
+  test "reconnect_required? is true when refresh_failed?" do
+    delegation = build_delegation(scopes: nil)
+    delegation.refresh_token = "present-but-dead"
+    delegation.refresh_error = "invalid_grant"
+    assert delegation.reconnect_required?
+  end
+
+  test "reconnect_required? is true when expired with no refresh_token" do
+    delegation = build_delegation(scopes: nil)
+    delegation.expires_at = 1.hour.ago
+    delegation.refresh_token = nil
+    assert delegation.reconnect_required?
+  end
+
+  test "reconnect_required? is false for a healthy delegation" do
+    delegation = build_delegation(scopes: nil)
+    delegation.refresh_token = "rtk"
+    delegation.expires_at = 1.hour.from_now
+    assert_not delegation.reconnect_required?
+  end
+
+  test "reconnect_required? is false for an expired delegation that still has a refresh token and no refresh failure" do
+    delegation = build_delegation(scopes: nil)
+    delegation.refresh_token = "rtk"
+    delegation.expires_at = 1.hour.ago
+    assert_not delegation.reconnect_required?
+  end
 end

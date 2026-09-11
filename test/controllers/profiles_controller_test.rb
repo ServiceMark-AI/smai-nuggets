@@ -60,6 +60,40 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/missing permissions ServiceMark AI needs/i, response.body)
   end
 
+  # --- connection health, not a raw token countdown -----------------------
+  # Regression (Lauryn Hill support ticket): an access token is *supposed*
+  # to last exactly one hour and gets silently renewed underneath a healthy
+  # connection. Showing that countdown ("token expired 12 minutes ago") on
+  # a perfectly working connection reads as broken and sent her into a
+  # reconnect loop she couldn't get out of. Show connection health instead
+  # of the access-token clock.
+
+  test "show reports a healthy connection as renewing automatically, not a raw token countdown" do
+    @user.email_delegations.create!(
+      provider: "google_oauth2", email: "owner@example.com", access_token: "tok",
+      refresh_token: "rtk", expires_at: 12.minutes.ago
+    )
+    sign_in @user
+    get profile_url
+    assert_response :success
+    assert_match(/renews automatically/i, response.body)
+    refute_match(/token (expired|expires)/i, response.body)
+  end
+
+  test "show reports a delegation whose refresh failed with invalid_grant as disconnected and needing reconnect" do
+    @user.email_delegations.create!(
+      provider: "google_oauth2", email: "owner@example.com", access_token: "tok",
+      refresh_token: "present-but-dead", expires_at: 1.hour.ago,
+      refresh_failed_at: 5.minutes.ago, refresh_error: "invalid_grant"
+    )
+    sign_in @user
+    get profile_url
+    assert_response :success
+    assert_match(/disconnected/i, response.body)
+    assert_match(/reconnect/i, response.body)
+    refute_match(/renews automatically/i, response.body)
+  end
+
   test "edit renders the form with current profile values" do
     @user.update!(first_name: "Jane", last_name: "Doe", phone_number: "555-1234")
     sign_in @user

@@ -316,6 +316,15 @@
                   <% end %>
                 <% elsif %w[failed bounced].include?(step_status) %>
                   Failed <%= time_ago_in_words(si.updated_at) %> ago
+                  <%# The pre-send checklist card above only evaluates
+                      next_pending_step_instance — once a step is claimed to
+                      :failed it's no longer pending, so that live card has
+                      nothing left to show. blocked_reason_detail (persisted
+                      by CampaignSweepJob#handle_blocked at block time) is
+                      what tells the operator why, here, after the fact. %>
+                  <% if si.blocked_reason_detail.present? %>
+                    <div class="text-muted small mt-1"><%= si.blocked_reason_detail %></div>
+                  <% end %>
                 <% else %>
                   <span class="text-muted">—</span>
                 <% end %>
