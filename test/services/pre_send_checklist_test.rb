@@ -76,6 +76,38 @@ class PreSendChecklistTest < ActiveSupport::TestCase
     assert checks.find { |c| c.key == :originator_mailbox }.pass?
   end
 
+  # Regression for the live incident: all 11 production email_delegations
+  # rows had a present refresh_token but every refresh attempt against it
+  # was failing with invalid_grant. The old code only looked at
+  # expired? + refresh_token.blank?, so this exact state (expired, refresh
+  # token present, but dead) sailed through as "Pass" while the campaign
+  # sat stopped_on_delivery_issue underneath it.
+  test "fails originator_mailbox with delivery_issue when the last refresh failed with invalid_grant" do
+    @owner_delegation.update!(
+      expires_at: 1.hour.ago,
+      refresh_token: "rtk",
+      refresh_failed_at: 5.minutes.ago,
+      refresh_error: "invalid_grant"
+    )
+
+    blocker = PreSendChecklist.new(@step_instance).first_blocker
+
+    assert_equal :originator_mailbox, blocker.key
+    assert blocker.block_delivery_issue?
+    assert_match(/#{Regexp.escape(@proposal.owner.display_name)}/, blocker.detail)
+    assert_match(/invalid_grant/i, blocker.detail)
+    assert_match(/reconnect their Gmail in Settings/i, blocker.remedy)
+  end
+
+  test "passes originator_mailbox for a healthy delegation with no refresh failure on record" do
+    assert_nil @owner_delegation.refresh_failed_at
+    assert_nil @owner_delegation.refresh_error
+
+    checks = PreSendChecklist.run(@step_instance)
+
+    assert checks.find { |c| c.key == :originator_mailbox }.pass?
+  end
+
   test "fails pipeline_stage with block_silent when the proposal status is not approved" do
     @proposal.update!(status: :approving)
 
