@@ -142,4 +142,152 @@ class GmailSenderTest < ActiveSupport::TestCase
     assert_match(/Content-Type: text\/plain;.*format=flowed/, raw)
     assert_match(/delsp=no/, raw)
   end
+
+  # --- refresh_if_needed ------------------------------------------------
+  # Rails.env.test? short-circuits every public sender method (send_email,
+  # probe_thread, ...) before it ever reaches refresh_if_needed, so the only
+  # way to exercise the refresh path is to call the private method directly
+  # and stub the Net::HTTP call it makes.
+  #
+  # Root cause this guards: refresh_if_needed used to `return unless
+  # response.code.to_i.between?(200, 299)` with no log line and no state
+  # change. All 11 production email_delegations rows are expired (3-122
+  # days) and every refresh has been failing with invalid_grant, silently,
+  # for months.
+
+  test "refresh_if_needed logs Google's error and persists refresh_failed_at/refresh_error on a non-2xx response" do
+    delegation = build_expired_delegation
+    fake_response = http_response_double(
+      "400", { error: "invalid_grant", error_description: "Token has been expired or revoked." }.to_json
+    )
+
+    log_output = with_google_client_env do
+      capture_rails_log do
+        with_post_form_returning(fake_response) do
+          GmailSender.new(delegation).send(:refresh_if_needed)
+        end
+      end
+    end
+
+    assert_match(/invalid_grant/, log_output)
+    assert_match(/expired or revoked/i, log_output)
+
+    delegation.reload
+    assert_not_nil delegation.refresh_failed_at
+    assert_equal "invalid_grant", delegation.refresh_error
+  end
+
+  test "refresh_if_needed updates access_token/expires_at and clears a prior refresh failure on a 200 response" do
+    delegation = build_expired_delegation(refresh_failed_at: 2.days.ago, refresh_error: "invalid_grant")
+    fake_response = http_response_double(
+      "200", { access_token: "fresh-access-token", expires_in: 3600 }.to_json
+    )
+
+    with_google_client_env do
+      with_post_form_returning(fake_response) do
+        GmailSender.new(delegation).send(:refresh_if_needed)
+      end
+    end
+
+    delegation.reload
+    assert_equal "fresh-access-token", delegation.access_token
+    assert_in_delta 1.hour.from_now.to_i, delegation.expires_at.to_i, 5
+    assert_nil delegation.refresh_failed_at
+    assert_nil delegation.refresh_error
+  end
+
+  test "refresh_if_needed logs and does not call Google when GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are blank" do
+    delegation = build_expired_delegation
+
+    log_output = with_blank_google_client_env do
+      capture_rails_log do
+        with_post_form_returning(->(*) { raise "must not call Google when client credentials are blank" }) do
+          GmailSender.new(delegation).send(:refresh_if_needed)
+        end
+      end
+    end
+
+    assert_match(/GOOGLE_CLIENT_ID/, log_output)
+    assert_match(/GOOGLE_CLIENT_SECRET/, log_output)
+  end
+
+  test "refresh_if_needed is a no-op when the credential is not expired" do
+    delegation = build_expired_delegation
+    delegation.update!(expires_at: 1.hour.from_now)
+
+    with_google_client_env do
+      with_post_form_returning(->(*) { raise "must not call Google when the credential is not expired" }) do
+        GmailSender.new(delegation).send(:refresh_if_needed)
+      end
+    end
+
+    delegation.reload
+    assert_equal "stale-access-token", delegation.access_token
+  end
+
+  private
+
+  # Matches the house style in test/jobs/campaign_sweep_job_test.rb
+  # (with_production_environment, with_gmail_sender_returning, etc.) — this
+  # Ruby/minitest version doesn't ship Object#stub (minitest 6 dropped
+  # minitest/mock), so class-method stubbing goes through
+  # define_singleton_method + restore instead.
+  def with_post_form_returning(value_or_proc)
+    original = Net::HTTP.singleton_method(:post_form)
+    Net::HTTP.define_singleton_method(:post_form) do |*args, **kwargs|
+      value_or_proc.respond_to?(:call) ? value_or_proc.call(*args, **kwargs) : value_or_proc
+    end
+    yield
+  ensure
+    Net::HTTP.define_singleton_method(:post_form, original)
+  end
+
+  def build_expired_delegation(refresh_token: "old-refresh-token", refresh_failed_at: nil, refresh_error: nil)
+    EmailDelegation.create!(
+      user: users(:one),
+      provider: "google_oauth2",
+      email: "originator@example.com",
+      access_token: "stale-access-token",
+      refresh_token: refresh_token,
+      expires_at: 1.hour.ago,
+      refresh_failed_at: refresh_failed_at,
+      refresh_error: refresh_error
+    )
+  end
+
+  def http_response_double(code, body)
+    Struct.new(:code, :body).new(code, body)
+  end
+
+  def with_google_client_env
+    prior_id = ENV["GOOGLE_CLIENT_ID"]
+    prior_secret = ENV["GOOGLE_CLIENT_SECRET"]
+    ENV["GOOGLE_CLIENT_ID"] = "test-client-id"
+    ENV["GOOGLE_CLIENT_SECRET"] = "test-client-secret"
+    yield
+  ensure
+    ENV["GOOGLE_CLIENT_ID"] = prior_id
+    ENV["GOOGLE_CLIENT_SECRET"] = prior_secret
+  end
+
+  def with_blank_google_client_env
+    prior_id = ENV["GOOGLE_CLIENT_ID"]
+    prior_secret = ENV["GOOGLE_CLIENT_SECRET"]
+    ENV.delete("GOOGLE_CLIENT_ID")
+    ENV.delete("GOOGLE_CLIENT_SECRET")
+    yield
+  ensure
+    ENV["GOOGLE_CLIENT_ID"] = prior_id
+    ENV["GOOGLE_CLIENT_SECRET"] = prior_secret
+  end
+
+  def capture_rails_log
+    original_logger = Rails.logger
+    io = StringIO.new
+    Rails.logger = Logger.new(io)
+    yield
+    io.string
+  ensure
+    Rails.logger = original_logger
+  end
 end
