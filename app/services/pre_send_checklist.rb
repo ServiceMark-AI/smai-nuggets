@@ -93,13 +93,16 @@ class PreSendChecklist
       fail_check(:originator_mailbox, label, BLOCK_DELIVERY_ISSUE,
                  "#{owner.display_name}'s Gmail authorization has expired and cannot be refreshed automatically.",
                  "The originator must reconnect their Gmail in Settings → Integrations.")
-    elsif delegation.refresh_error == "invalid_grant"
+    elsif delegation.refresh_failed?
       # A present refresh_token isn't enough — GmailSender#refresh_if_needed
       # already tried it and Google rejected it (invalid_grant means the
       # grant was revoked or expired at Google's end, not just that our
       # copy is stale). Without this branch a dead-but-present refresh
       # token sails through the expired?+blank? check above and reports
       # "connected" while every send keeps failing underneath it.
+      # (EmailDelegation#refresh_failed? — shared with the profile page
+      # and the admin tenant roster so this isn't a fourth copy of the
+      # same condition.)
       fail_check(:originator_mailbox, label, BLOCK_DELIVERY_ISSUE,
                  "#{owner.display_name}'s Gmail authorization was revoked or expired at Google and the last refresh attempt failed (invalid_grant).",
                  "The originator must reconnect their Gmail in Settings → Integrations.")

@@ -81,14 +81,34 @@
                     <div class="fw-semibold"><%= d.email %></div>
                     <div class="small text-muted">
                       <%= d.provider.humanize %>
-                      <% if d.expires_at %>
-                        · token <%= d.expired? ? "expired" : "expires" %> <%= time_ago_in_words(d.expires_at, include_seconds: false) %><%= d.expired? ? " ago" : "" %>
+                      <%# Never show the raw access-token expiry here. Access
+                          tokens always last about an hour and get renewed
+                          automatically underneath a healthy connection — a
+                          user reading "token expired 12 minutes ago" on a
+                          perfectly working connection has no way to tell
+                          that apart from something broken (this exact
+                          confusion sent a customer into an endless
+                          reconnect loop). Show connection health instead:
+                          reconnect_required? is the same signal
+                          PreSendChecklist and the admin roster use. %>
+                      <% if d.reconnect_required? %>
+                        · <span class="text-danger fw-semibold">disconnected — reconnect required</span>
+                      <% else %>
+                        · renews automatically
                       <% end %>
                     </div>
                   </div>
                   <%= button_to "Disconnect", email_delegation_path(d), method: :delete, class: "btn btn-sm btn-outline-danger", form: { class: "m-0", data: { turbo_confirm: "Disconnect #{d.email}?" } } %>
                 </div>
-                <% if d.missing_scopes.any? %>
+                <% if d.reconnect_required? %>
+                  <div class="alert alert-danger small mt-2 mb-0">
+                    <strong>This connection is disconnected and can't send.</strong>
+                    Google has revoked or expired its authorization, so it can no longer be renewed
+                    automatically — reconnecting the same way again won't fix it on its own.
+                    Click <strong>Disconnect</strong> below, then <strong>Setup G Suite</strong> to reconnect
+                    and approve every permission Google asks for.
+                  </div>
+                <% elsif d.missing_scopes.any? %>
                   <div class="alert alert-warning small mt-2 mb-0">
                     <strong>This connection is missing permissions ServiceMark AI needs:</strong>
                     <%= d.missing_scopes.map { |s| oauth_scope_label(s) }.to_sentence %>.
